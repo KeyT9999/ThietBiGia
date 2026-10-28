@@ -3,7 +3,8 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowLeft,
@@ -43,10 +44,16 @@ export function MemberSpotlightView({
   isModal?: boolean;
 }) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [reelPlaying, setReelPlaying] = useState(false);
   const [reelFrameIdx, setReelFrameIdx] = useState(0);
   const [lightboxItem, setLightboxItem] = useState<BentoItem | null>(null);
   const [lightboxPhotoIdx, setLightboxPhotoIdx] = useState(0);
+  const progressBarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const roleMeta = getRoleMeta(member.roleCategory);
   const memberWorks = getWorksForMember(member.slug);
@@ -70,7 +77,41 @@ export function MemberSpotlightView({
     setReelFrameIdx(0);
     setReelPlaying(false);
     setLightboxItem(null);
-  }, [member.slug]);
+    if (progressBarRef.current) {
+      progressBarRef.current.style.transform = "scaleX(0)";
+    }
+    if (!isModal && typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+  }, [member.slug, isModal]);
+
+  // Zero-setState 60fps reading progress bar in the sticky sub-header
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const scroller = isModal
+      ? (document.querySelector("[data-modal-scroll]") as HTMLElement | null)
+      : null;
+
+    const updateProgress = () => {
+      if (!progressBarRef.current) return;
+      const scrollTop = scroller ? scroller.scrollTop : window.scrollY;
+      const maxScroll = scroller
+        ? scroller.scrollHeight - scroller.clientHeight
+        : document.documentElement.scrollHeight - window.innerHeight;
+      const ratio =
+        maxScroll > 4 ? Math.min(1, Math.max(0, scrollTop / maxScroll)) : 0;
+      progressBarRef.current.style.transform = `scaleX(${ratio})`;
+    };
+
+    updateProgress();
+    const target: HTMLElement | Window = scroller ?? window;
+    target.addEventListener("scroll", updateProgress, { passive: true });
+    window.addEventListener("resize", updateProgress, { passive: true });
+    return () => {
+      target.removeEventListener("scroll", updateProgress);
+      window.removeEventListener("resize", updateProgress);
+    };
+  }, [isModal, member.slug]);
 
   useEffect(() => {
     if (!reelPlaying || heroGallery.length <= 1) return;
@@ -119,14 +160,28 @@ export function MemberSpotlightView({
   };
 
   return (
-    <div className="relative min-h-[100dvh] w-full flex flex-col pt-16">
-      {/* Sticky Sub-Header Bar (z-50 sits cleanly above z-40 Canvas) */}
-      <div className="sticky top-16 z-50 border-b border-obsidian-border/90 bg-obsidian/90 backdrop-blur-xl px-4 sm:px-8 py-3">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
+    <div className="relative min-h-[100dvh] w-full flex flex-col pt-[72px]">
+      {/* Ambient Radial Studio Glow behind z-40 PersistentCanvas in Modal mode */}
+      {isModal && mounted
+        ? createPortal(
+            <div
+              aria-hidden="true"
+              className="pointer-events-none fixed top-[120px] bottom-0 left-0 w-full md:w-[42%] z-[35] opacity-30"
+              style={{
+                background: `radial-gradient(circle at 50% 45%, ${roleMeta.color}36 0%, transparent 68%)`,
+              }}
+            />,
+            document.body
+          )
+        : null}
+
+      {/* Sticky Sub-Header Bar (72px..120px, z-50 sits cleanly above z-40 Canvas & flush under Navbar shield) */}
+      <div className="sticky top-[72px] z-50 h-12 border-b border-obsidian-border/90 bg-obsidian/95 backdrop-blur-xl px-4 sm:px-8 flex items-center">
+        <div className="max-w-[1600px] w-full mx-auto flex items-center justify-between gap-4">
           <button
             type="button"
             onClick={handleClose}
-            className="inline-flex items-center gap-2 text-xs font-mono text-ivory-muted hover:text-rec transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-mono text-ivory-muted hover:text-rec transition-colors shrink-0"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>
@@ -135,13 +190,15 @@ export function MemberSpotlightView({
             </span>
           </button>
 
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-mono text-ivory">
-              THIẾT BỊ GIA /{" "}
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <span className="text-xs font-mono text-ivory truncate">
+              <span className="hidden sm:inline text-ivory-muted">
+                {member.name.toUpperCase()} //{" "}
+              </span>
               <span className="text-rec font-bold">CREW #{member.badgeNumber}</span>
             </span>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               <Link
                 href={`/crew/${prevMember.slug}`}
                 replace={isModal}
@@ -165,39 +222,45 @@ export function MemberSpotlightView({
             </div>
           </div>
         </div>
+
+        {/* Live Scroll Reading Progress Indicator */}
+        <div
+          ref={progressBarRef}
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-0 left-0 right-0 h-[2px] bg-rec origin-left scale-x-0 transition-transform duration-75"
+        />
       </div>
 
-      {/* Two-Column Split Layout: Left 3D Physics Lanyard Badge + Right Bento Showcase */}
-      <div className="max-w-[1600px] w-full mx-auto flex-1 grid grid-cols-1 lg:grid-cols-12">
-        {/* LEFT COLUMN (35-38%): 3D Hanging Holographic Press Pass */}
-        <div className="lg:col-span-5 relative border-b lg:border-b-0 lg:border-r border-obsidian-border/80 flex flex-col justify-between min-h-[500px] lg:h-[calc(100dvh-118px)] lg:sticky lg:top-[118px]">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-30"
-            style={{
-              background: `radial-gradient(circle at 50% 45%, ${roleMeta.color}33 0%, transparent 68%)`,
-            }}
-          />
+      {/* Two-Column Split Layout: Left 3D Physics Lanyard Badge (sticky from 768px+) + Right Bento Showcase */}
+      <div className="max-w-[1600px] w-full mx-auto flex-1 grid grid-cols-1 md:grid-cols-12 md:items-start">
+        {/* LEFT COLUMN (41.6%): 3D Hanging Holographic Press Pass */}
+        <div className="md:col-span-5 relative border-b md:border-b-0 md:border-r border-obsidian-border/80 flex flex-col justify-between h-[420px] sm:h-[460px] md:h-[calc(100dvh-120px)] md:sticky md:top-[120px] touch-pan-y">
+          {!isModal && (
+            <div
+              className="pointer-events-none absolute inset-0 z-0 opacity-30"
+              style={{
+                background: `radial-gradient(circle at 50% 45%, ${roleMeta.color}33 0%, transparent 68%)`,
+              }}
+            />
+          )}
 
-          {/* Tracked WebGL View Box (renders onto PersistentCanvas z-40) */}
-          <div className="relative z-10 flex-1 w-full min-h-[440px]">
+          {/* Tracked WebGL View Box (transparent so PersistentCanvas z-40 shines through cleanly) */}
+          <div className="relative z-10 flex-1 w-full min-h-0">
             <LanyardPressPass3DView member={member} />
           </div>
 
-          {/* Bottom Drag Instruction Pill (z-50) */}
-          <div className="relative z-50 px-6 pb-5 pt-2 flex items-center justify-between text-xs font-mono text-ivory-muted">
+          {/* Bottom Drag Instruction Pill */}
+          <div className="relative z-20 px-5 pb-4 pt-2 flex items-center justify-between text-xs font-mono text-ivory-muted">
             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-obsidian-border bg-obsidian-surface/85 backdrop-blur-md">
               <Hand className="w-3.5 h-3.5 text-rec" />
               <span>NẮM KÉO THẺ 3D ĐỂ ĐUNG ĐƯA VẬT LÝ</span>
             </span>
-            <span className="hidden sm:inline text-ivory-subtle">RAPIER 3D</span>
+            <span className="hidden lg:inline text-ivory-subtle">RAPIER 3D</span>
           </div>
         </div>
 
-        {/* RIGHT COLUMN (62-65%): Editorial Bio + Bento Media Showcase + Đồng Đội Cùng Ekip */}
-        <div
-          data-lenis-prevent={isModal ? true : undefined}
-          className="lg:col-span-7 relative z-50 p-5 sm:p-8 lg:p-10 space-y-10"
-        >
+        {/* RIGHT COLUMN (58.3%): Editorial Bio + Bento Media Showcase + Đồng Đội Cùng Ekip */}
+        <div className="md:col-span-7 relative z-20 bg-obsidian p-5 sm:p-8 lg:p-10 pb-24 space-y-10">
           {/* Member Intro & Gear Spec */}
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -493,17 +556,19 @@ export function MemberSpotlightView({
         </div>
       </div>
 
-      {/* Full-Screen Portfolio Album Lightbox */}
-      <AnimatePresence>
-        {lightboxItem && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setLightboxItem(null)}
-            data-lenis-prevent
-            className="fixed inset-0 z-[95] bg-obsidian/95 backdrop-blur-2xl flex items-center justify-center p-4 sm:p-6"
-          >
+      {/* Full-Screen Portfolio Album Lightbox (portaled to document.body at z-[95] above Navbar & Canvas) */}
+      {mounted
+        ? createPortal(
+            <AnimatePresence>
+              {lightboxItem && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setLightboxItem(null)}
+                  data-lenis-prevent
+                  className="fixed inset-0 z-[95] bg-obsidian/95 backdrop-blur-2xl flex items-center justify-center p-4 sm:p-6"
+                >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -624,9 +689,12 @@ export function MemberSpotlightView({
                 )}
               </div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

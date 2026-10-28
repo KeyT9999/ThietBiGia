@@ -12,8 +12,11 @@ export function Navbar() {
   const pathname = usePathname();
   const soundMuted = useAppStore((s) => s.soundMuted);
   const toggleSound = useAppStore((s) => s.toggleSound);
+  const isOverlayOpen = useAppStore((s) => s.isOverlayOpen);
   const [liveTime, setLiveTime] = useState("21:00:00");
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const isScrollableView = isOverlayOpen || pathname !== "/";
 
   useEffect(() => {
     const updateClock = () => {
@@ -48,7 +51,18 @@ export function Navbar() {
   ];
 
   return (
-    <header className="fixed top-3 left-3 right-3 sm:left-5 sm:right-5 z-[60]">
+    <>
+      {/* Top Studio Header Shield (0..72px, z-[55]): prevents scrolling content or z-40 WebGL Views from peeking above the floating Navbar */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none fixed top-0 inset-x-0 h-[72px] z-[55] transition-colors duration-200 ${
+          isScrollableView
+            ? "bg-obsidian/95 backdrop-blur-xl"
+            : "bg-gradient-to-b from-obsidian/80 to-transparent"
+        }`}
+      />
+
+      <header className="fixed top-3 left-3 right-3 sm:left-5 sm:right-5 z-[60]">
       <div className="mx-auto max-w-[1680px] rounded-xl border border-obsidian-border/90 bg-obsidian-surface/80 backdrop-blur-xl px-4 sm:px-6 h-14 flex items-center justify-between gap-4 shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
         {/* Left descriptor */}
         <div className="flex items-center gap-3 min-w-0">
@@ -151,6 +165,7 @@ export function Navbar() {
           })}
         </div>
       )}
-    </header>
+      </header>
+    </>
   );
 }

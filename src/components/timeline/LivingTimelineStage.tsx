@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { Observer } from "gsap/Observer";
@@ -28,10 +29,14 @@ const TimelineCarousel3DView = dynamic(
 
 export function LivingTimelineStage() {
   const stageRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
   const timelineMode = useAppStore((s) => s.timelineMode);
   const setTimelineMode = useAppStore((s) => s.setTimelineMode);
   const activeWorkIndex = useAppStore((s) => s.activeWorkIndex);
   const isOverlayOpen = useAppStore((s) => s.isOverlayOpen);
+
+  // Immediately hide & disable homepage floating HUD whenever an intercepting modal opens or route leaves "/"
+  const isBackgrounded = isOverlayOpen || pathname !== "/";
 
   const isCrewMode = timelineMode === "crew";
   const total = isCrewMode ? CREW_MEMBERS.length : WORKS_DATA.length;
@@ -63,7 +68,7 @@ export function LivingTimelineStage() {
   }, []);
 
   useEffect(() => {
-    if (!stageRef.current || isOverlayOpen) return;
+    if (!stageRef.current || isBackgrounded) return;
 
     const obs = Observer.create({
       target: stageRef.current,
@@ -92,7 +97,7 @@ export function LivingTimelineStage() {
     });
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (useAppStore.getState().isOverlayOpen) return;
+      if (useAppStore.getState().isOverlayOpen || window.location.pathname !== "/") return;
       if (e.key === "ArrowRight") useAppStore.getState().stepWorkIndex(1);
       if (e.key === "ArrowLeft") useAppStore.getState().stepWorkIndex(-1);
     };
@@ -102,12 +107,15 @@ export function LivingTimelineStage() {
       obs.kill();
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [isOverlayOpen, total]);
+  }, [isBackgrounded, total]);
 
   return (
     <section
       ref={stageRef}
-      className="relative w-full h-[100dvh] overflow-hidden bg-obsidian flex flex-col justify-between pt-20 pb-4 select-none"
+      aria-hidden={isBackgrounded}
+      className={`relative w-full h-[100dvh] overflow-hidden bg-obsidian flex flex-col justify-between pt-20 pb-4 select-none transition-opacity duration-200 ${
+        isBackgrounded ? "invisible opacity-0 pointer-events-none" : "opacity-100"
+      }`}
     >
       {/* Subtle radial studio spotlight behind center card */}
       <div
@@ -118,7 +126,11 @@ export function LivingTimelineStage() {
       />
 
       {/* Top Active Metadata HUD + Mode Switcher (Crew [16] vs Works [12]) */}
-      <div className="relative z-50 max-w-[1440px] w-full mx-auto px-4 sm:px-8 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
+      <div
+        className={`relative z-[45] max-w-[1440px] w-full mx-auto px-4 sm:px-8 flex flex-wrap items-center justify-between gap-3 pointer-events-none ${
+          isBackgrounded ? "hidden" : ""
+        }`}
+      >
         <div className="space-y-0.5">
           <div className="flex items-center gap-2 text-xs font-mono text-ivory-muted">
             <span
@@ -188,8 +200,12 @@ export function LivingTimelineStage() {
           <TimelineCarousel3DView />
         </div>
 
-        {/* Left Info Card & Right Floating Glass Pills (z-50 above 3D Canvas) */}
-        <div className="relative z-50 w-full max-w-[1280px] mx-auto px-4 sm:px-8 h-full pointer-events-none flex flex-col md:flex-row items-end md:items-center justify-end md:justify-between pb-3 md:pb-0">
+        {/* Left Info Card & Right Floating Glass Pills (z-[45] above z-40 3D Canvas, strictly below z-50 Modal) */}
+        <div
+          className={`relative z-[45] w-full max-w-[1280px] mx-auto px-4 sm:px-8 h-full pointer-events-none flex flex-col md:flex-row items-end md:items-center justify-end md:justify-between pb-3 md:pb-0 ${
+            isBackgrounded ? "hidden" : ""
+          }`}
+        >
           {isCrewMode ? (
             <>
               {/* Left Active Member Spotlight Summary Card */}
@@ -279,8 +295,8 @@ export function LivingTimelineStage() {
         </div>
       </div>
 
-      {/* Bottom NLE Video Editor Timeline Scrubber Dock (z-50) */}
-      <div className="relative z-50">
+      {/* Bottom NLE Video Editor Timeline Scrubber Dock */}
+      <div className={`relative z-[45] ${isBackgrounded ? "hidden" : ""}`}>
         <NLEScrubberRuler />
       </div>
     </section>

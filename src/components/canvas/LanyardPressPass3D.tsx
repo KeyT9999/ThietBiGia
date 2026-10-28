@@ -35,17 +35,16 @@ function drawRoundedRect(
   ctx.closePath();
 }
 
-function createFrontBadgeTexture(
+function paintFrontBadgeCanvas(
+  canvas: HTMLCanvasElement,
   member: CrewMember,
   avatarImg: HTMLImageElement | null,
   projectCount: number
-): THREE.CanvasTexture {
-  const W = 1024;
-  const H = 1520;
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
+) {
+  const W = canvas.width;
+  const H = canvas.height;
   const ctx = canvas.getContext("2d")!;
+  ctx.clearRect(0, 0, W, H);
 
   const roleMeta = getRoleMeta(member.roleCategory);
 
@@ -130,6 +129,33 @@ function createFrontBadgeTexture(
       drawY = py - (drawH - ph) * yBias;
     }
     ctx.drawImage(avatarImg, drawX, drawY, drawW, drawH);
+  } else {
+    // Studio lens aperture fallback before portrait decodes
+    const cx = px + pw / 2;
+    const cy = py + ph / 2;
+    const rg = ctx.createRadialGradient(cx, cy, 24, cx, cy, 260);
+    rg.addColorStop(0, `${roleMeta.color}44`);
+    rg.addColorStop(1, "rgba(16,18,25,0)");
+    ctx.fillStyle = rg;
+    ctx.fillRect(px, py, pw, ph);
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, 128, 0, Math.PI * 2);
+    ctx.strokeStyle = roleMeta.color;
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    const initials = member.name
+      .split(" ")
+      .slice(-2)
+      .map((w) => w[0] ?? "")
+      .join("")
+      .toUpperCase();
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#F4F1EA";
+    ctx.font = "800 84px sans-serif";
+    ctx.fillText(initials, cx, cy + 28);
+    ctx.textAlign = "left";
   }
   ctx.restore();
 
@@ -225,12 +251,6 @@ function createFrontBadgeTexture(
   ctx.fillStyle = "#313647";
   ctx.fillText("TÁC PHẨM", W * 0.64, 1375);
   ctx.fillText("& DỰ ÁN NHÓM", W * 0.64, 1404);
-
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-  tex.needsUpdate = true;
-  return tex;
 }
 
 function createBackBadgeTexture(member: CrewMember): THREE.CanvasTexture {
@@ -279,28 +299,42 @@ function PhysicsBadgeAssembly({ member }: { member: CrewMember }) {
 
   const [dragOffset, setDragOffset] = useState<THREE.Vector3 | null>(null);
   const [hovered, setHovered] = useState(false);
-  const [avatarImg, setAvatarImg] = useState<HTMLImageElement | null>(null);
 
   const { camera } = useThree();
   const projectCount = useMemo(() => getWorksForMember(member.slug).length, [member.slug]);
 
+  const frontTex = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 1520;
+    paintFrontBadgeCanvas(canvas, member, null, projectCount);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    tex.needsUpdate = true;
+    return tex;
+  }, [member, projectCount]);
+
   useEffect(() => {
     let active = true;
+    const canvas = frontTex.image as HTMLCanvasElement;
     const img = new window.Image();
     img.crossOrigin = "anonymous";
-    img.onload = () => {
-      if (active) setAvatarImg(img);
+    const applyPortrait = () => {
+      if (!active) return;
+      paintFrontBadgeCanvas(canvas, member, img, projectCount);
+      frontTex.needsUpdate = true;
     };
+    img.onload = applyPortrait;
     img.src = member.avatar;
+    if (img.complete && img.naturalWidth > 0) {
+      applyPortrait();
+    }
     return () => {
       active = false;
     };
-  }, [member.avatar]);
+  }, [frontTex, member, projectCount]);
 
-  const frontTex = useMemo(
-    () => createFrontBadgeTexture(member, avatarImg, projectCount),
-    [member, avatarImg, projectCount]
-  );
   const backTex = useMemo(() => createBackBadgeTexture(member), [member]);
 
   useEffect(() => {
@@ -331,6 +365,18 @@ function PhysicsBadgeAssembly({ member }: { member: CrewMember }) {
 
   const vec = useMemo(() => new THREE.Vector3(), []);
   const dir = useMemo(() => new THREE.Vector3(), []);
+  const lastScrollY = useRef<number | null>(null);
+  const modalScrollerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    modalScrollerRef.current = document.querySelector(
+      "[data-modal-scroll]"
+    ) as HTMLElement | null;
+    lastScrollY.current = modalScrollerRef.current
+      ? modalScrollerRef.current.scrollTop
+      : window.scrollY;
+  }, []);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -354,6 +400,20 @@ function PhysicsBadgeAssembly({ member }: { member: CrewMember }) {
         y: vec.y - dragOffset.y,
         z: vec.z - dragOffset.z,
       });
+    } else if (card.current && typeof window !== "undefined") {
+      // Gentle physical pendulum micro-sway coupled to scroll velocity
+      const scroller = modalScrollerRef.current;
+      const curY = scroller ? scroller.scrollTop : window.scrollY;
+      if (lastScrollY.current !== null) {
+        const dy = curY - lastScrollY.current;
+        if (Math.abs(dy) > 0.4) {
+          card.current.wakeUp();
+          const ix = THREE.MathUtils.clamp(dy * 0.00042, -0.02, 0.02);
+          const iz = THREE.MathUtils.clamp(-Math.abs(dy) * 0.00022, -0.012, 0.012);
+          card.current.applyImpulse({ x: ix, y: 0, z: iz }, true);
+        }
+      }
+      lastScrollY.current = curY;
     }
 
     if (fixed.current && j1.current && j2.current && j3.current && card.current && strapMeshRef.current) {

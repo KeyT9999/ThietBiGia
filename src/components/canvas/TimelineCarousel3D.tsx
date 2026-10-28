@@ -5,7 +5,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Image, PerspectiveCamera, View } from "@react-three/drei";
 import { easing } from "maath";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { CREW_MEMBERS, type CrewMember } from "@/data/crew";
 import { WORKS_DATA, type WorkProject } from "@/data/works";
 import { timelineMotion, useAppStore } from "@/lib/store";
@@ -605,7 +605,7 @@ function WorkCardMesh({
   );
 }
 
-function CarouselRig() {
+function CarouselRig({ active }: { active: boolean }) {
   const router = useRouter();
   const rigRef = useRef<THREE.Group>(null!);
   const timelineMode = useAppStore((s) => s.timelineMode);
@@ -624,6 +624,7 @@ function CarouselRig() {
   }, [sharedCardGeo]);
 
   useFrame((state, delta) => {
+    if (!active) return;
     const prev = timelineMotion.currentIndex;
     timelineMotion.targetIndex = THREE.MathUtils.clamp(
       timelineMotion.targetIndex,
@@ -669,7 +670,7 @@ function CarouselRig() {
   };
 
   return (
-    <group ref={rigRef}>
+    <group ref={rigRef} visible={active}>
       {timelineMode === "crew"
         ? CREW_MEMBERS.map((member, idx) => (
             <MemberCardMesh
@@ -694,14 +695,20 @@ function CarouselRig() {
 }
 
 export function TimelineCarousel3DView() {
+  const pathname = usePathname();
   const isOverlayOpen = useAppStore((s) => s.isOverlayOpen);
+  const isActive = !isOverlayOpen && pathname === "/";
 
   return (
-    <View visible={!isOverlayOpen} index={1} className="w-full h-full">
+    <View
+      visible={isActive}
+      index={1}
+      className={`w-full h-full ${isActive ? "" : "pointer-events-none"}`}
+    >
       <PerspectiveCamera makeDefault position={[0, 0.08, 6.2]} fov={38} />
       <ambientLight intensity={1.2} />
       <Suspense fallback={null}>
-        <CarouselRig />
+        <CarouselRig active={isActive} />
       </Suspense>
     </View>
   );

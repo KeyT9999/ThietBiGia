@@ -47,10 +47,10 @@ export function ProjectDetailView({
   };
 
   return (
-    <div className="relative z-50 min-h-[100dvh] w-full pt-16 pb-20">
-      {/* Sticky Top Bar */}
-      <div className="sticky top-16 z-50 border-b border-obsidian-border bg-obsidian/90 backdrop-blur-xl px-4 sm:px-8 py-3">
-        <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-4">
+    <div className="relative z-50 min-h-[100dvh] w-full bg-obsidian pt-[72px] pb-24">
+      {/* Sticky Top Bar (72px..120px, flush beneath Navbar top shield) */}
+      <div className="sticky top-[72px] z-50 h-12 border-b border-obsidian-border bg-obsidian/95 backdrop-blur-xl px-4 sm:px-8 flex items-center">
+        <div className="max-w-[1440px] w-full mx-auto flex items-center justify-between gap-4">
           <button
             type="button"
             onClick={handleClose}
