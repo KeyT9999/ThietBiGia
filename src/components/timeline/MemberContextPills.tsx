@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowUpRight, Film, IdCard, RefreshCw } from "lucide-react";
+import { ArrowUpRight, Film, IdCard, Images, RefreshCw } from "lucide-react";
 import { CREW_MEMBERS, type CrewMember } from "@/data/crew";
-import { getTeammatesForMember, getWorksForMember } from "@/data/works";
+import {
+  getTeammatesForMember,
+  getUnifiedProjectsForMember,
+} from "@/data/works";
 import { getRoleMeta } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
@@ -13,73 +16,110 @@ export function MemberContextPills({ member }: { member: CrewMember }) {
   const setCursor = useAppStore((s) => s.setCursor);
   const setActiveWorkIndex = useAppStore((s) => s.setActiveWorkIndex);
 
-  const memberWorks = getWorksForMember(member.slug).slice(0, 2);
+  const allProjects = getUnifiedProjectsForMember(member);
+  const previewProjects = allProjects.slice(0, 3);
   const topTeammate = getTeammatesForMember(member.slug)[0]?.member;
+  const shortName =
+    member.nickname ?? member.name.split(" ").slice(-2).join(" ");
 
   return (
-    <div className="pointer-events-auto flex flex-col items-start gap-2">
+    <div className="pointer-events-auto w-[264px] sm:w-[292px] flex flex-col gap-2">
+      {/* Header Label for Member's Visual Project Stack */}
+      <div className="px-3 py-1.5 rounded-xl border border-white/10 bg-obsidian-surface/85 backdrop-blur-xl flex items-center justify-between gap-2 shadow-lg">
+        <span className="text-xs font-mono text-ivory flex items-center gap-1.5 truncate">
+          <Film className="w-3.5 h-3.5 text-rec shrink-0" />
+          <span className="font-bold truncate">
+            PROJECT CỦA {shortName.toUpperCase()}
+          </span>
+        </span>
+        <Link
+          href={`/works?member=${member.slug}`}
+          onClick={() => {
+            soundEngine.playTick(0.8);
+            setCursor("default", "");
+          }}
+          className="text-xs font-mono text-rec hover:underline shrink-0"
+        >
+          [{allProjects.length}] Tất cả →
+        </Link>
+      </div>
+
       <AnimatePresence mode="popLayout">
-        {/* Featured Campaigns of this Member */}
-        {memberWorks.map((proj, idx) => (
-          <motion.div
-            key={`${member.slug}-work-${proj.slug}`}
-            initial={{ opacity: 0, x: 18, scale: 0.94 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: -12, scale: 0.94 }}
-            transition={{
-              duration: 0.3,
-              delay: idx * 0.045,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-          >
-            <Link
-              href={`/works/${proj.slug}`}
-              scroll={false}
-              onClick={() => {
-                soundEngine.playShutter();
-                setCursor("default", "");
+        {/* Idea 2: Visual Fan-Out / Stacked Project Thumbnail Cards */}
+        {previewProjects.map((proj, idx) => {
+          const targetHref = proj.workSlug
+            ? `/works/${proj.workSlug}`
+            : `/crew/${member.slug}`;
+          return (
+            <motion.div
+              key={`${member.slug}-proj-${proj.id}`}
+              initial={{ opacity: 0, x: 20, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -12, scale: 0.95 }}
+              transition={{
+                duration: 0.28,
+                delay: idx * 0.04,
+                ease: [0.22, 1, 0.36, 1],
               }}
-              onMouseEnter={() => {
-                soundEngine.playHover();
-                setCursor("project", "XEM DỰ ÁN");
-              }}
-              onMouseLeave={() => setCursor("default", "")}
-              className="group flex items-center gap-2.5 pl-1.5 pr-4 py-1.5 rounded-full border border-white/15 bg-obsidian-surface/80 hover:bg-obsidian-elevated/95 hover:border-rec/60 backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.55)] transition-all"
             >
-              <div
-                className="w-8 h-8 rounded-full overflow-hidden border-2 shrink-0"
-                style={{ borderColor: proj.accentColor }}
+              <Link
+                href={targetHref}
+                scroll={false}
+                onClick={() => {
+                  soundEngine.playShutter();
+                  setCursor("default", "");
+                }}
+                onMouseEnter={() => {
+                  soundEngine.playHover();
+                  setCursor("project", "MỞ PROJECT");
+                }}
+                onMouseLeave={() => setCursor("default", "")}
+                className="group flex items-center gap-3 p-2 rounded-2xl border border-white/15 bg-obsidian-surface/85 hover:bg-obsidian-elevated hover:border-rec/70 hover:-translate-x-1 backdrop-blur-xl shadow-[0_12px_32px_rgba(0,0,0,0.55)] transition-all"
               >
-                <img
-                  src={proj.coverImage}
-                  alt={proj.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="text-xs leading-tight max-w-[190px] truncate">
-                <span className="text-ivory-muted font-mono mr-1.5 inline-flex items-center gap-1">
-                  <Film className="w-3 h-3 text-rec inline" />
-                  Dự án:
-                </span>
-                <span className="text-ivory font-semibold group-hover:text-rec transition-colors">
-                  {proj.title}
-                </span>
-              </div>
-              <ArrowUpRight className="w-3.5 h-3.5 text-ivory-subtle group-hover:text-rec group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform shrink-0" />
-            </Link>
-          </motion.div>
-        ))}
+                {/* Wide 16:10 Real Project Thumbnail + Frame Count */}
+                <div
+                  className="relative w-20 h-[52px] rounded-xl overflow-hidden border shrink-0 bg-obsidian"
+                  style={{ borderColor: `${proj.accentColor}88` }}
+                >
+                  <img
+                    src={proj.coverImage}
+                    alt={proj.title}
+                    className="w-full h-full object-cover object-[50%_20%] group-hover:scale-110 transition-transform duration-500"
+                  />
+                  <span className="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-obsidian/85 text-[10px] font-mono font-bold text-ivory flex items-center gap-0.5 leading-none">
+                    <Images className="w-2.5 h-2.5 text-rec" />
+                    {proj.frames.length}
+                  </span>
+                </div>
+
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <div className="text-xs font-mono text-rec truncate">
+                    {proj.roleBadge}
+                  </div>
+                  <div className="font-display font-bold text-xs sm:text-sm text-ivory group-hover:text-rec transition-colors truncate">
+                    {proj.title}
+                  </div>
+                  <div className="text-xs text-ivory-subtle truncate">
+                    {proj.category}
+                  </div>
+                </div>
+
+                <ArrowUpRight className="w-4 h-4 text-ivory-subtle group-hover:text-rec shrink-0 mr-1" />
+              </Link>
+            </motion.div>
+          );
+        })}
 
         {/* Quick-Glide Pill to a Frequent Teammate on the 3D Timeline */}
         {topTeammate && (
           <motion.div
             key={`${member.slug}-mate-${topTeammate.slug}`}
-            initial={{ opacity: 0, x: 18, scale: 0.94 }}
+            initial={{ opacity: 0, x: 18, scale: 0.95 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: -12, scale: 0.94 }}
+            exit={{ opacity: 0, x: -12, scale: 0.95 }}
             transition={{
-              duration: 0.3,
-              delay: 0.1,
+              duration: 0.28,
+              delay: 0.13,
               ease: [0.22, 1, 0.36, 1],
             }}
           >
@@ -98,27 +138,29 @@ export function MemberContextPills({ member }: { member: CrewMember }) {
                 setCursor("crew", `TỚI #${topTeammate.badgeNumber}`);
               }}
               onMouseLeave={() => setCursor("default", "")}
-              className="group flex items-center gap-2.5 pl-1.5 pr-4 py-1.5 rounded-full border border-white/15 bg-obsidian-surface/75 hover:bg-obsidian-elevated/95 hover:border-cyan-400/60 backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.55)] transition-all text-left"
+              className="w-full group flex items-center justify-between gap-2.5 pl-1.5 pr-3.5 py-1.5 rounded-full border border-white/15 bg-obsidian-surface/75 hover:bg-obsidian-elevated/95 hover:border-cyan-400/60 backdrop-blur-xl shadow-lg transition-all text-left"
             >
-              <div
-                className="w-8 h-8 rounded-full overflow-hidden border-2 shrink-0"
-                style={{
-                  borderColor: getRoleMeta(topTeammate.roleCategory).color,
-                }}
-              >
-                <img
-                  src={topTeammate.avatar}
-                  alt={topTeammate.name}
-                  className="w-full h-full object-cover object-[50%_18%]"
-                />
-              </div>
-              <div className="text-xs leading-tight">
-                <span className="text-ivory-muted font-mono mr-1.5">
-                  Cùng ekip:
-                </span>
-                <span className="text-ivory font-semibold group-hover:text-cyan-400 transition-colors">
-                  {topTeammate.name}
-                </span>
+              <div className="flex items-center gap-2 min-w-0">
+                <div
+                  className="w-7 h-7 rounded-full overflow-hidden border-2 shrink-0"
+                  style={{
+                    borderColor: getRoleMeta(topTeammate.roleCategory).color,
+                  }}
+                >
+                  <img
+                    src={topTeammate.avatar}
+                    alt={topTeammate.name}
+                    className="w-full h-full object-cover object-[50%_18%]"
+                  />
+                </div>
+                <div className="text-xs leading-tight truncate">
+                  <span className="text-ivory-muted font-mono mr-1">
+                    Cùng ekip:
+                  </span>
+                  <span className="text-ivory font-semibold group-hover:text-cyan-400 transition-colors">
+                    {topTeammate.name}
+                  </span>
+                </div>
               </div>
               <RefreshCw className="w-3 h-3 text-ivory-subtle group-hover:text-cyan-400 group-hover:rotate-90 transition-transform shrink-0" />
             </button>
@@ -131,7 +173,7 @@ export function MemberContextPills({ member }: { member: CrewMember }) {
           initial={{ opacity: 0, x: 18 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -12 }}
-          transition={{ duration: 0.3, delay: 0.15 }}
+          transition={{ duration: 0.28, delay: 0.16 }}
         >
           <Link
             href={`/crew/${member.slug}`}
@@ -142,14 +184,13 @@ export function MemberContextPills({ member }: { member: CrewMember }) {
             }}
             onMouseEnter={() => setCursor("crew", "MỞ THẺ 3D")}
             onMouseLeave={() => setCursor("default", "")}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-rec/45 bg-rec/15 hover:bg-rec hover:text-obsidian text-xs font-mono font-semibold text-ivory backdrop-blur-xl shadow-lg transition-all"
+            className="w-full inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl border border-rec/45 bg-rec/15 hover:bg-rec hover:text-obsidian text-xs font-mono font-bold text-ivory backdrop-blur-xl shadow-lg transition-all"
           >
             <IdCard className="w-3.5 h-3.5" />
-            <span>Mở Dây Đeo 3D &amp; Hồ Sơ →</span>
+            <span>Mở Thẻ 3D &amp; Full {allProjects.length} Projects →</span>
           </Link>
         </motion.div>
       </AnimatePresence>
     </div>
   );
 }
-

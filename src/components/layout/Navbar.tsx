@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Volume2, VolumeX, Menu, X } from "lucide-react";
 import { CREW_MEMBERS } from "@/data/crew";
+import { WORKS_DATA } from "@/data/works";
 import { useAppStore } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
 
@@ -39,7 +40,12 @@ export function Navbar() {
     {
       href: "/",
       label: "TIMELINE 3D",
-      match: (p: string) => p === "/" || p.startsWith("/works"),
+      match: (p: string) => p === "/",
+    },
+    {
+      href: "/works",
+      label: `PROJECTS [${WORKS_DATA.length}]`,
+      match: (p: string) => p.startsWith("/works"),
     },
     {
       href: "/crew",

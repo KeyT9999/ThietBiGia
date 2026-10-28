@@ -4,14 +4,173 @@ import Link from "next/link";
 import { useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { Flip } from "gsap/Flip";
-import { ArrowUpRight, Search, Users } from "lucide-react";
-import { CREW_MEMBERS } from "@/data/crew";
-import { getWorksForMember } from "@/data/works";
+import { ArrowUpRight, Film, Images, Search, Users } from "lucide-react";
+import { CREW_MEMBERS, type CrewMember } from "@/data/crew";
+import { getUnifiedProjectsForMember } from "@/data/works";
 import { getRoleMeta, ROLE_STYLES, type RoleCategory } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
 import { StopMotionGroupHero } from "./StopMotionGroupHero";
 
 gsap.registerPlugin(Flip);
+
+function CrewRosterCard({ member }: { member: CrewMember }) {
+  const projects = getUnifiedProjectsForMember(member);
+  const topProjects = projects.slice(0, 3);
+  const [hoveredProjTitle, setHoveredProjTitle] = useState<string | null>(null);
+
+  return (
+    <div className="group h-full rounded-2xl border border-obsidian-border bg-obsidian-surface hover:border-rec/70 overflow-hidden transition-colors flex flex-col justify-between">
+      <div>
+        <Link
+          href={`/crew/${member.slug}`}
+          onClick={() => soundEngine.playShutter()}
+          className="block"
+        >
+          <div className="relative aspect-[4/4.3] overflow-hidden bg-obsidian">
+            <img
+              src={member.avatar}
+              alt={member.name}
+              className={`w-full h-full object-cover object-[50%_18%] group-hover:scale-105 transition-all duration-500 ${
+                member.avatarAlt ? "group-hover:opacity-0" : ""
+              }`}
+            />
+            {member.avatarAlt && (
+              <img
+                src={member.avatarAlt}
+                alt={`${member.name} — Pose 2`}
+                className="absolute inset-0 w-full h-full object-cover object-[50%_18%] opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-obsidian-surface via-transparent to-transparent" />
+
+            <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-1.5">
+              <span className="px-2.5 py-1 rounded-md bg-obsidian/80 backdrop-blur-md border border-white/10 text-xs font-mono text-ivory shrink-0">
+                #{member.badgeNumber}
+              </span>
+              <div className="flex flex-wrap justify-end gap-1">
+                {member.roles.map((r) => {
+                  const rMeta = getRoleMeta(r);
+                  return (
+                    <span
+                      key={r}
+                      className="px-2 py-0.5 rounded-full text-xs font-mono font-bold text-obsidian"
+                      style={{ backgroundColor: rMeta.color }}
+                    >
+                      {rMeta.shortLabel}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="px-4 pt-3.5 pb-2">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h2 className="font-display text-lg font-bold text-ivory group-hover:text-rec transition-colors leading-snug">
+                  {member.name}
+                  {member.nickname ? (
+                    <span className="text-rec font-mono text-sm ml-1.5">
+                      ({member.nickname})
+                    </span>
+                  ) : null}
+                </h2>
+                <p className="text-xs font-mono text-ivory-muted mt-0.5">
+                  {member.roleTitle}
+                </p>
+              </div>
+              <ArrowUpRight className="w-4 h-4 text-ivory-subtle group-hover:text-rec group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform shrink-0 mt-1" />
+            </div>
+          </div>
+        </Link>
+
+        {/* Idea 2: Direct 3-Project Mini Visual Strip right inside every Member Card */}
+        <div
+          className="px-4 py-2.5 space-y-1.5"
+          onMouseLeave={() => setHoveredProjTitle(null)}
+        >
+          <div className="flex items-center justify-between gap-2 text-xs font-mono">
+            <span className="text-ivory-subtle truncate">
+              {hoveredProjTitle ? (
+                <span className="text-rec font-semibold">
+                  ▶ {hoveredProjTitle}
+                </span>
+              ) : (
+                "PROJECTS TIÊU BIỂU:"
+              )}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-1.5">
+            {topProjects.map((proj) => {
+              const href = proj.workSlug
+                ? `/works/${proj.workSlug}`
+                : `/crew/${member.slug}`;
+              return (
+                <Link
+                  key={proj.id}
+                  href={href}
+                  scroll={false}
+                  onMouseEnter={() => {
+                    soundEngine.playTick(0.4);
+                    setHoveredProjTitle(proj.title);
+                  }}
+                  onClick={() => soundEngine.playShutter()}
+                  title={proj.title}
+                  className="relative aspect-[16/11] rounded-lg overflow-hidden border border-obsidian-border hover:border-rec bg-obsidian transition-all hover:scale-[1.03]"
+                >
+                  <img
+                    src={proj.coverImage}
+                    alt={proj.title}
+                    className="w-full h-full object-cover object-[50%_20%]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-obsidian/85 via-transparent to-transparent" />
+                  <span className="absolute bottom-1 right-1 px-1 rounded bg-obsidian/80 text-[10px] font-mono text-ivory flex items-center gap-0.5">
+                    <Images className="w-2.5 h-2.5 text-rec" />
+                    {proj.frames.length}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Card Footer: Quick Filter Projects vs Open 3D Pass */}
+      <div className="px-4 pb-4 pt-2 space-y-2.5">
+        <div className="flex flex-wrap gap-1.5">
+          {member.favoriteGear.slice(0, 2).map((g) => (
+            <span
+              key={g}
+              className="px-2 py-0.5 rounded bg-obsidian border border-obsidian-border text-xs font-mono text-ivory-muted"
+            >
+              {g}
+            </span>
+          ))}
+        </div>
+
+        <div className="pt-2.5 border-t border-obsidian-border/70 flex items-center justify-between gap-2 text-xs font-mono">
+          <Link
+            href={`/works?member=${member.slug}`}
+            onClick={() => soundEngine.playTick(0.8)}
+            className="inline-flex items-center gap-1 text-ivory-muted hover:text-rec transition-colors"
+          >
+            <Film className="w-3.5 h-3.5 text-rec" />
+            <span>{projects.length} PROJECTS ↗</span>
+          </Link>
+
+          <Link
+            href={`/crew/${member.slug}`}
+            onClick={() => soundEngine.playShutter()}
+            className="text-rec font-bold hover:underline"
+          >
+            MỞ THẺ 3D →
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function FlipCrewGrid() {
   const [selectedRole, setSelectedRole] = useState<string>("ALL");
@@ -74,8 +233,9 @@ export function FlipCrewGrid() {
             ANH EM THIẾT BỊ GIA [{CREW_MEMBERS.length}]
           </h1>
           <p className="text-sm sm:text-base text-ivory-muted max-w-2xl">
-            Danh sách chính thức các thành viên mảng Chụp ảnh, Quay phim và IT của Thiết Bị Gia. Nhấn vào bất kỳ thành viên nào để mở{" "}
-            <span className="text-ivory font-medium">Thẻ Tác Nghiệp 3D</span> &amp; hồ sơ cá nhân.
+            Danh sách chính thức các thành viên mảng Chụp ảnh, Quay phim và IT của Thiết Bị Gia — kèm dải{" "}
+            <span className="text-ivory font-medium">Projects tiêu biểu</span> ngay trên từng thẻ. Rê chuột vào từng ô ảnh nhỏ để xem tên dự án hoặc mở{" "}
+            <span className="text-ivory font-medium">Thẻ Tác Nghiệp 3D</span>.
           </p>
         </div>
 
@@ -145,11 +305,14 @@ export function FlipCrewGrid() {
           const matchesSearch =
             !normalizedQuery ||
             member.name.toLowerCase().includes(normalizedQuery) ||
+            (member.nickname &&
+              member.nickname.toLowerCase().includes(normalizedQuery)) ||
             member.roleTitle.toLowerCase().includes(normalizedQuery) ||
-            member.favoriteGear.some((g) => g.toLowerCase().includes(normalizedQuery));
+            member.favoriteGear.some((g) =>
+              g.toLowerCase().includes(normalizedQuery)
+            );
 
           const visible = matchesRole && matchesSearch;
-          const campaignCount = getWorksForMember(member.slug).length;
 
           return (
             <div
@@ -157,79 +320,7 @@ export function FlipCrewGrid() {
               style={{ display: visible ? "block" : "none" }}
               className="crew-flip-card"
             >
-              <Link
-                href={`/crew/${member.slug}`}
-                onClick={() => soundEngine.playShutter()}
-                className="group block h-full rounded-2xl border border-obsidian-border bg-obsidian-surface hover:border-rec/70 overflow-hidden transition-colors"
-              >
-                <div className="relative aspect-[4/4.5] overflow-hidden bg-obsidian">
-                  <img
-                    src={member.avatar}
-                    alt={member.name}
-                    className={`w-full h-full object-cover object-[50%_18%] group-hover:scale-105 transition-all duration-500 ${
-                      member.avatarAlt ? "group-hover:opacity-0" : ""
-                    }`}
-                  />
-                  {member.avatarAlt && (
-                    <img
-                      src={member.avatarAlt}
-                      alt={`${member.name} — Pose 2`}
-                      className="absolute inset-0 w-full h-full object-cover object-[50%_18%] opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-obsidian-surface via-transparent to-transparent" />
-
-                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-1.5">
-                    <span className="px-2.5 py-1 rounded-md bg-obsidian/80 backdrop-blur-md border border-white/10 text-xs font-mono text-ivory shrink-0">
-                      #{member.badgeNumber}
-                    </span>
-                    <div className="flex flex-wrap justify-end gap-1">
-                      {member.roles.map((r) => {
-                        const rMeta = getRoleMeta(r);
-                        return (
-                          <span
-                            key={r}
-                            className="px-2 py-0.5 rounded-full text-xs font-mono font-bold text-obsidian"
-                            style={{ backgroundColor: rMeta.color }}
-                          >
-                            {rMeta.shortLabel}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h2 className="font-display text-lg font-bold text-ivory group-hover:text-rec transition-colors leading-snug">
-                        {member.name}
-                      </h2>
-                      <p className="text-xs font-mono text-ivory-muted mt-0.5">
-                        {member.roleTitle}
-                      </p>
-                    </div>
-                    <ArrowUpRight className="w-4 h-4 text-ivory-subtle group-hover:text-rec group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform shrink-0 mt-1" />
-                  </div>
-
-                  <div className="flex flex-wrap gap-1.5">
-                    {member.favoriteGear.slice(0, 2).map((g) => (
-                      <span
-                        key={g}
-                        className="px-2 py-0.5 rounded bg-obsidian border border-obsidian-border text-xs font-mono text-ivory-muted"
-                      >
-                        {g}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="pt-2 border-t border-obsidian-border/70 flex items-center justify-between text-xs font-mono text-ivory-subtle">
-                    <span>{campaignCount} dự án nhóm</span>
-                    <span className="text-rec font-semibold">MỞ THẺ 3D →</span>
-                  </div>
-                </div>
-              </Link>
+              <CrewRosterCard member={member} />
             </div>
           );
         })}

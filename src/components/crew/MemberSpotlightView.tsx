@@ -14,18 +14,21 @@ import {
   ChevronRight,
   Film,
   Hand,
+  Images,
   Mail,
-  Maximize2,
-  Play,
-  Pause,
   Sparkles,
   X,
 } from "lucide-react";
 import { CREW_MEMBERS } from "@/data/crew";
-import { type BentoItem, type CrewMember } from "@/data/schema";
-import { getTeammatesForMember, getWorksForMember } from "@/data/works";
+import { type CrewMember } from "@/data/schema";
+import {
+  getTeammatesForMember,
+  getUnifiedProjectsForMember,
+  type UnifiedMemberProject,
+} from "@/data/works";
 import { getCombinedRoleBadge, getRoleMeta } from "@/lib/utils";
 import { DecoderText } from "@/components/layout/DecoderText";
+import { MemberProjectCard } from "./MemberProjectCard";
 import { soundEngine } from "@/lib/sound";
 
 const LanyardPressPass3DView = dynamic(
@@ -45,9 +48,9 @@ export function MemberSpotlightView({
 }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [reelPlaying, setReelPlaying] = useState(false);
-  const [reelFrameIdx, setReelFrameIdx] = useState(0);
-  const [lightboxItem, setLightboxItem] = useState<BentoItem | null>(null);
+  const [projectTab, setProjectTab] = useState<"all" | "lead" | "ekip">("all");
+  const [lightboxProject, setLightboxProject] =
+    useState<UnifiedMemberProject | null>(null);
   const [lightboxPhotoIdx, setLightboxPhotoIdx] = useState(0);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
@@ -56,7 +59,22 @@ export function MemberSpotlightView({
   }, []);
 
   const roleMeta = getRoleMeta(member.roleCategory);
-  const memberWorks = getWorksForMember(member.slug);
+  const unifiedProjects = getUnifiedProjectsForMember(member);
+  const leadProjects = unifiedProjects.filter(
+    (p) => p.scope === "lead" || p.scope === "personal"
+  );
+  const ekipProjects = unifiedProjects.filter((p) => p.scope === "ekip");
+  const visibleProjects =
+    projectTab === "lead"
+      ? leadProjects
+      : projectTab === "ekip"
+      ? ekipProjects
+      : unifiedProjects;
+  const totalFramesCount = unifiedProjects.reduce(
+    (sum, p) => sum + p.frames.length,
+    0
+  );
+
   const teammates = getTeammatesForMember(member.slug);
 
   const currentIdx = CREW_MEMBERS.findIndex((m) => m.slug === member.slug);
@@ -64,19 +82,9 @@ export function MemberSpotlightView({
     CREW_MEMBERS[(currentIdx - 1 + CREW_MEMBERS.length) % CREW_MEMBERS.length];
   const nextMember = CREW_MEMBERS[(currentIdx + 1) % CREW_MEMBERS.length];
 
-  const heroShowreel = member.showcase[0];
-  const restShowcase = member.showcase.slice(1);
-  const heroGallery =
-    heroShowreel?.gallery && heroShowreel.gallery.length > 0
-      ? heroShowreel.gallery
-      : heroShowreel
-      ? [heroShowreel.image]
-      : [];
-
   useEffect(() => {
-    setReelFrameIdx(0);
-    setReelPlaying(false);
-    setLightboxItem(null);
+    setProjectTab("all");
+    setLightboxProject(null);
     if (progressBarRef.current) {
       progressBarRef.current.style.transform = "scaleX(0)";
     }
@@ -111,26 +119,17 @@ export function MemberSpotlightView({
       target.removeEventListener("scroll", updateProgress);
       window.removeEventListener("resize", updateProgress);
     };
-  }, [isModal, member.slug]);
+  }, [isModal, member.slug, projectTab]);
+
+  const lightboxGallery = lightboxProject ? lightboxProject.frames : [];
 
   useEffect(() => {
-    if (!reelPlaying || heroGallery.length <= 1) return;
-    const id = setInterval(() => {
-      setReelFrameIdx((prev) => (prev + 1) % heroGallery.length);
-    }, 1300);
-    return () => clearInterval(id);
-  }, [reelPlaying, heroGallery.length]);
-
-  const lightboxGallery = lightboxItem
-    ? lightboxItem.gallery && lightboxItem.gallery.length > 0
-      ? lightboxItem.gallery
-      : [lightboxItem.image]
-    : [];
-
-  useEffect(() => {
-    if (!lightboxItem) return;
+    if (!lightboxProject) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setLightboxItem(null);
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setLightboxProject(null);
+      }
       if (e.key === "ArrowRight" && lightboxGallery.length > 1) {
         setLightboxPhotoIdx((i) => (i + 1) % lightboxGallery.length);
       }
@@ -140,13 +139,16 @@ export function MemberSpotlightView({
         );
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [lightboxItem, lightboxGallery.length]);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [lightboxProject, lightboxGallery.length]);
 
-  const openItemLightbox = (item: BentoItem, startIdx = 0) => {
+  const openProjectLightbox = (
+    proj: UnifiedMemberProject,
+    startIdx = 0
+  ) => {
     soundEngine.playShutter();
-    setLightboxItem(item);
+    setLightboxProject(proj);
     setLightboxPhotoIdx(startIdx);
   };
 
@@ -329,182 +331,102 @@ export function MemberSpotlightView({
             </div>
           </div>
 
-          {/* BENTO SHOWCASE (Matching Mockup 5 + Multi-Photo Interactive Lightbox!) */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-lg font-bold tracking-wide text-ivory uppercase flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-rec" />
-                Tác Phẩm &amp; Bộ Sưu Tập Cá Nhân
-              </h2>
-              <span className="text-xs font-mono text-ivory-subtle">
-                NHẤN VÀO ẢNH ĐỂ XEM FULL ALBUM
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-              {/* Primary Showreel / Lead Series Card */}
-              {heroShowreel && (
-                <div className="md:col-span-8 rounded-2xl border border-obsidian-border hover:border-rec/60 bg-obsidian-surface overflow-hidden group relative transition-colors">
-                  {/* Top progress indicator bar */}
-                  <div className="px-4 py-2.5 bg-obsidian/90 border-b border-obsidian-border flex items-center gap-3">
-                    <div className="flex-1 h-1 bg-obsidian-border rounded-full relative">
-                      <div
-                        className="h-full bg-rec rounded-full transition-all duration-500"
-                        style={{
-                          width:
-                            heroGallery.length > 1
-                              ? `${((reelFrameIdx + 1) / heroGallery.length) * 100}%`
-                              : reelPlaying
-                              ? "68%"
-                              : "36%",
-                        }}
-                      />
-                    </div>
-                    <span className="text-xs font-mono text-ivory-muted">
-                      {heroShowreel.durationOrSpec}
+          {/* UNIFIED VISUAL PROJECT SHOWCASE (Idea 1: Hover-Scrub Case-Study Cards + Scope Tabs) */}
+          <div className="space-y-5">
+            <div className="rounded-2xl border border-obsidian-border bg-obsidian-surface/60 p-4 sm:p-5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-display text-lg sm:text-xl font-bold tracking-wide text-ivory uppercase flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-rec" />
+                    <span>
+                      Projects Của {member.nickname ?? member.name.split(" ").slice(-2).join(" ")}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => openItemLightbox(heroShowreel, reelFrameIdx)}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rec/15 hover:bg-rec text-rec hover:text-obsidian text-xs font-mono font-semibold transition-colors"
-                    >
-                      <Maximize2 className="w-3 h-3" />
-                      <span>ALBUM</span>
-                    </button>
-                  </div>
-
-                  <div
-                    onClick={() => {
-                      soundEngine.playShutter();
-                      if (heroGallery.length > 1) {
-                        setReelPlaying((v) => !v);
-                      } else {
-                        openItemLightbox(heroShowreel, 0);
-                      }
-                    }}
-                    className="relative aspect-video overflow-hidden cursor-pointer bg-obsidian"
-                  >
-                    <img
-                      src={heroGallery[reelFrameIdx] ?? heroShowreel.image}
-                      alt={heroShowreel.title}
-                      className={`w-full h-full object-cover object-[50%_22%] transition-transform duration-700 ${
-                        reelPlaying ? "scale-105" : "group-hover:scale-105"
-                      }`}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-obsidian/90 via-obsidian/20 to-transparent" />
-
-                    {/* Center Play / Expand Button */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="w-14 h-14 rounded-full bg-obsidian/75 border border-ivory/30 group-hover:border-rec group-hover:bg-rec group-hover:text-obsidian text-ivory flex items-center justify-center backdrop-blur-md transition-all">
-                        {reelPlaying ? (
-                          <Pause className="w-5 h-5 fill-current" />
-                        ) : (
-                          <Play className="w-5 h-5 fill-current ml-0.5" />
-                        )}
-                      </span>
-                    </div>
-
-                    <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-2">
-                      <div>
-                        <div className="text-xs font-mono text-rec">
-                          {reelPlaying
-                            ? `● SLIDESHOW ${reelFrameIdx + 1}/${heroGallery.length}`
-                            : heroShowreel.subtitle}
-                        </div>
-                        <div className="font-display font-bold text-base sm:text-lg text-ivory">
-                          {heroShowreel.title}
-                        </div>
-                      </div>
-                      <span className="text-xs font-mono text-ivory-muted bg-obsidian/80 px-2.5 py-1 rounded border border-white/10 shrink-0">
-                        {heroGallery.length > 1
-                          ? `${reelFrameIdx + 1} / ${heroGallery.length}`
-                          : "HD"}
-                      </span>
-                    </div>
-                  </div>
+                  </h2>
+                  <p className="text-xs font-mono text-ivory-muted mt-1 flex items-center gap-2">
+                    <Images className="w-3.5 h-3.5 text-rec" />
+                    <span>
+                      {unifiedProjects.length} DỰ ÁN • {totalFramesCount} KHUNG HÌNH • RÊ CHUỘT TRÊN ẢNH ĐỂ LƯỚT NHANH
+                    </span>
+                  </p>
                 </div>
-              )}
 
-              {/* Secondary Bento Cards */}
-              {restShowcase.map((item, idx) => {
-                const count = item.gallery?.length ?? 1;
-                return (
+                <Link
+                  href={`/works?member=${member.slug}`}
+                  onClick={() => soundEngine.playTick(0.8)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-obsidian-border hover:border-rec/60 bg-obsidian text-xs font-mono text-ivory-muted hover:text-rec transition-colors"
+                >
+                  <Film className="w-3.5 h-3.5 text-rec" />
+                  <span>MỞ KHO PROJECT CHUNG</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+
+              {/* Filter Scope Tabs */}
+              <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-obsidian-border/70">
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playTick(0.8);
+                    setProjectTab("all");
+                  }}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold transition-all ${
+                    projectTab === "all"
+                      ? "bg-rec text-obsidian shadow-[0_0_16px_rgba(255,77,0,0.35)]"
+                      : "border border-obsidian-border bg-obsidian text-ivory-muted hover:text-ivory"
+                  }`}
+                >
+                  TẤT CẢ [{unifiedProjects.length}]
+                </button>
+
+                {leadProjects.length > 0 && (
                   <button
-                    key={item.id}
                     type="button"
-                    onClick={() => openItemLightbox(item, 0)}
-                    className={`${
-                      idx === 0 ? "md:col-span-4 min-h-[280px]" : "md:col-span-6 min-h-[250px]"
-                    } text-left rounded-2xl border border-obsidian-border hover:border-rec/70 bg-obsidian-surface overflow-hidden group relative flex flex-col justify-end transition-colors cursor-pointer`}
+                    onClick={() => {
+                      soundEngine.playTick(0.8);
+                      setProjectTab("lead");
+                    }}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold transition-all ${
+                      projectTab === "lead"
+                        ? "bg-cyan-400 text-obsidian"
+                        : "border border-obsidian-border bg-obsidian text-ivory-muted hover:text-ivory"
+                    }`}
                   >
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      className="absolute inset-0 w-full h-full object-cover object-[50%_18%] group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-obsidian/95 via-obsidian/30 to-transparent" />
-
-                    <span className="absolute top-3 right-3 px-2.5 py-1 rounded-md bg-obsidian/80 backdrop-blur-md border border-white/15 text-xs font-mono text-ivory flex items-center gap-1.5 group-hover:border-rec group-hover:text-rec transition-colors">
-                      <Maximize2 className="w-3 h-3" />
-                      <span>{count > 1 ? `${count} ẢNH` : "PHÓNG LỚN"}</span>
-                    </span>
-
-                    <div className="relative p-4 space-y-1">
-                      <span className="text-xs font-mono text-rec">
-                        {item.durationOrSpec}
-                      </span>
-                      <h3 className="font-display font-bold text-sm sm:text-base text-ivory leading-snug group-hover:text-rec transition-colors">
-                        {item.title}
-                      </h3>
-                      <p className="text-xs text-ivory-muted">{item.subtitle}</p>
-                    </div>
+                    CHỦ ĐẠO &amp; CÁ NHÂN [{leadProjects.length}]
                   </button>
-                );
-              })}
-            </div>
-          </div>
+                )}
 
-          {/* GROUP CAMPAIGNS PARTICIPATED IN */}
-          {memberWorks.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="font-display text-lg font-bold tracking-wide text-ivory uppercase flex items-center gap-2">
-                <Film className="w-4 h-4 text-rec" />
-                Dự Án Nổi Bật &amp; Chiến Dịch Nhóm ({memberWorks.length})
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {memberWorks.map((w) => {
-                  const credit = w.credits.find((c) => c.memberSlug === member.slug);
-                  return (
-                    <Link
-                      key={w.id}
-                      href={`/works/${w.slug}`}
-                      scroll={false}
-                      onClick={() => soundEngine.playShutter()}
-                      className="group flex items-center gap-3.5 p-3 rounded-xl border border-obsidian-border bg-obsidian-surface/75 hover:border-rec/60 transition-all"
-                    >
-                      <img
-                        src={w.coverImage}
-                        alt={w.title}
-                        className="w-16 h-16 rounded-lg object-cover object-[50%_20%] shrink-0"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs font-mono text-rec truncate">
-                          SCENE {w.indexLabel} • {credit?.roleOnProject}
-                        </div>
-                        <div className="font-display font-bold text-base text-ivory truncate group-hover:text-rec transition-colors">
-                          {w.title}
-                        </div>
-                        <div className="text-xs text-ivory-muted truncate">
-                          {w.category} ({w.year})
-                        </div>
-                      </div>
-                      <ArrowUpRight className="w-4 h-4 text-ivory-subtle group-hover:text-rec shrink-0" />
-                    </Link>
-                  );
-                })}
+                {ekipProjects.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundEngine.playTick(0.8);
+                      setProjectTab("ekip");
+                    }}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold transition-all ${
+                      projectTab === "ekip"
+                        ? "bg-amber-400 text-obsidian"
+                        : "border border-obsidian-border bg-obsidian text-ivory-muted hover:text-ivory"
+                    }`}
+                  >
+                    CHIẾN DỊCH CÙNG EKIP [{ekipProjects.length}]
+                  </button>
+                )}
               </div>
             </div>
-          )}
+
+            {/* Hover-Scrubbable Case-Study Grid */}
+            <div className="grid grid-cols-12 gap-5">
+              {visibleProjects.map((proj, idx) => (
+                <MemberProjectCard
+                  key={proj.id}
+                  project={proj}
+                  featured={idx === 0}
+                  isModal={isModal}
+                  onOpenAlbum={openProjectLightbox}
+                />
+              ))}
+            </div>
+          </div>
 
           {/* ĐỒNG ĐỘI CÙNG EKIP */}
           <div className="pt-4 border-t border-obsidian-border space-y-5">
@@ -560,135 +482,136 @@ export function MemberSpotlightView({
       {mounted
         ? createPortal(
             <AnimatePresence>
-              {lightboxItem && (
+              {lightboxProject && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  onClick={() => setLightboxItem(null)}
+                  onClick={() => setLightboxProject(null)}
                   data-lenis-prevent
                   className="fixed inset-0 z-[95] bg-obsidian/95 backdrop-blur-2xl flex items-center justify-center p-4 sm:p-6"
                 >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative max-w-5xl w-full rounded-2xl border border-obsidian-border bg-obsidian-surface overflow-hidden shadow-2xl flex flex-col max-h-[92dvh]"
-            >
-              {/* Lightbox Header */}
-              <div className="px-5 py-3.5 border-b border-obsidian-border flex items-center justify-between gap-4 shrink-0">
-                <div className="min-w-0">
-                  <div className="text-xs font-mono text-rec font-bold">
-                    {member.name.toUpperCase()} • FRAME {lightboxPhotoIdx + 1} /{" "}
-                    {lightboxGallery.length}
-                  </div>
-                  <h3 className="font-display text-lg font-bold text-ivory truncate">
-                    {lightboxItem.title}
-                  </h3>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  {lightboxItem.projectSlug && (
-                    <Link
-                      href={`/works/${lightboxItem.projectSlug}`}
-                      scroll={false}
-                      onClick={() => setLightboxItem(null)}
-                      className="px-3 py-1.5 rounded-lg bg-rec hover:bg-rec-glow text-obsidian font-mono font-bold text-xs transition-colors"
-                    >
-                      MỞ TRANG DỰ ÁN →
-                    </Link>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setLightboxItem(null)}
-                    className="p-1.5 rounded-lg border border-obsidian-border hover:border-rec text-ivory-muted hover:text-ivory"
+                  <motion.div
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.95, opacity: 0 }}
+                    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="relative max-w-5xl w-full rounded-2xl border border-obsidian-border bg-obsidian-surface overflow-hidden shadow-2xl flex flex-col max-h-[92dvh]"
                   >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+                    {/* Lightbox Header */}
+                    <div className="px-5 py-3.5 border-b border-obsidian-border flex items-center justify-between gap-4 shrink-0">
+                      <div className="min-w-0">
+                        <div className="text-xs font-mono text-rec font-bold truncate">
+                          {member.name.toUpperCase()} • {lightboxProject.roleBadge.toUpperCase()} • FRAME{" "}
+                          {lightboxPhotoIdx + 1} / {lightboxGallery.length}
+                        </div>
+                        <h3 className="font-display text-lg font-bold text-ivory truncate">
+                          {lightboxProject.title}
+                        </h3>
+                      </div>
 
-              {/* Uncropped Full-Frame Viewer */}
-              <div className="relative bg-obsidian flex-1 min-h-0 flex items-center justify-center p-3 overflow-hidden">
-                <img
-                  src={lightboxGallery[lightboxPhotoIdx]}
-                  alt=""
-                  className="pointer-events-none absolute inset-0 w-full h-full object-cover blur-2xl opacity-25 scale-110"
-                />
-                <img
-                  src={lightboxGallery[lightboxPhotoIdx]}
-                  alt={lightboxItem.title}
-                  className="relative z-10 max-h-[64dvh] w-auto max-w-full object-contain rounded-lg shadow-2xl"
-                />
+                      <div className="flex items-center gap-2 shrink-0">
+                        {lightboxProject.workSlug && (
+                          <Link
+                            href={`/works/${lightboxProject.workSlug}`}
+                            scroll={false}
+                            onClick={() => setLightboxProject(null)}
+                            className="px-3 py-1.5 rounded-lg bg-rec hover:bg-rec-glow text-obsidian font-mono font-bold text-xs transition-colors"
+                          >
+                            MỞ TRANG DỰ ÁN &amp; BTS →
+                          </Link>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setLightboxProject(null)}
+                          className="p-1.5 rounded-lg border border-obsidian-border hover:border-rec text-ivory-muted hover:text-ivory"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
 
-                {lightboxGallery.length > 1 && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        soundEngine.playTick(0.85);
-                        setLightboxPhotoIdx(
-                          (lightboxPhotoIdx - 1 + lightboxGallery.length) %
-                            lightboxGallery.length
-                        );
-                      }}
-                      className="absolute z-20 left-3 p-2.5 rounded-full bg-obsidian/85 border border-white/15 hover:border-rec text-ivory"
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        soundEngine.playTick(0.85);
-                        setLightboxPhotoIdx(
-                          (lightboxPhotoIdx + 1) % lightboxGallery.length
-                        );
-                      }}
-                      className="absolute z-20 right-3 p-2.5 rounded-full bg-obsidian/85 border border-white/15 hover:border-rec text-ivory"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </>
-                )}
-              </div>
+                    {/* Uncropped Full-Frame Viewer */}
+                    <div className="relative bg-obsidian flex-1 min-h-0 flex items-center justify-center p-3 overflow-hidden">
+                      <img
+                        src={lightboxGallery[lightboxPhotoIdx]}
+                        alt=""
+                        className="pointer-events-none absolute inset-0 w-full h-full object-cover blur-2xl opacity-25 scale-110"
+                      />
+                      <img
+                        src={lightboxGallery[lightboxPhotoIdx]}
+                        alt={lightboxProject.title}
+                        className="relative z-10 max-h-[64dvh] w-auto max-w-full object-contain rounded-lg shadow-2xl"
+                      />
 
-              {/* Thumbnails & Description Footer */}
-              <div className="p-4 border-t border-obsidian-border space-y-3 shrink-0">
-                {lightboxGallery.length > 1 && (
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                    {lightboxGallery.map((src, idx) => (
-                      <button
-                        key={src + idx}
-                        type="button"
-                        onClick={() => {
-                          soundEngine.playTick(0.75);
-                          setLightboxPhotoIdx(idx);
-                        }}
-                        className={`w-16 h-12 rounded-md overflow-hidden border-2 shrink-0 transition-all ${
-                          idx === lightboxPhotoIdx
-                            ? "border-rec scale-105"
-                            : "border-obsidian-border opacity-55 hover:opacity-100"
-                        }`}
-                      >
-                        <img
-                          src={src}
-                          alt=""
-                          className="w-full h-full object-cover object-[50%_20%]"
-                        />
-                      </button>
-                    ))}
-                  </div>
-                )}
+                      {lightboxGallery.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              soundEngine.playTick(0.85);
+                              setLightboxPhotoIdx(
+                                (lightboxPhotoIdx - 1 + lightboxGallery.length) %
+                                  lightboxGallery.length
+                              );
+                            }}
+                            className="absolute z-20 left-3 p-2.5 rounded-full bg-obsidian/85 border border-white/15 hover:border-rec text-ivory"
+                          >
+                            <ChevronLeft className="w-5 h-5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              soundEngine.playTick(0.85);
+                              setLightboxPhotoIdx(
+                                (lightboxPhotoIdx + 1) % lightboxGallery.length
+                              );
+                            }}
+                            className="absolute z-20 right-3 p-2.5 rounded-full bg-obsidian/85 border border-white/15 hover:border-rec text-ivory"
+                          >
+                            <ChevronRight className="w-5 h-5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
 
-                {lightboxItem.description && (
-                  <p className="text-xs sm:text-sm text-ivory-muted">
-                    {lightboxItem.description}
-                  </p>
-                )}
-              </div>
-            </motion.div>
+                    {/* Thumbnails & Description Footer */}
+                    <div className="p-4 border-t border-obsidian-border space-y-3 shrink-0">
+                      {lightboxGallery.length > 1 && (
+                        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                          {lightboxGallery.map((src, idx) => (
+                            <button
+                              key={src + idx}
+                              type="button"
+                              onClick={() => {
+                                soundEngine.playTick(0.75);
+                                setLightboxPhotoIdx(idx);
+                              }}
+                              className={`w-16 h-12 rounded-md overflow-hidden border-2 shrink-0 transition-all ${
+                                idx === lightboxPhotoIdx
+                                  ? "border-rec scale-105"
+                                  : "border-obsidian-border opacity-55 hover:opacity-100"
+                              }`}
+                            >
+                              <img
+                                src={src}
+                                alt=""
+                                className="w-full h-full object-cover object-[50%_20%]"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-ivory-muted">
+                        <p className="max-w-3xl">{lightboxProject.summary}</p>
+                        <span className="font-mono text-ivory-subtle shrink-0">
+                          {lightboxProject.cameraSpec}
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>,

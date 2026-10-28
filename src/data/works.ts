@@ -433,3 +433,116 @@ export function getTeammatesForMember(memberSlug: string): TeammateConnection[] 
 
   return results.sort((a, b) => b.sharedCount - a.sharedCount).slice(0, 6);
 }
+
+export type MemberProjectScope = "lead" | "personal" | "ekip";
+
+export interface UnifiedMemberProject {
+  id: string;
+  title: string;
+  subtitle: string;
+  category: string;
+  year: string;
+  roleBadge: string;
+  scope: MemberProjectScope;
+  accentColor: string;
+  cameraSpec: string;
+  summary: string;
+  coverImage: string;
+  frames: string[];
+  workSlug?: string;
+  coCreators: CrewMember[];
+  totalCrewCount: number;
+}
+
+/**
+ * Merges and deduplicates a member's credited `WORKS_DATA` campaigns and personal `showcase`
+ * series into a unified, visual-first project list (Lead Projects -> Personal Albums -> Ekip Campaigns).
+ */
+export function getUnifiedProjectsForMember(
+  member: CrewMember
+): UnifiedMemberProject[] {
+  const memberWorks = getWorksForMember(member.slug);
+  const seenWorkSlugs = new Set<string>();
+  const seenCoverImages = new Set<string>();
+
+  const fromWorks: UnifiedMemberProject[] = memberWorks.map((w) => {
+    seenWorkSlugs.add(w.slug);
+    seenCoverImages.add(w.coverImage);
+
+    const credit = w.credits.find((c) => c.memberSlug === member.slug);
+    const isLead =
+      w.credits[0]?.memberSlug === member.slug &&
+      w.slug !== "hau-truong-thiet-bi-gia";
+
+    const coCreators: CrewMember[] = [];
+    for (const c of w.credits) {
+      if (c.memberSlug === member.slug) continue;
+      const found = CREW_MEMBERS.find((m) => m.slug === c.memberSlug);
+      if (found) coCreators.push(found);
+    }
+
+    return {
+      id: `work-${w.id}`,
+      title: w.title,
+      subtitle: w.clientOrSeries,
+      category: w.category,
+      year: w.year,
+      roleBadge: credit?.roleOnProject ?? member.roleTitle,
+      scope: isLead ? "lead" : "ekip",
+      accentColor: w.accentColor,
+      cameraSpec: w.cameraSpec,
+      summary: w.summary,
+      coverImage: w.coverImage,
+      frames: w.galleryImages.length > 0 ? w.galleryImages : [w.coverImage],
+      workSlug: w.slug,
+      coCreators,
+      totalCrewCount: w.credits.length,
+    };
+  });
+
+  const fromShowcase: UnifiedMemberProject[] = [];
+  for (const item of member.showcase) {
+    if (item.projectSlug && seenWorkSlugs.has(item.projectSlug)) continue;
+    const itemFrames =
+      item.gallery && item.gallery.length > 0 ? item.gallery : [item.image];
+    if (itemFrames.length <= 1 && seenCoverImages.has(item.image)) continue;
+
+    fromShowcase.push({
+      id: `showcase-${item.id}`,
+      title: item.title,
+      subtitle: item.subtitle,
+      category: item.durationOrSpec ?? "Bộ Sưu Tập Cá Nhân",
+      year: "2026",
+      roleBadge: item.durationOrSpec ?? member.roleTitle,
+      scope: "personal",
+      accentColor: "#FF4D00",
+      cameraSpec: member.favoriteGear.join(" • ").toUpperCase(),
+      summary:
+        item.description ??
+        `${item.subtitle} — Thực hiện bởi ${member.name} (${member.roleTitle}).`,
+      coverImage: item.image,
+      frames: itemFrames,
+      workSlug: item.projectSlug,
+      coCreators: [],
+      totalCrewCount: 1,
+    });
+  }
+
+  const leadProjects = fromWorks.filter((p) => p.scope === "lead");
+  const multiFramePersonal = fromShowcase.filter((p) => p.frames.length > 1);
+  const specificEkipProjects = fromWorks.filter(
+    (p) => p.scope === "ekip" && p.workSlug !== "hau-truong-thiet-bi-gia"
+  );
+  const singleFramePersonal = fromShowcase.filter((p) => p.frames.length <= 1);
+  const collectiveArchive = fromWorks.filter(
+    (p) => p.workSlug === "hau-truong-thiet-bi-gia"
+  );
+
+  return [
+    ...leadProjects,
+    ...multiFramePersonal,
+    ...specificEkipProjects,
+    ...singleFramePersonal,
+    ...collectiveArchive,
+  ];
+}

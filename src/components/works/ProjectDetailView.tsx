@@ -42,7 +42,7 @@ export function ProjectDetailView({
     if (isModal) {
       router.back();
     } else {
-      router.push("/");
+      router.push("/works");
     }
   };
 
@@ -57,7 +57,9 @@ export function ProjectDetailView({
             className="inline-flex items-center gap-2 text-xs font-mono text-ivory-muted hover:text-rec transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>{isModal ? "ĐÓNG & VỀ TIMELINE 3D" : "VỀ TRANG CHỦ TIMELINE"}</span>
+            <span>
+              {isModal ? "ĐÓNG CỬA SỔ PROJECT [ESC]" : "QUAY LẠI KHO PROJECTS"}
+            </span>
           </button>
 
           <div className="text-xs font-mono text-ivory-muted">

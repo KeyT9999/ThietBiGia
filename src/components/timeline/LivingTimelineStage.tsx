@@ -246,15 +246,26 @@ export function LivingTimelineStage() {
                   {activeMember.bio}
                 </p>
 
-                <Link
-                  href={`/crew/${activeMember.slug}`}
-                  scroll={false}
-                  onClick={() => soundEngine.playShutter()}
-                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-rec hover:bg-rec-glow text-obsidian font-mono font-bold text-xs transition-colors"
-                >
-                  <IdCard className="w-3.5 h-3.5" />
-                  <span>MỞ HỒ SƠ &amp; THẺ 3D</span>
-                </Link>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href={`/crew/${activeMember.slug}`}
+                    scroll={false}
+                    onClick={() => soundEngine.playShutter()}
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-rec hover:bg-rec-glow text-obsidian font-mono font-bold text-xs transition-colors"
+                  >
+                    <IdCard className="w-3.5 h-3.5" />
+                    <span>MỞ HỒ SƠ &amp; THẺ 3D</span>
+                  </Link>
+
+                  <Link
+                    href={`/works?member=${activeMember.slug}`}
+                    onClick={() => soundEngine.playTick(0.8)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/15 bg-obsidian/70 hover:border-rec/60 text-ivory-muted hover:text-ivory font-mono text-xs transition-colors"
+                  >
+                    <Film className="w-3.5 h-3.5 text-rec" />
+                    <span>PROJECTS</span>
+                  </Link>
+                </div>
               </div>
 
               {/* Right Floating Frosted-Glass Member Context Pills */}
