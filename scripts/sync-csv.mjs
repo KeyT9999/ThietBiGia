@@ -72,26 +72,33 @@ async function main() {
     ? parseCsv(fs.readFileSync(worksCsvPath, "utf8"))
     : [];
 
-  const formattedCrew = crewRows.map((r, i) => ({
-    id: `tbg-${r.badgeNumber || String(i + 1).padStart(2, "0")}`,
-    badgeNumber: r.badgeNumber || String(i + 1).padStart(2, "0"),
-    slug: r.slug,
-    name: r.name,
-    nickname: r.nickname || undefined,
-    roleCategory: r.roleCategory || "photographer",
-    roleTitle: r.roleTitle,
-    secondaryRoles: r.secondaryRoles ? r.secondaryRoles.split("|") : [],
-    bio: r.bio,
-    avatar: r.avatar || `/media/crew/crew-01.jpg`,
-    favoriteGear: r.favoriteGear ? r.favoriteGear.split("|") : [],
-    yearsActive: r.yearsActive || "2024 — NAY",
-    location: r.location || "TP.HCM",
-    socials: {
-      instagram: r.instagram || undefined,
-      behance: r.behance || undefined,
-      email: r.email || undefined,
-    },
-  }));
+  const formattedCrew = crewRows.map((r, i) => {
+    const parsedRoles = r.roles
+      ? r.roles.split("|").map((x) => x.trim()).filter(Boolean)
+      : [r.roleCategory || "chup-anh"];
+    return {
+      id: `tbg-${r.badgeNumber || String(i + 1).padStart(2, "0")}`,
+      badgeNumber: r.badgeNumber || String(i + 1).padStart(2, "0"),
+      slug: r.slug,
+      name: r.name,
+      nickname: r.nickname || undefined,
+      roleCategory: parsedRoles[0] || "chup-anh",
+      roles: parsedRoles,
+      roleTitle: r.roleTitle,
+      secondaryRoles: r.secondaryRoles ? r.secondaryRoles.split("|") : [],
+      bio: r.bio || "",
+      avatar: r.avatar || `/media/crew/crew-01.jpg`,
+      favoriteGear: r.favoriteGear ? r.favoriteGear.split("|") : [],
+      yearsActive: r.yearsActive || "THIẾT BỊ GIA",
+      location: r.location || "VIỆT NAM",
+      socials: {
+        instagram: r.instagram || undefined,
+        behance: r.behance || undefined,
+        email: r.email || undefined,
+      },
+      showcase: [],
+    };
+  });
 
   if (args.check === "true") {
     console.log(

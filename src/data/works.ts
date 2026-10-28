@@ -1,4 +1,4 @@
-import { type WorkProject, type CrewMember } from "./schema";
+import { WorkProjectSchema, type WorkProject, type CrewMember } from "./schema";
 import { CREW_MEMBERS } from "./crew";
 export type { WorkProject };
 
@@ -63,7 +63,8 @@ export const WORKS_DATA: WorkProject[] = [
     durationTimecode: "00:03:24:10",
     coverImage: "/media/keyt/pkl-02.jpg",
     accentColor: "#00E5FF",
-    cameraSpec: "SONY ALPHA FULL-FRAME • FE 70-200MM GM • STAGE LIGHT",
+    cameraSpec: "SONY A6400 • SIGMA 18-50MM F2.8 DC DN • STAGE LIGHT",
+    exifSpec: "SONY ILCE-6400 • SIGMA 18-50MM F2.8 DC DN • 50mm • f/4.5 • 1/100s • ISO 320",
     summary:
       "Bộ ảnh sân khấu thực chiến ghi lại trọn vẹn thần thái thăng hoa của ca sĩ Phùng Khánh Linh giữa không gian visual Căn Gác Mùa Hè và những luồng đèn spotlight ngược sáng đầy mê hoặc.",
     galleryImages: [
@@ -73,11 +74,11 @@ export const WORKS_DATA: WorkProject[] = [
       "/media/keyt/pkl-03.jpg",
     ],
     btsNotes: [
-      "Tác nghiệp trực tiếp dưới chân sân khấu với tiêu cự tele khẩu lớn để tách chủ thể nổi bật giữa làn khói và màn LED công suất cao.",
-      "Cân bằng chính xác độ phơi sáng trên trang phục trắng tinh khôi mà vẫn giữ trọn chi tiết đồ họa cassette trên màn hình LED phía sau.",
+      "Tác nghiệp trực tiếp dưới chân sân khấu với ống kính Sigma 18-50mm F2.8 để bắt trọn bố cục visual LED Căn Gác Mùa Hè và ca sĩ.",
+      "Cân bằng chính xác độ phơi sáng (f/4.5 • 1/100s • ISO 320) trên trang phục trắng tinh khôi mà vẫn giữ trọn chi tiết đồ họa cassette trên màn hình LED phía sau.",
       "Khung hình thứ 4 ghi lại khoảnh khắc phối hợp nhịp nhàng giữa ca sĩ và tay máy quay trực tiếp ngay trên cánh gà sân khấu.",
     ],
-    gearUsed: ["Sony Alpha Full-Frame", "FE 70-200mm f/2.8 GM", "Dual Card RAW", "Lightroom Classic"],
+    gearUsed: ["Sony A6400 (ILCE-6400)", "Sigma 18-50mm F2.8 DC DN", "RAW Workflow", "Lightroom Classic"],
     credits: [
       { memberSlug: "tran-kim-thang", roleOnProject: "Lead Stage Photographer (KeyT)" },
       { memberSlug: "quoc-hi", roleOnProject: "Stage Cam Op" },
@@ -95,7 +96,8 @@ export const WORKS_DATA: WorkProject[] = [
     durationTimecode: "00:02:15:05",
     coverImage: "/media/keyt/danaff-03.jpg",
     accentColor: "#F43F5E",
-    cameraSpec: "FULL-FRAME • 85MM & 70-200MM • TTL BOUNCE FLASH",
+    cameraSpec: "SONY A6400 • SIGMA 18-50MM F2.8 • TTL BOUNCE FLASH",
+    exifSpec: "SONY ILCE-6400 • SIGMA 18-50MM F2.8 DC DN • 33–50mm • f/4 • 1/200s • ISO 500",
     summary:
       "Loạt ảnh tác nghiệp báo chí & chân dung nghệ sĩ trên thảm đỏ Liên Hoan Phim Châu Á Đà Nẵng (DANAFF) — bắt trọn khoảnh khắc giao lưu rạng rỡ, thanh lịch với độ trong trẻo và sắc độ da chuẩn xác.",
     galleryImages: [
@@ -106,10 +108,10 @@ export const WORKS_DATA: WorkProject[] = [
       "/media/keyt/danaff-05.jpg",
     ],
     btsNotes: [
-      "Xử lý ánh sáng flash thảm đỏ tốc độ cao giúp giữ độ khối mềm mại trên gương mặt và chi tiết đính kết tinh xảo của trang phục dạ hội.",
-      "Bắt nhịp liên tục chỉ trong vài giây di chuyển của khách mời giữa hàng chục ống kính truyền thông quốc tế.",
+      "Xử lý ánh sáng flash thảm đỏ ở tốc 1/200s • f/4 • ISO 500 giúp giữ độ khối mềm mại trên gương mặt và chi tiết đính kết tinh xảo của trang phục dạ hội.",
+      "Bắt nhịp liên tục ở dải tiêu cự 33–50mm chỉ trong vài giây di chuyển của khách mời giữa hàng chục ống kính truyền thông quốc tế.",
     ],
-    gearUsed: ["Sony Alpha Series", "FE 70-200mm GM", "On-Camera Pro Flash", "Fast Tether"],
+    gearUsed: ["Sony A6400 (ILCE-6400)", "Sigma 18-50mm F2.8 DC DN", "On-Camera Pro Flash", "Fast Tether"],
     credits: [
       { memberSlug: "tran-kim-thang", roleOnProject: "Red Carpet Photographer (KeyT)" },
       { memberSlug: "tai-anh", roleOnProject: "Press Dispatch & IT" },
@@ -127,17 +129,18 @@ export const WORKS_DATA: WorkProject[] = [
     durationTimecode: "00:01:18:00",
     coverImage: "/media/keyt/aodai-01.jpg",
     accentColor: "#10B981",
-    cameraSpec: "85MM F/1.4 PRIME • NATURAL CHIAROSCURO SUNLIGHT",
+    cameraSpec: "CANON EOS 7D • 64MM TELEPHOTO • NATURAL CHIAROSCURO",
+    exifSpec: "CANON EOS 7D • EF-S 55-250MM F/4-5.6 IS STM • 64mm • f/4.5 • 1/320s • ISO 125",
     summary:
       "Bộ ảnh chân dung tôn vinh vẻ đẹp dịu dàng của tà Áo dài lụa xanh ngọc kết hợp chuỗi ngọc trai và quạt giấy truyền thống, khai thác vệt nắng xiên tự nhiên tương phản trên nền kiến trúc cổ.",
     galleryImages: [
       "/media/keyt/aodai-01.jpg",
     ],
     btsNotes: [
-      "Canh đúng khung giờ nắng xiên tự nhiên tạo hiệu ứng tách sáng (chiaroscuro) làm nổi bật độ bóng óng ả của họa tiết lụa thêu chìm.",
+      "Canh đúng khung giờ nắng xiên tự nhiên (1/320s • f/4.5 • ISO 125 ở tiêu cự 64mm) tạo hiệu ứng tách sáng (chiaroscuro) làm nổi bật độ bóng óng ả của họa tiết lụa thêu chìm.",
       "Phối sắc xanh ngọc của tà áo với sắc vàng rực của khóm cúc và hậu cảnh trầm ấm để tạo chiều sâu hội họa.",
     ],
-    gearUsed: ["Sony Alpha Full-Frame", "FE 85mm f/1.4 GM", "Natural Sunlight"],
+    gearUsed: ["Canon EOS 7D", "EF-S 55-250mm IS STM", "Natural Sunlight"],
     credits: [
       { memberSlug: "tran-kim-thang", roleOnProject: "Concept & Portrait Photographer (KeyT)" },
       { memberSlug: "le-quang-vu", roleOnProject: "Lighting Assist" },
@@ -446,6 +449,7 @@ export interface UnifiedMemberProject {
   scope: MemberProjectScope;
   accentColor: string;
   cameraSpec: string;
+  exifSpec?: string;
   summary: string;
   coverImage: string;
   frames: string[];
@@ -491,6 +495,7 @@ export function getUnifiedProjectsForMember(
       scope: isLead ? "lead" : "ekip",
       accentColor: w.accentColor,
       cameraSpec: w.cameraSpec,
+      exifSpec: w.exifSpec,
       summary: w.summary,
       coverImage: w.coverImage,
       frames: w.galleryImages.length > 0 ? w.galleryImages : [w.coverImage],
@@ -517,6 +522,7 @@ export function getUnifiedProjectsForMember(
       scope: "personal",
       accentColor: "#FF4D00",
       cameraSpec: member.favoriteGear.join(" • ").toUpperCase(),
+      exifSpec: item.exifSpec,
       summary:
         item.description ??
         `${item.subtitle} — Thực hiện bởi ${member.name} (${member.roleTitle}).`,
@@ -545,4 +551,8 @@ export function getUnifiedProjectsForMember(
     ...singleFramePersonal,
     ...collectiveArchive,
   ];
+}
+
+if (process.env.NODE_ENV !== "production") {
+  WORKS_DATA.forEach((w) => WorkProjectSchema.parse(w));
 }

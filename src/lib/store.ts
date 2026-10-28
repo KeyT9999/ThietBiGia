@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { CREW_MEMBERS } from "@/data/crew";
+import { WORKS_DATA } from "@/data/works";
 import { soundEngine } from "./sound";
 
 /**
@@ -20,6 +22,7 @@ interface AppStoreState {
   activeWorkIndex: number;
   totalWorks: number;
   isOverlayOpen: boolean;
+  commandPaletteOpen: boolean;
   preloaderDone: boolean;
   soundMuted: boolean;
   cursorVariant: CursorVariant;
@@ -29,6 +32,7 @@ interface AppStoreState {
   setActiveWorkIndex: (index: number, snapMotion?: boolean) => void;
   stepWorkIndex: (delta: number) => void;
   setOverlayOpen: (open: boolean) => void;
+  setCommandPaletteOpen: (open: boolean) => void;
   setPreloaderDone: (done: boolean) => void;
   toggleSound: () => void;
   setCursor: (variant: CursorVariant, label?: string) => void;
@@ -37,15 +41,16 @@ interface AppStoreState {
 export const useAppStore = create<AppStoreState>((set, get) => ({
   timelineMode: "crew",
   activeWorkIndex: 0,
-  totalWorks: 16,
+  totalWorks: CREW_MEMBERS.length,
   isOverlayOpen: false,
+  commandPaletteOpen: false,
   preloaderDone: false,
   soundMuted: false,
   cursorVariant: "default",
   cursorLabel: "",
 
   setTimelineMode: (mode, initialIndex = 0) => {
-    const nextTotal = mode === "crew" ? 16 : 12;
+    const nextTotal = mode === "crew" ? CREW_MEMBERS.length : WORKS_DATA.length;
     const clamped = Math.max(0, Math.min(nextTotal - 1, initialIndex));
     timelineMotion.targetIndex = clamped;
     soundEngine.playShutter();
@@ -79,6 +84,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   },
 
   setOverlayOpen: (open) => set({ isOverlayOpen: open }),
+
+  setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
 
   setPreloaderDone: (done) => set({ preloaderDone: done }),
 

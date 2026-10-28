@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import gsap from "gsap";
 
 const GLYPHS = "0123456789ABCDEF#/*+=-:";
 
@@ -14,13 +15,20 @@ export function DecoderText({
   const [output, setOutput] = useState(text);
 
   useEffect(() => {
-    let frame = 0;
-    const totalFrames = 14;
-    let raf = 0;
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      setOutput(text);
+      return;
+    }
+
+    let step = 0;
+    const totalSteps = 12;
 
     const update = () => {
-      frame++;
-      const progress = frame / totalFrames;
+      step++;
+      const progress = step / totalSteps;
       const revealedCount = Math.floor(progress * text.length);
 
       let next = "";
@@ -30,20 +38,21 @@ export function DecoderText({
         } else if (i < revealedCount) {
           next += text[i];
         } else {
-          next += GLYPHS[(i * 7 + frame * 3) % GLYPHS.length];
+          next += GLYPHS[(i * 7 + step * 3) % GLYPHS.length];
         }
       }
       setOutput(next);
 
-      if (frame < totalFrames) {
-        raf = requestAnimationFrame(update);
-      } else {
+      if (step >= totalSteps) {
         setOutput(text);
+        gsap.ticker.remove(update);
       }
     };
 
-    raf = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(raf);
+    gsap.ticker.add(update);
+    return () => {
+      gsap.ticker.remove(update);
+    };
   }, [text]);
 
   return <span className={className}>{output}</span>;

@@ -9,15 +9,18 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowLeft,
   ArrowUpRight,
+  CalendarPlus,
   Camera,
   ChevronLeft,
   ChevronRight,
   Film,
   Hand,
   Images,
-  Mail,
+  QrCode,
   Sparkles,
   X,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { CREW_MEMBERS } from "@/data/crew";
 import { type CrewMember } from "@/data/schema";
@@ -48,10 +51,12 @@ export function MemberSpotlightView({
 }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [badgeFlipped, setBadgeFlipped] = useState(false);
   const [projectTab, setProjectTab] = useState<"all" | "lead" | "ekip">("all");
   const [lightboxProject, setLightboxProject] =
     useState<UnifiedMemberProject | null>(null);
   const [lightboxPhotoIdx, setLightboxPhotoIdx] = useState(0);
+  const [lightboxZoomed, setLightboxZoomed] = useState(false);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -84,7 +89,9 @@ export function MemberSpotlightView({
 
   useEffect(() => {
     setProjectTab("all");
+    setBadgeFlipped(false);
     setLightboxProject(null);
+    setLightboxZoomed(false);
     if (progressBarRef.current) {
       progressBarRef.current.style.transform = "scaleX(0)";
     }
@@ -248,16 +255,35 @@ export function MemberSpotlightView({
 
           {/* Tracked WebGL View Box (transparent so PersistentCanvas z-40 shines through cleanly) */}
           <div className="relative z-10 flex-1 w-full min-h-0">
-            <LanyardPressPass3DView member={member} />
+            <LanyardPressPass3DView
+              member={member}
+              flipped={badgeFlipped}
+              onToggleFlip={() => setBadgeFlipped((f) => !f)}
+            />
           </div>
 
-          {/* Bottom Drag Instruction Pill */}
-          <div className="relative z-20 px-5 pb-4 pt-2 flex items-center justify-between text-xs font-mono text-ivory-muted">
+          {/* Bottom Drag Instruction Pill + 180° QR Flip Button */}
+          <div className="relative z-20 px-4 sm:px-5 pb-4 pt-2 flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-ivory-muted">
             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-obsidian-border bg-obsidian-surface/85 backdrop-blur-md">
               <Hand className="w-3.5 h-3.5 text-rec" />
-              <span>NẮM KÉO THẺ 3D ĐỂ ĐUNG ĐƯA VẬT LÝ</span>
+              <span>KÉO THẺ ĐUNG ĐƯA</span>
             </span>
-            <span className="hidden lg:inline text-ivory-subtle">RAPIER 3D</span>
+
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playShutter();
+                setBadgeFlipped((f) => !f);
+              }}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border font-bold transition-all cursor-pointer ${
+                badgeFlipped
+                  ? "bg-rec text-obsidian border-rec shadow-[0_0_16px_rgba(255,77,0,0.45)]"
+                  : "border-rec/45 bg-obsidian-surface/90 text-ivory hover:border-rec hover:text-rec"
+              }`}
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>{badgeFlipped ? "XEM MẶT TRƯỚC" : "LẬT MẶT SAU QR"}</span>
+            </button>
           </div>
         </div>
 
@@ -303,15 +329,17 @@ export function MemberSpotlightView({
                 </p>
               </div>
 
-              {member.socials.email && (
-                <a
-                  href={`mailto:${member.socials.email}`}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-rec hover:bg-rec-glow text-obsidian font-mono font-bold text-xs transition-colors"
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>LIÊN HỆ BOOKING</span>
-                </a>
-              )}
+              <Link
+                href={`/contact?crew=${member.slug}`}
+                onClick={() => soundEngine.playShutter()}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-rec hover:bg-rec-glow text-obsidian font-mono font-bold text-xs transition-colors"
+              >
+                <CalendarPlus className="w-3.5 h-3.5" />
+                <span>
+                  ĐẶT LỊCH CÙNG{" "}
+                  {(member.nickname ?? member.name.split(" ").slice(-2).join(" ")).toUpperCase()}
+                </span>
+              </Link>
             </div>
 
             <p className="text-sm sm:text-base text-ivory/85 leading-relaxed max-w-3xl">
@@ -512,6 +540,30 @@ export function MemberSpotlightView({
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            soundEngine.playTick(0.8);
+                            setLightboxZoomed((z) => !z);
+                          }}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-mono transition-colors ${
+                            lightboxZoomed
+                              ? "border-cyan-400 bg-cyan-400/15 text-cyan-300 font-bold"
+                              : "border-obsidian-border text-ivory-muted hover:text-ivory"
+                          }`}
+                        >
+                          {lightboxZoomed ? (
+                            <>
+                              <ZoomOut className="w-3.5 h-3.5" />
+                              <span>THU NHỎ (1X)</span>
+                            </>
+                          ) : (
+                            <>
+                              <ZoomIn className="w-3.5 h-3.5" />
+                              <span>SOI NÉT (2X)</span>
+                            </>
+                          )}
+                        </button>
                         {lightboxProject.workSlug && (
                           <Link
                             href={`/works/${lightboxProject.workSlug}`}
@@ -532,8 +584,15 @@ export function MemberSpotlightView({
                       </div>
                     </div>
 
-                    {/* Uncropped Full-Frame Viewer */}
-                    <div className="relative bg-obsidian flex-1 min-h-0 flex items-center justify-center p-3 overflow-hidden">
+                    {/* Uncropped Full-Frame Viewer with 2x Loupe Inspection */}
+                    <div
+                      onClick={() => setLightboxZoomed((z) => !z)}
+                      className={`relative bg-obsidian flex-1 min-h-0 flex items-center justify-center p-3 ${
+                        lightboxZoomed
+                          ? "overflow-auto cursor-zoom-out"
+                          : "overflow-hidden cursor-zoom-in"
+                      }`}
+                    >
                       <img
                         src={lightboxGallery[lightboxPhotoIdx]}
                         alt=""
@@ -542,7 +601,11 @@ export function MemberSpotlightView({
                       <img
                         src={lightboxGallery[lightboxPhotoIdx]}
                         alt={lightboxProject.title}
-                        className="relative z-10 max-h-[64dvh] w-auto max-w-full object-contain rounded-lg shadow-2xl"
+                        className={`relative z-10 rounded-lg shadow-2xl transition-transform duration-300 ${
+                          lightboxZoomed
+                            ? "max-h-none w-auto scale-150 sm:scale-[1.85]"
+                            : "max-h-[64dvh] w-auto max-w-full object-contain"
+                        }`}
                       />
 
                       {lightboxGallery.length > 1 && (
@@ -606,8 +669,8 @@ export function MemberSpotlightView({
 
                       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-ivory-muted">
                         <p className="max-w-3xl">{lightboxProject.summary}</p>
-                        <span className="font-mono text-ivory-subtle shrink-0">
-                          {lightboxProject.cameraSpec}
+                        <span className="font-mono text-rec font-semibold shrink-0">
+                          {lightboxProject.exifSpec ?? lightboxProject.cameraSpec}
                         </span>
                       </div>
                     </div>

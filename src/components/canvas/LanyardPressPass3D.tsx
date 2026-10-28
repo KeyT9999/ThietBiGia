@@ -3,7 +3,13 @@
 import * as THREE from "three";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Environment, Lightformer, PerspectiveCamera, RoundedBox, View } from "@react-three/drei";
+import {
+  Environment,
+  Lightformer,
+  PerspectiveCamera,
+  RoundedBox,
+  View,
+} from "@react-three/drei";
 import {
   BallCollider,
   CuboidCollider,
@@ -15,8 +21,12 @@ import {
 } from "@react-three/rapier";
 import { type CrewMember } from "@/data/schema";
 import { getCombinedRoleBadge, getRoleMeta } from "@/lib/utils";
-import { getWorksForMember } from "@/data/works";
+import { getUnifiedProjectsForMember } from "@/data/works";
+import { generateQrMatrix } from "@/lib/qr";
 import { soundEngine } from "@/lib/sound";
+
+const STRAP_SEGMENTS = 28;
+const STRAP_HALF_WIDTH = 0.058;
 
 function drawRoundedRect(
   ctx: CanvasRenderingContext2D,
@@ -39,7 +49,7 @@ function paintFrontBadgeCanvas(
   canvas: HTMLCanvasElement,
   member: CrewMember,
   avatarImg: HTMLImageElement | null,
-  projectCount: number
+  unifiedProjectCount: number
 ) {
   const W = canvas.width;
   const H = canvas.height;
@@ -48,7 +58,7 @@ function paintFrontBadgeCanvas(
 
   const roleMeta = getRoleMeta(member.roleCategory);
 
-  // Metallic dark laminated base with holographic diagonal sheen
+  // Metallic dark laminated base
   const baseGrad = ctx.createLinearGradient(0, 0, W, H);
   baseGrad.addColorStop(0, "#1A1D27");
   baseGrad.addColorStop(0.45, "#11131B");
@@ -64,7 +74,6 @@ function paintFrontBadgeCanvas(
   holoGrad.addColorStop(0.8, "#A855F7");
   holoGrad.addColorStop(1, "#EC4899");
 
-  // Inner frosted holographic plate
   drawRoundedRect(ctx, 44, 124, W - 88, H - 168, 36);
   const plateGrad = ctx.createLinearGradient(44, 124, W - 44, H - 80);
   plateGrad.addColorStop(0, "rgba(244, 241, 234, 0.96)");
@@ -73,7 +82,6 @@ function paintFrontBadgeCanvas(
   ctx.fillStyle = plateGrad;
   ctx.fill();
 
-  // Soft pastel rainbow foil wash across plate
   ctx.save();
   drawRoundedRect(ctx, 44, 124, W - 88, H - 168, 36);
   ctx.clip();
@@ -130,7 +138,6 @@ function paintFrontBadgeCanvas(
     }
     ctx.drawImage(avatarImg, drawX, drawY, drawW, drawH);
   } else {
-    // Studio lens aperture fallback before portrait decodes
     const cx = px + pw / 2;
     const cy = py + ph / 2;
     const rg = ctx.createRadialGradient(cx, cy, 24, cx, cy, 260);
@@ -169,7 +176,7 @@ function paintFrontBadgeCanvas(
   ctx.fillStyle = "#08090C";
   ctx.fillText(badgeText, px + 50, py + ph - 40);
 
-  // Member Name & Role Title (auto-fit long 4-word Vietnamese names cleanly)
+  // Member Name & Role Title
   ctx.fillStyle = "#0E1016";
   const upperName = member.name.toUpperCase();
   let nameFontSize = 52;
@@ -241,55 +248,172 @@ function paintFrontBadgeCanvas(
   ctx.fillText(member.location + " • " + member.yearsActive, 88, 1336);
   ctx.fillStyle = "#FF4D00";
   ctx.font = "700 22px monospace";
-  ctx.fillText("ALL ACCESS CREW", 88, 1384);
+  ctx.fillText("ALL ACCESS • NHẤP ĐÚP LẬT QR", 88, 1384);
 
-  // Project stat right
+  // Unified Project stat right (matches right column 100%!)
   ctx.fillStyle = "#0E1016";
   ctx.font = "800 84px sans-serif";
-  ctx.fillText(String(projectCount + member.showcase.length).padStart(2, "0"), W * 0.64, 1335);
+  ctx.fillText(String(unifiedProjectCount).padStart(2, "0"), W * 0.64, 1335);
   ctx.font = "700 22px sans-serif";
   ctx.fillStyle = "#313647";
-  ctx.fillText("TÁC PHẨM", W * 0.64, 1375);
-  ctx.fillText("& DỰ ÁN NHÓM", W * 0.64, 1404);
+  ctx.fillText("DỰ ÁN &", W * 0.64, 1375);
+  ctx.fillText("ALBUM CHÍNH", W * 0.64, 1404);
 }
 
 function createBackBadgeTexture(member: CrewMember): THREE.CanvasTexture {
-  const W = 512;
-  const H = 760;
+  const W = 1024;
+  const H = 1520;
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d")!;
 
-  ctx.fillStyle = "#0E1017";
+  const roleMeta = getRoleMeta(member.roleCategory);
+
+  // Obsidian carbon-studio back plate
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, "#151822");
+  bg.addColorStop(0.5, "#0C0E15");
+  bg.addColorStop(1, "#07080C");
+  ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  drawRoundedRect(ctx, 28, 64, W - 56, H - 92, 20);
-  ctx.strokeStyle = "rgba(255, 77, 0, 0.55)";
-  ctx.lineWidth = 3;
+  // Top punch slot
+  drawRoundedRect(ctx, W / 2 - 110, 42, 220, 38, 19);
+  ctx.fillStyle = "#050608";
+  ctx.fill();
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "rgba(255,255,255,0.2)";
   ctx.stroke();
 
+  // Glowing role border
+  drawRoundedRect(ctx, 48, 124, W - 96, H - 172, 36);
+  ctx.strokeStyle = `${roleMeta.color}99`;
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  // Header brand
   ctx.textAlign = "center";
   ctx.fillStyle = "#FF4D00";
-  ctx.font = "700 20px monospace";
-  ctx.fillText("CREATIVE MEDIA & DESIGN COLLECTIVE", W / 2, 260);
+  ctx.font = "700 26px monospace";
+  ctx.fillText("THIẾT BỊ GIA // DIGITAL VCARD & QR", W / 2, 210);
 
   ctx.fillStyle = "#F4F1EA";
-  ctx.font = "800 46px sans-serif";
-  ctx.fillText("THIẾT BỊ GIA", W / 2, 325);
+  const displayName = member.nickname
+    ? `${member.name.toUpperCase()} (${member.nickname.toUpperCase()})`
+    : member.name.toUpperCase();
+  let titleSize = 46;
+  ctx.font = `800 ${titleSize}px sans-serif`;
+  while (ctx.measureText(displayName).width > W - 160 && titleSize > 28) {
+    titleSize -= 2;
+    ctx.font = `800 ${titleSize}px sans-serif`;
+  }
+  ctx.fillText(displayName, W / 2, 282);
+
+  ctx.fillStyle = roleMeta.color;
+  ctx.font = "700 28px monospace";
+  ctx.fillText(`CREW #${member.badgeNumber} • ${member.roleTitle.toUpperCase()}`, W / 2, 334);
+
+  // Scannable ISO QR Code Card Center
+  const profileUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/crew/${member.slug}`
+      : `https://thietbigia.vn/crew/${member.slug}`;
+  const matrix = generateQrMatrix(profileUrl);
+  const qrBoxSize = 540;
+  const qrX = (W - qrBoxSize) / 2;
+  const qrY = 390;
+
+  drawRoundedRect(ctx, qrX, qrY, qrBoxSize, qrBoxSize, 32);
+  ctx.fillStyle = "#F8F7F3";
+  ctx.fill();
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = roleMeta.color;
+  ctx.stroke();
+
+  const quietModules = 4;
+  const totalMods = matrix.length + quietModules * 2;
+  const cell = qrBoxSize / totalMods;
+  ctx.fillStyle = "#090B10";
+  for (let r = 0; r < matrix.length; r++) {
+    for (let c = 0; c < matrix.length; c++) {
+      if (matrix[r][c]) {
+        const mx = qrX + (c + quietModules) * cell;
+        const my = qrY + (r + quietModules) * cell;
+        ctx.fillRect(Math.floor(mx), Math.floor(my), Math.ceil(cell), Math.ceil(cell));
+      }
+    }
+  }
+
+  // Center tiny TBG emblem accent below QR
+  ctx.fillStyle = "#FF4D00";
+  ctx.font = "700 25px monospace";
+  ctx.fillText("QUÉT MÃ QR ĐỂ MỞ HỒ SƠ & BOOKING", W / 2, 996);
 
   ctx.fillStyle = "#9499AB";
+  ctx.font = "500 22px monospace";
+  ctx.fillText(`/crew/${member.slug}`, W / 2, 1038);
+
+  // Divider
+  ctx.strokeStyle = "rgba(255,255,255,0.12)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(100, 1090);
+  ctx.lineTo(W - 100, 1090);
+  ctx.stroke();
+
+  // Equipment Locker Summary on Back
+  ctx.fillStyle = roleMeta.color;
+  ctx.font = "700 24px monospace";
+  ctx.fillText("GEAR CHỦ LỰC TRÊN SET", W / 2, 1146);
+
+  ctx.fillStyle = "#E4E7F0";
+  ctx.font = "600 25px monospace";
+  const gearLine1 = member.favoriteGear.slice(0, 2).join("  •  ");
+  const gearLine2 = member.favoriteGear.slice(2, 4).join("  •  ");
+  ctx.fillText(gearLine1, W / 2, 1196);
+  if (gearLine2) {
+    ctx.fillText(gearLine2, W / 2, 1238);
+  }
+
+  // Footer Authorization
+  drawRoundedRect(ctx, 110, 1300, W - 220, 96, 20);
+  ctx.fillStyle = "rgba(255, 77, 0, 0.14)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255, 77, 0, 0.5)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = "#F4F1EA";
+  ctx.font = "700 24px monospace";
+  ctx.fillText("BOOKING DESK: BOOKING@THIETBIGIA.VN", W / 2, 1344);
+  ctx.fillStyle = "#FF6A2B";
   ctx.font = "600 20px monospace";
-  ctx.fillText(`OFFICIAL CREW PASS #${member.badgeNumber}`, W / 2, 385);
-  ctx.fillText("TP. HỒ CHÍ MINH • VIETNAM", W / 2, 425);
+  ctx.fillText("OFFICIAL ALL-ACCESS CREW CREDENTIAL", W / 2, 1376);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
   tex.needsUpdate = true;
   return tex;
 }
 
-function PhysicsBadgeAssembly({ member }: { member: CrewMember }) {
+/**
+ * Pre-allocates a single ribbon BufferGeometry updated in-place every frame (ZERO GC churn!).
+ */
+function createStrapRibbonGeometry() {
+  return new THREE.PlaneGeometry(STRAP_HALF_WIDTH * 2, 1, 1, STRAP_SEGMENTS);
+}
+
+function PhysicsBadgeAssembly({
+  member,
+  flipped,
+  onToggleFlip,
+}: {
+  member: CrewMember;
+  flipped: boolean;
+  onToggleFlip?: () => void;
+}) {
   const fixed = useRef<RapierRigidBody>(null!);
   const j1 = useRef<RapierRigidBody>(null!);
   const j2 = useRef<RapierRigidBody>(null!);
@@ -301,19 +425,22 @@ function PhysicsBadgeAssembly({ member }: { member: CrewMember }) {
   const [hovered, setHovered] = useState(false);
 
   const { camera } = useThree();
-  const projectCount = useMemo(() => getWorksForMember(member.slug).length, [member.slug]);
+  const unifiedCount = useMemo(
+    () => getUnifiedProjectsForMember(member).length,
+    [member]
+  );
 
   const frontTex = useMemo(() => {
     const canvas = document.createElement("canvas");
     canvas.width = 1024;
     canvas.height = 1520;
-    paintFrontBadgeCanvas(canvas, member, null, projectCount);
+    paintFrontBadgeCanvas(canvas, member, null, unifiedCount);
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 8;
     tex.needsUpdate = true;
     return tex;
-  }, [member, projectCount]);
+  }, [member, unifiedCount]);
 
   useEffect(() => {
     let active = true;
@@ -322,7 +449,7 @@ function PhysicsBadgeAssembly({ member }: { member: CrewMember }) {
     img.crossOrigin = "anonymous";
     const applyPortrait = () => {
       if (!active) return;
-      paintFrontBadgeCanvas(canvas, member, img, projectCount);
+      paintFrontBadgeCanvas(canvas, member, img, unifiedCount);
       frontTex.needsUpdate = true;
     };
     img.onload = applyPortrait;
@@ -333,16 +460,18 @@ function PhysicsBadgeAssembly({ member }: { member: CrewMember }) {
     return () => {
       active = false;
     };
-  }, [frontTex, member, projectCount]);
+  }, [frontTex, member, unifiedCount]);
 
   const backTex = useMemo(() => createBackBadgeTexture(member), [member]);
+  const strapGeo = useMemo(() => createStrapRibbonGeometry(), []);
 
   useEffect(() => {
     return () => {
       frontTex.dispose();
       backTex.dispose();
+      strapGeo.dispose();
     };
-  }, [frontTex, backTex]);
+  }, [frontTex, backTex, strapGeo]);
 
   useRopeJoint(fixed, j1, [[0, 0, 0], [0, 0, 0], 0.68]);
   useRopeJoint(j1, j2, [[0, 0, 0], [0, 0, 0], 0.68]);
@@ -365,6 +494,13 @@ function PhysicsBadgeAssembly({ member }: { member: CrewMember }) {
 
   const vec = useMemo(() => new THREE.Vector3(), []);
   const dir = useMemo(() => new THREE.Vector3(), []);
+  const tmpPt = useMemo(() => new THREE.Vector3(), []);
+  const tmpTan = useMemo(() => new THREE.Vector3(), []);
+  const tmpSide = useMemo(() => new THREE.Vector3(), []);
+  const zAxis = useMemo(() => new THREE.Vector3(0, 0, 1), []);
+  const tmpQuat = useMemo(() => new THREE.Quaternion(), []);
+  const tmpEuler = useMemo(() => new THREE.Euler(), []);
+
   const lastScrollY = useRef<number | null>(null);
   const modalScrollerRef = useRef<HTMLElement | null>(null);
 
@@ -377,6 +513,11 @@ function PhysicsBadgeAssembly({ member }: { member: CrewMember }) {
       ? modalScrollerRef.current.scrollTop
       : window.scrollY;
   }, []);
+
+  // Wake rigid body when user toggles 180-degree QR flip
+  useEffect(() => {
+    card.current?.wakeUp();
+  }, [flipped]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -401,7 +542,6 @@ function PhysicsBadgeAssembly({ member }: { member: CrewMember }) {
         z: vec.z - dragOffset.z,
       });
     } else if (card.current && typeof window !== "undefined") {
-      // Gentle physical pendulum micro-sway coupled to scroll velocity
       const scroller = modalScrollerRef.current;
       const curY = scroller ? scroller.scrollTop : window.scrollY;
       if (lastScrollY.current !== null) {
@@ -416,7 +556,14 @@ function PhysicsBadgeAssembly({ member }: { member: CrewMember }) {
       lastScrollY.current = curY;
     }
 
-    if (fixed.current && j1.current && j2.current && j3.current && card.current && strapMeshRef.current) {
+    if (
+      fixed.current &&
+      j1.current &&
+      j2.current &&
+      j3.current &&
+      card.current &&
+      strapMeshRef.current
+    ) {
       const p0 = fixed.current.translation();
       const p1 = j1.current.translation();
       const p2 = j2.current.translation();
@@ -427,15 +574,55 @@ function PhysicsBadgeAssembly({ member }: { member: CrewMember }) {
       curve.points[2].set(p2.x, p2.y, p2.z);
       curve.points[3].set(p3.x, p3.y - 0.08, p3.z);
 
-      const newGeo = new THREE.TubeGeometry(curve, 28, 0.055, 8, false);
-      strapMeshRef.current.geometry.dispose();
-      strapMeshRef.current.geometry = newGeo;
+      // Update strap ribbon vertices IN-PLACE — zero memory allocation per frame!
+      const posAttr = strapGeo.attributes.position as THREE.BufferAttribute;
+      for (let i = 0; i <= STRAP_SEGMENTS; i++) {
+        const t = i / STRAP_SEGMENTS;
+        curve.getPoint(t, tmpPt);
+        curve.getTangent(t, tmpTan);
+        tmpSide.crossVectors(tmpTan, zAxis);
+        if (tmpSide.lengthSq() < 0.0001) {
+          tmpSide.set(1, 0, 0);
+        } else {
+          tmpSide.normalize();
+        }
+        tmpSide.multiplyScalar(STRAP_HALF_WIDTH);
 
-      // Stabilize spin so front of badge stays comfortably readable
+        const vIdx = i * 2;
+        posAttr.setXYZ(
+          vIdx,
+          tmpPt.x - tmpSide.x,
+          tmpPt.y - tmpSide.y,
+          tmpPt.z - tmpSide.z
+        );
+        posAttr.setXYZ(
+          vIdx + 1,
+          tmpPt.x + tmpSide.x,
+          tmpPt.y + tmpSide.y,
+          tmpPt.z + tmpSide.z
+        );
+      }
+      posAttr.needsUpdate = true;
+      strapGeo.computeVertexNormals();
+
+      // Smoothly steer badge yaw toward front (0 rad) or back QR vCard (PI rad)
       const ang = card.current.angvel();
       const rot = card.current.rotation();
+      tmpQuat.set(rot.x, rot.y, rot.z, rot.w);
+      tmpEuler.setFromQuaternion(tmpQuat, "YXZ");
+
+      const targetYaw = flipped ? Math.PI : 0;
+      let diff = targetYaw - tmpEuler.y;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+
+      const desiredAngY = THREE.MathUtils.clamp(diff * 5.2, -7.5, 7.5);
       card.current.setAngvel(
-        { x: ang.x, y: ang.y - rot.y * 0.22, z: ang.z },
+        {
+          x: ang.x,
+          y: THREE.MathUtils.lerp(ang.y, desiredAngY, 0.18),
+          z: ang.z,
+        },
         false
       );
     }
@@ -486,6 +673,11 @@ function PhysicsBadgeAssembly({ member }: { member: CrewMember }) {
           <group
             onPointerOver={() => setHovered(true)}
             onPointerOut={() => setHovered(false)}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              soundEngine.playShutter();
+              onToggleFlip?.();
+            }}
             onPointerDown={(e) => {
               e.stopPropagation();
               (e.target as Element)?.setPointerCapture?.(e.pointerId);
@@ -493,7 +685,9 @@ function PhysicsBadgeAssembly({ member }: { member: CrewMember }) {
               if (card.current) {
                 const tr = card.current.translation();
                 setDragOffset(
-                  new THREE.Vector3().copy(e.point).sub(new THREE.Vector3(tr.x, tr.y, tr.z))
+                  new THREE.Vector3()
+                    .copy(e.point)
+                    .sub(new THREE.Vector3(tr.x, tr.y, tr.z))
                 );
               }
             }}
@@ -540,31 +734,44 @@ function PhysicsBadgeAssembly({ member }: { member: CrewMember }) {
               />
             </mesh>
 
-            {/* Back Pass Face */}
+            {/* Back Scannable QR vCard Face */}
             <mesh position={[0, 0, -0.025]} rotation={[0, Math.PI, 0]}>
               <planeGeometry args={[1.82, 2.7]} />
               <meshPhysicalMaterial
                 map={backTex}
-                clearcoat={0.8}
-                roughness={0.25}
-                metalness={0.2}
-                iridescence={0.6}
+                clearcoat={0.9}
+                clearcoatRoughness={0.14}
+                roughness={0.22}
+                metalness={0.15}
+                iridescence={0.65}
               />
             </mesh>
           </group>
         </RigidBody>
       </group>
 
-      {/* Woven Black Fabric Strap Mesh */}
-      <mesh ref={strapMeshRef} position={[0, 0.25, 0]}>
-        <tubeGeometry args={[curve, 28, 0.055, 8, false]} />
-        <meshStandardMaterial color="#16181F" roughness={0.85} metalness={0.08} />
+      {/* Zero-Allocation Woven Fabric Strap Ribbon */}
+      <mesh ref={strapMeshRef} geometry={strapGeo} position={[0, 0.25, 0]}>
+        <meshStandardMaterial
+          color="#16181F"
+          roughness={0.82}
+          metalness={0.1}
+          side={THREE.DoubleSide}
+        />
       </mesh>
     </>
   );
 }
 
-export function LanyardPressPass3DView({ member }: { member: CrewMember }) {
+export function LanyardPressPass3DView({
+  member,
+  flipped = false,
+  onToggleFlip,
+}: {
+  member: CrewMember;
+  flipped?: boolean;
+  onToggleFlip?: () => void;
+}) {
   return (
     <View index={2} className="w-full h-full">
       <PerspectiveCamera makeDefault position={[0, 0, 6.6]} fov={34} />
@@ -572,7 +779,6 @@ export function LanyardPressPass3DView({ member }: { member: CrewMember }) {
       <directionalLight position={[4, 6, 5]} intensity={1.8} />
       <directionalLight position={[-4, 2, 3]} intensity={0.9} color="#FF6A2B" />
 
-      {/* Local GPU procedural studio reflections — ZERO external HDR fetch latency */}
       <Environment resolution={256}>
         <Lightformer
           intensity={2.4}
@@ -599,7 +805,12 @@ export function LanyardPressPass3DView({ member }: { member: CrewMember }) {
 
       <Suspense fallback={null}>
         <Physics gravity={[0, -32, 0]} interpolate timeStep={1 / 60}>
-          <PhysicsBadgeAssembly key={member.slug} member={member} />
+          <PhysicsBadgeAssembly
+            key={member.slug}
+            member={member}
+            flipped={flipped}
+            onToggleFlip={onToggleFlip}
+          />
         </Physics>
       </Suspense>
     </View>

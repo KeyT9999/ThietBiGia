@@ -6,6 +6,7 @@ import { SceneHost } from "@/components/canvas/SceneHost";
 import { Navbar } from "@/components/layout/Navbar";
 import { TimecodePreloader } from "@/components/layout/TimecodePreloader";
 import { CustomCursor } from "@/components/layout/CustomCursor";
+import { CommandPalette } from "@/components/layout/CommandPalette";
 
 const fontDisplay = Space_Grotesk({
   subsets: ["latin", "vietnamese"],
@@ -26,9 +27,20 @@ const fontMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "THIẾT BỊ GIA — Creative Media & Design Collective",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://thietbigia.vn"
+  ),
+  title: {
+    default: "THIẾT BỊ GIA — Creative Media & Design Collective",
+    template: "%s | THIẾT BỊ GIA",
+  },
   description:
-    "Portfolio tập thể của anh em Thiết Bị Gia: Photographer, Quay video (DOP), Dựng hậu kỳ, Ánh sáng và Thiết kế sáng tạo.",
+    "Portfolio tập thể 16 thành viên Thiết Bị Gia: Photographer, Quay phim (DOP), Dựng hậu kỳ, Ánh sáng và Thiết kế sáng tạo.",
+  openGraph: {
+    siteName: "THIẾT BỊ GIA",
+    locale: "vi_VN",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -47,6 +59,7 @@ export default function RootLayout({
         <SmoothScrollProvider>
           <TimecodePreloader />
           <CustomCursor />
+          <CommandPalette />
           <Navbar />
 
           {/* Main Route Content */}

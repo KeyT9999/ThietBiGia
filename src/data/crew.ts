@@ -1,4 +1,4 @@
-import { type CrewMember } from "./schema";
+import { CrewMemberSchema, type CrewMember } from "./schema";
 export type { CrewMember };
 
 export const CREW_MEMBERS: CrewMember[] = [
@@ -581,7 +581,12 @@ export const CREW_MEMBERS: CrewMember[] = [
     bio: "Ghi dấu ấn qua những khung hình sân khấu đại nhạc hội rực lửa, thảm đỏ Liên Hoan Phim Châu Á (DANAFF) và chân dung Áo dài giàu cảm xúc — đồng thời kết hợp tư duy công nghệ IT để kiến tạo trải nghiệm số cho Thiết Bị Gia.",
     avatar: "/media/keyt/keyt-portrait-02.jpg",
     avatarAlt: "/media/keyt/keyt-portrait-01.jpg",
-    favoriteGear: ["Sony Alpha Full-Frame", "FE 70-200mm GM", "FE 85mm f/1.4", "WebGL / Next.js"],
+    favoriteGear: [
+      "Sony A6400",
+      "Sigma 18-50mm F2.8",
+      "Canon EOS 7D",
+      "WebGL / Next.js",
+    ],
     yearsActive: "THIẾT BỊ GIA",
     location: "ĐÀ NẴNG • VIỆT NAM",
     socials: {
@@ -606,6 +611,7 @@ export const CREW_MEMBERS: CrewMember[] = [
           "Bộ ảnh sân khấu đêm diễn của nghệ sĩ Phùng Khánh Linh với visual Căn Gác Mùa Hè rực rỡ và những luồng spotlight ngược sáng giàu cảm xúc.",
         projectSlug: "phung-khanh-linh-live-stage",
         durationOrSpec: "4 FRAMES • CONCERT",
+        exifSpec: "SONY ILCE-6400 • SIGMA 18-50MM F2.8 DC DN • 50mm • f/4.5 • 1/100s • ISO 320",
       },
       {
         id: "tkt-2",
@@ -625,6 +631,7 @@ export const CREW_MEMBERS: CrewMember[] = [
           "Tác nghiệp thảm đỏ sự kiện Liên Hoan Phim Châu Á Đà Nẵng (DANAFF) — bắt trọn thần thái sang trọng và khoảnh khắc giao lưu trước ống kính báo chí.",
         projectSlug: "lien-hoan-phim-chau-a-danaff",
         durationOrSpec: "5 FRAMES • RED CARPET",
+        exifSpec: "SONY ILCE-6400 • SIGMA 18-50MM F2.8 DC DN • 34–50mm • f/4 • 1/200s • ISO 500",
       },
       {
         id: "tkt-3",
@@ -638,6 +645,7 @@ export const CREW_MEMBERS: CrewMember[] = [
           "Tôn vinh chất liệu lụa truyền thống Việt Nam dưới ánh nắng xiên tự nhiên, kết hợp bố cục màu sắc ấm áp và tĩnh tại.",
         projectSlug: "net-ngoc-ao-dai",
         durationOrSpec: "PORTRAIT • ÁO DÀI",
+        exifSpec: "CANON EOS 7D • EF-S 55-250MM IS STM • 64mm • f/4.5 • 1/320s • ISO 125",
       },
       {
         id: "tkt-4",
@@ -736,4 +744,8 @@ export const CREW_MEMBERS: CrewMember[] = [
 
 export function getCrewBySlug(slug: string): CrewMember | undefined {
   return CREW_MEMBERS.find((m) => m.slug === slug);
+}
+
+if (process.env.NODE_ENV !== "production") {
+  CREW_MEMBERS.forEach((m) => CrewMemberSchema.parse(m));
 }

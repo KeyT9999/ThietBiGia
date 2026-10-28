@@ -97,9 +97,11 @@ export function LivingTimelineStage() {
     });
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (useAppStore.getState().isOverlayOpen || window.location.pathname !== "/") return;
-      if (e.key === "ArrowRight") useAppStore.getState().stepWorkIndex(1);
-      if (e.key === "ArrowLeft") useAppStore.getState().stepWorkIndex(-1);
+      const st = useAppStore.getState();
+      if (st.isOverlayOpen || st.commandPaletteOpen || window.location.pathname !== "/")
+        return;
+      if (e.key === "ArrowRight") st.stepWorkIndex(1);
+      if (e.key === "ArrowLeft") st.stepWorkIndex(-1);
     };
 
     window.addEventListener("keydown", onKeyDown);
@@ -268,8 +270,8 @@ export function LivingTimelineStage() {
                 </div>
               </div>
 
-              {/* Right Floating Frosted-Glass Member Context Pills */}
-              <div className="md:ml-auto md:mr-[5%] lg:mr-[8%]">
+              {/* Right Floating Frosted-Glass Member Context Pills (Desktop & Tablet) */}
+              <div className="hidden md:block md:ml-auto md:mr-[5%] lg:mr-[8%]">
                 <MemberContextPills member={activeMember} />
               </div>
             </>
@@ -297,10 +299,69 @@ export function LivingTimelineStage() {
                 </Link>
               </div>
 
-              {/* Right Floating Frosted-Glass Crew Credit Pills */}
-              <div className="md:ml-auto md:mr-[6%] lg:mr-[10%]">
+              {/* Right Floating Frosted-Glass Crew Credit Pills (Desktop & Tablet) */}
+              <div className="hidden md:block md:ml-auto md:mr-[6%] lg:mr-[10%]">
                 <CrewCreditPills work={activeWork} />
               </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Compact Mobile/Tablet Active Spotlight Pill (< 1024px) */}
+      <div
+        className={`relative z-[45] lg:hidden px-4 pb-2 ${
+          isBackgrounded ? "hidden" : ""
+        }`}
+      >
+        <div className="max-w-lg mx-auto rounded-2xl border border-white/12 bg-obsidian-surface/90 backdrop-blur-xl px-3.5 py-2.5 flex items-center justify-between gap-3 shadow-xl">
+          {isCrewMode ? (
+            <>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <img
+                  src={activeMember.avatar}
+                  alt={activeMember.name}
+                  className="w-9 h-9 rounded-full object-cover object-[50%_18%] border shrink-0"
+                  style={{ borderColor: activeAccentColor }}
+                />
+                <div className="min-w-0">
+                  <div className="text-[10px] font-mono text-rec font-bold truncate">
+                    #{activeMember.badgeNumber} • {activeMember.roleTitle.toUpperCase()}
+                  </div>
+                  <div className="font-display text-sm font-bold text-ivory truncate">
+                    {activeMember.name}
+                  </div>
+                </div>
+              </div>
+              <Link
+                href={`/crew/${activeMember.slug}`}
+                scroll={false}
+                onClick={() => soundEngine.playShutter()}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rec text-obsidian font-mono font-bold text-[11px] shrink-0"
+              >
+                <IdCard className="w-3.5 h-3.5" />
+                <span>THẺ 3D</span>
+              </Link>
+            </>
+          ) : (
+            <>
+              <div className="min-w-0">
+                <div className="text-[10px] font-mono text-rec font-bold truncate uppercase">
+                  SCENE {activeWork.indexLabel} • {activeWork.category}
+                </div>
+                <div className="font-display text-sm font-bold text-ivory truncate">
+                  {activeWork.title}
+                </div>
+              </div>
+              <Link
+                href={`/works/${activeWork.slug}`}
+                scroll={false}
+                onClick={() => soundEngine.playShutter()}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rec text-obsidian font-mono font-bold text-[11px] shrink-0"
+              >
+                <Play className="w-3 h-3 fill-current" />
+                <span>XEM DỰ ÁN</span>
+              </Link>
             </>
           )}
         </div>

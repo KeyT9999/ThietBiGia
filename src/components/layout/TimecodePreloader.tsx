@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import gsap from "gsap";
 import { AnimatePresence, motion } from "motion/react";
 import { useAppStore } from "@/lib/store";
+import { soundEngine } from "@/lib/sound";
+
+const SESSION_KEY = "tbg_preloader_seen_v2";
 
 export function TimecodePreloader() {
   const preloaderDone = useAppStore((s) => s.preloaderDone);
@@ -10,34 +14,65 @@ export function TimecodePreloader() {
   const [frame, setFrame] = useState(0);
   const [visible, setVisible] = useState(true);
 
+  const finishPreloader = useCallback(() => {
+    try {
+      sessionStorage.setItem(SESSION_KEY, "1");
+    } catch {}
+    setVisible(false);
+    setPreloaderDone(true);
+  }, [setPreloaderDone]);
+
   useEffect(() => {
     if (preloaderDone) {
       setVisible(false);
       return;
     }
 
-    let rafId = 0;
-    const start = performance.now();
-    const duration = 1650;
-
-    const tick = (now: number) => {
-      const p = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - p, 3);
-      setFrame(Math.floor(eased * 24));
-      if (p < 1) {
-        rafId = requestAnimationFrame(tick);
-      } else {
+    // Skip blocking animation if visitor already watched preloader in this browser session
+    // or if reduced motion is preferred
+    try {
+      const alreadySeen = sessionStorage.getItem(SESSION_KEY) === "1";
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (alreadySeen || reducedMotion) {
         setVisible(false);
         setPreloaderDone(true);
+        return;
+      }
+    } catch {}
+
+    const start = performance.now();
+    const duration = 1450;
+
+    // Driven by the single shared GSAP ticker (Skill Rule #1)
+    const tick = () => {
+      const now = performance.now();
+      const p = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      const nextFrame = Math.floor(eased * 24);
+      setFrame((prev) => (prev === nextFrame ? prev : nextFrame));
+      if (p >= 1) {
+        gsap.ticker.remove(tick);
+        finishPreloader();
       }
     };
 
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
-  }, [preloaderDone, setPreloaderDone]);
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === " " || e.key === "Enter") {
+        gsap.ticker.remove(tick);
+        finishPreloader();
+      }
+    };
+
+    gsap.ticker.add(tick);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      gsap.ticker.remove(tick);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [preloaderDone, setPreloaderDone, finishPreloader]);
 
   const pad = (n: number) => String(n).padStart(2, "0");
-  const isSecondPose = frame >= 15;
+  const isSecondPose = frame >= 14;
 
   return (
     <AnimatePresence>
@@ -45,11 +80,15 @@ export function TimecodePreloader() {
         <motion.div
           key="tbg-preloader"
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, scale: 1.04 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed inset-0 z-[100] bg-obsidian flex flex-col items-center justify-center select-none px-6 overflow-hidden"
+          exit={{ opacity: 0, scale: 1.03 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          onClick={() => {
+            soundEngine.playShutter();
+            finishPreloader();
+          }}
+          className="fixed inset-0 z-[100] bg-obsidian flex flex-col items-center justify-center select-none px-6 overflow-hidden cursor-pointer"
         >
-          {/* Idea 3: Warm Analog Group Photo Developing in Background (B&W -> Warm Film + 2-Frame Cut!) */}
+          {/* Warm Analog Group Photo Developing in Background (B&W -> Warm Film + 2-Frame Cut) */}
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
             <img
               src="/anhchungtbg.jpg"
@@ -73,7 +112,6 @@ export function TimecodePreloader() {
           </div>
 
           <div className="relative z-10 w-full max-w-xl border border-white/15 rounded-2xl p-8 bg-obsidian/70 backdrop-blur-xl shadow-2xl">
-            {/* Corner Viewfinder Brackets */}
             <span className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-rec" />
             <span className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-rec" />
             <span className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-rec" />
@@ -99,14 +137,19 @@ export function TimecodePreloader() {
               </div>
             </div>
 
-            {/* Progress bar */}
             <div className="mt-6 h-1 w-full bg-obsidian-border rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-rec"
                 initial={{ width: "0%" }}
                 animate={{ width: "100%" }}
-                transition={{ duration: 1.55, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
               />
+            </div>
+
+            <div className="mt-4 flex justify-center">
+              <span className="text-[11px] font-mono text-ivory-subtle hover:text-ivory transition-colors">
+                NHẤN BẤT KỲ HOẶC [SPACE] ĐỂ VÀO NGAY →
+              </span>
             </div>
           </div>
         </motion.div>

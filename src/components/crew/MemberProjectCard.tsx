@@ -39,14 +39,24 @@ export function MemberProjectCard({
       ? { label: "CÁ NHÂN", bg: "#FF4D00", text: "#08090C" }
       : { label: "CÙNG EKIP", bg: "#1E2433", text: "#F4F1EA" };
 
-  const handleStageScrub = (e: React.MouseEvent<HTMLDivElement>) => {
+  const scrubAtClientX = (clientX: number, el: HTMLElement) => {
     if (frames.length <= 1) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const relX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const rect = el.getBoundingClientRect();
+    const relX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     const idx = Math.min(frames.length - 1, Math.floor(relX * frames.length));
     if (idx !== activeFrame) {
       soundEngine.playTick(0.42);
       setActiveFrame(idx);
+    }
+  };
+
+  const handleStageScrub = (e: React.MouseEvent<HTMLDivElement>) => {
+    scrubAtClientX(e.clientX, e.currentTarget);
+  };
+
+  const handleTouchScrub = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length > 0) {
+      scrubAtClientX(e.touches[0].clientX, e.currentTarget);
     }
   };
 
@@ -106,9 +116,10 @@ export function MemberProjectCard({
           )}
         </div>
 
-        {/* Main Hover-Scrubbable Cinema / Gallery Stage */}
+        {/* Main Hover-Scrubbable & Touch-Swipeable Cinema / Gallery Stage */}
         <div
           onMouseMove={handleStageScrub}
+          onTouchMove={handleTouchScrub}
           onClick={() => onOpenAlbum(project, activeFrame)}
           className={`relative ${
             featured ? "aspect-[16/9]" : "aspect-[16/10]"
@@ -218,7 +229,14 @@ export function MemberProjectCard({
 
         <div className="flex items-center gap-1.5 text-xs font-mono text-ivory-muted truncate">
           <Camera className="w-3.5 h-3.5 text-rec shrink-0" />
-          <span className="truncate">{project.cameraSpec}</span>
+          {project.exifSpec && (
+            <span className="px-1.5 py-0.5 rounded bg-rec/15 text-rec text-[10px] font-bold shrink-0">
+              EXIF
+            </span>
+          )}
+          <span className="truncate">
+            {project.exifSpec ?? project.cameraSpec}
+          </span>
         </div>
 
         <div className="pt-2.5 border-t border-obsidian-border/70 flex flex-wrap items-center justify-between gap-3">

@@ -13,6 +13,8 @@ export const BentoItemSchema = z.object({
   description: z.string().optional(),
   projectSlug: z.string().optional(),
   durationOrSpec: z.string(),
+  exifSpec: z.string().optional(),
+  videoUrl: z.string().optional(),
   externalUrl: z.string().optional(),
 });
 
@@ -58,6 +60,9 @@ export const WorkProjectSchema = z.object({
   coverImage: z.string(),
   accentColor: z.string(),
   cameraSpec: z.string(),
+  exifSpec: z.string().optional(),
+  beforeImage: z.string().optional(),
+  videoUrl: z.string().optional(),
   summary: z.string(),
   videoEmbedUrl: z.string().optional(),
   galleryImages: z.array(z.string()),
