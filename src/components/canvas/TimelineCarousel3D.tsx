@@ -14,8 +14,8 @@ import { soundEngine } from "@/lib/sound";
 
 const CAROUSEL_CIRCLE_RADIUS = 3.2;
 
-function getResponsiveCircleRadius(viewportWidth: number) {
-  if (viewportWidth < 640) return 2.25;
+function getResponsiveCircleRadius(viewportWidth: number, isCrewCarousel = false) {
+  if (viewportWidth < 640) return isCrewCarousel ? 2.9 : 2.25;
   if (viewportWidth < 1024) return 2.75;
   return CAROUSEL_CIRCLE_RADIUS;
 }
@@ -660,7 +660,7 @@ function MemberCardMesh({
     // Orbit the cards behind the featured card. The next card approaches from
     // the left and the current card recedes to the right.
     const orbitBlend = Math.min(1, absOffset / 0.75);
-    const circleRadius = getResponsiveCircleRadius(state.size.width);
+    const circleRadius = getResponsiveCircleRadius(state.size.width, true);
     const targetX = Math.cos(angle) * circleRadius * orbitBlend;
     const targetY = Math.sin(angle) * circleRadius * 0.9 * orbitBlend +
       (state.size.width < 640 ? 0.45 : 0);
@@ -677,9 +677,9 @@ function MemberCardMesh({
     const rotZ = THREE.MathUtils.clamp(-timelineMotion.velocity * 0.045, -0.14, 0.14);
     easing.dampE(groupRef.current.rotation, [0, rotY, rotZ], 0.18, delta);
 
-    // Grow the featured member card 70% from its current mobile size while
-    // keeping the surrounding orbit cards compact enough to remain visible.
-    const mobileScale = state.size.width < 640 ? (isCenter ? 1.785 : 0.8) : 1;
+    // Keep the featured member prominent while enlarging the mobile orbit cards
+    // and widening their ring so they peek out from behind the center card.
+    const mobileScale = state.size.width < 640 ? (isCenter ? 1.785 : 1.35) : 1;
     const scaleBoost = (hovered
       ? isCenter ? 1.28 : 0.44
       : isCenter
