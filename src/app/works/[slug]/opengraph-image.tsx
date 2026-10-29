@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { getWorkBySlug } from "@/data/works";
+import { getPublicSiteContent } from "@/lib/site-content";
 import { loadViOgFont, readPublicImageDataUri, toAsciiStudio } from "@/lib/og-helper";
 
 export const runtime = "nodejs";
@@ -12,7 +12,8 @@ export default async function WorkOpenGraphImage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const work = getWorkBySlug(slug);
+  const siteContent = await getPublicSiteContent();
+  const work = siteContent.works.find((item) => item.slug === slug);
   const fontData = await loadViOgFont();
   const fmt = (s: string) => (fontData ? s : toAsciiStudio(s));
 

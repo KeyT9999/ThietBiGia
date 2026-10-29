@@ -31,6 +31,23 @@ export function MemberProjectCard({
 
   const frames = project.frames;
   const currentSrc = frames[activeFrame] ?? project.coverImage;
+  const isWide = project.span ? project.span === "wide" : featured;
+  const cardSpan = project.span === "tall"
+    ? "col-span-12 xl:col-span-5"
+    : isWide
+    ? "col-span-12"
+    : "col-span-12 xl:col-span-6";
+  const stageAspect = project.span === "tall"
+    ? "aspect-[4/5]"
+    : isWide
+    ? "aspect-[16/9]"
+    : "aspect-[16/10]";
+  const kindLabel = project.kind ? {
+    reel: "VIDEO",
+    photo: "ẢNH",
+    poster: "POSTER",
+    motion: "MOTION",
+  }[project.kind] : null;
 
   const scopeBadge =
     project.scope === "lead"
@@ -63,7 +80,7 @@ export function MemberProjectCard({
   return (
     <article
       className={`${
-        featured ? "col-span-12" : "col-span-12 xl:col-span-6"
+        cardSpan
       } rounded-2xl border border-obsidian-border hover:border-rec/65 bg-obsidian-surface overflow-hidden flex flex-col justify-between transition-all shadow-[0_12px_36px_rgba(0,0,0,0.35)] group`}
     >
       <div>
@@ -86,6 +103,7 @@ export function MemberProjectCard({
             </div>
 
             <div className="flex items-center gap-2 shrink-0 text-ivory-muted">
+              {kindLabel && <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-bold">{kindLabel}</span>}
               <span className="inline-flex items-center gap-1">
                 <Images className="w-3.5 h-3.5 text-rec" />
                 <span>
@@ -122,7 +140,7 @@ export function MemberProjectCard({
           onTouchMove={handleTouchScrub}
           onClick={() => onOpenAlbum(project, activeFrame)}
           className={`relative ${
-            featured ? "aspect-[16/9]" : "aspect-[16/10]"
+            stageAspect
           } w-full bg-obsidian overflow-hidden cursor-pointer flex items-center justify-center`}
         >
           {/* Ambient Blurred Studio Backdrop (essential for vertical 2:3 DSLR shots) */}
@@ -295,6 +313,16 @@ export function MemberProjectCard({
                 <span>CHI TIẾT &amp; BTS</span>
                 <ArrowUpRight className="w-3.5 h-3.5" />
               </Link>
+            )}
+            {project.videoUrl && /^https?:\/\//i.test(project.videoUrl) && (
+              <a href={project.videoUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-xs font-mono text-ivory-muted transition-colors hover:border-rec/60 hover:text-rec">
+                <Film className="h-3.5 w-3.5" /> VIDEO <ArrowUpRight className="h-3.5 w-3.5" />
+              </a>
+            )}
+            {project.externalUrl && /^https?:\/\//i.test(project.externalUrl) && (
+              <a href={project.externalUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-xs font-mono text-ivory-muted transition-colors hover:border-rec/60 hover:text-rec">
+                LINK <ArrowUpRight className="h-3.5 w-3.5" />
+              </a>
             )}
           </div>
         </div>

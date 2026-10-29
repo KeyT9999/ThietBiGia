@@ -15,17 +15,17 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import { GEAR_ARSENAL } from "@/data/gear";
-import { CREW_MEMBERS } from "@/data/crew";
-import { WORKS_DATA } from "@/data/works";
-import { GROUP_MOMENTS } from "@/data/moments";
+
 import { soundEngine } from "@/lib/sound";
 import { FilmStripArchive } from "@/components/about/FilmStripArchive";
 import { CollectiveAlbumWall } from "@/components/about/CollectiveAlbumWall";
+import { useSiteContent } from "@/lib/store";
 
 gsap.registerPlugin(ScrollTrigger);
 
 export default function AboutGearPage() {
+  const siteContent = useSiteContent();
+  const { gear, crew, works, moments, about } = siteContent;
   const containerRef = useRef<HTMLDivElement>(null);
 
   useGSAP(
@@ -95,11 +95,13 @@ export default function AboutGearPage() {
               <span>MANIFESTO // GIỚI THIỆU ĐẠI GIA ĐÌNH THIẾT BỊ GIA</span>
             </div>
             <h1 className="about-reveal font-display text-4xl sm:text-6xl font-bold text-ivory leading-[1.06] tracking-tight">
-              NƠI NHỮNG NGƯỜI CẦM MÁY &amp; LÀM HÌNH HỌP THÀNH MỘT GIA ĐÌNH.
+{about.title || "NƠI NHỮNG NGƯỜI CẦM MÁY & LÀM HÌNH HỌP THÀNH MỘT GIA ĐÌNH."}
             </h1>
             <p className="about-reveal text-base sm:text-lg text-ivory-muted leading-relaxed max-w-3xl">
-              <strong className="text-ivory">Thiết Bị Gia</strong> khởi nguồn từ niềm đam mê chung với từng vòng xoay tiêu cự, từng dải sáng và nhịp cắt khung hình. Không chỉ là một nhóm làm nghề đơn lẻ, tụi mình vận hành như một{" "}
-              <span className="text-ivory">Creative Collective</span> đa chuyên môn — nơi mỗi dự án là sự bắt tay ăn ý giữa Photographer, DOP, Gaffer, Editor và Designer.
+{about.introduction}
+            </p>
+            <p className="about-reveal text-sm text-ivory-muted leading-relaxed max-w-3xl">
+              <span className="font-semibold text-ivory">{about.storyTitle}</span>{" "}{about.storyBody}
             </p>
 
             <div className="about-reveal flex flex-wrap items-center gap-3 pt-1">
@@ -109,7 +111,7 @@ export default function AboutGearPage() {
                 className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-rec hover:bg-rec-glow text-obsidian font-mono font-bold text-xs transition-colors"
               >
                 <Camera className="w-4 h-4" />
-                <span>XEM KHO ẢNH CHUNG [{GROUP_MOMENTS.length}] ↓</span>
+                <span>XEM KHO ẢNH CHUNG [{moments.length}] ↓</span>
               </a>
               <Link
                 href="/crew"
@@ -117,7 +119,7 @@ export default function AboutGearPage() {
                 className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border border-obsidian-border bg-obsidian-surface hover:border-rec/50 text-ivory font-mono text-xs transition-colors"
               >
                 <Users className="w-4 h-4 text-rec" />
-                <span>GẶP {CREW_MEMBERS.length} THÀNH VIÊN →</span>
+                <span>GẶP {crew.length} THÀNH VIÊN →</span>
               </Link>
             </div>
           </div>
@@ -125,7 +127,7 @@ export default function AboutGearPage() {
           <div className="lg:col-span-5 grid grid-cols-3 gap-3.5">
             <div className="about-reveal rounded-2xl border border-obsidian-border bg-obsidian-surface p-4 sm:p-5">
               <div className="font-display text-3xl sm:text-4xl font-bold text-rec">
-                {CREW_MEMBERS.length}+
+                {crew.length}+
               </div>
               <div className="text-[11px] font-mono text-ivory-muted mt-1 uppercase">
                 Thành viên ekip
@@ -141,7 +143,7 @@ export default function AboutGearPage() {
             </div>
             <div className="about-reveal rounded-2xl border border-obsidian-border bg-obsidian-surface p-4 sm:p-5">
               <div className="font-display text-3xl sm:text-4xl font-bold text-ivory">
-                {WORKS_DATA.length}0+
+                {works.length}0+
               </div>
               <div className="text-[11px] font-mono text-ivory-muted mt-1 uppercase">
                 Set quay &amp; Sự kiện
@@ -203,7 +205,7 @@ export default function AboutGearPage() {
                 onClick={() => soundEngine.playShutter()}
                 className="self-start sm:self-auto px-4 py-2.5 rounded-xl bg-obsidian/85 hover:bg-rec hover:text-obsidian backdrop-blur-md border border-white/20 text-ivory font-mono font-bold text-xs transition-colors"
               >
-                KHÁM PHÁ TOÀN BỘ {GROUP_MOMENTS.length} ẢNH CHUNG ↓
+                KHÁM PHÁ TOÀN BỘ {moments.length} ẢNH CHUNG ↓
               </a>
             </div>
           </div>
@@ -261,7 +263,7 @@ export default function AboutGearPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {GEAR_ARSENAL.map((group) => (
+          {gear.map((group) => (
             <div
               key={group.id}
               className="gear-card rounded-2xl border border-obsidian-border bg-obsidian-surface p-6 sm:p-8 space-y-5"

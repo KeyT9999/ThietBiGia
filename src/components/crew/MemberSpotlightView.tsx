@@ -22,7 +22,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import { CREW_MEMBERS } from "@/data/crew";
+
 import { type CrewMember } from "@/data/schema";
 import {
   getTeammatesForMember,
@@ -33,6 +33,7 @@ import { getCombinedRoleBadge, getRoleMeta } from "@/lib/utils";
 import { DecoderText } from "@/components/layout/DecoderText";
 import { MemberProjectCard } from "./MemberProjectCard";
 import { soundEngine } from "@/lib/sound";
+import { useSiteContent } from "@/lib/store";
 
 const LanyardPressPass3DView = dynamic(
   () =>
@@ -49,10 +50,12 @@ export function MemberSpotlightView({
   member: CrewMember;
   isModal?: boolean;
 }) {
+  const siteContent = useSiteContent();
+  const crewMembers = siteContent.crew;
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [badgeFlipped, setBadgeFlipped] = useState(false);
-  const [projectTab, setProjectTab] = useState<"all" | "lead" | "ekip">("all");
+  const [projectTab, setProjectTab] = useState<"all" | "personal" | "shared">("all");
   const [lightboxProject, setLightboxProject] =
     useState<UnifiedMemberProject | null>(null);
   const [lightboxPhotoIdx, setLightboxPhotoIdx] = useState(0);
@@ -64,28 +67,26 @@ export function MemberSpotlightView({
   }, []);
 
   const roleMeta = getRoleMeta(member.roleCategory);
-  const unifiedProjects = getUnifiedProjectsForMember(member);
-  const leadProjects = unifiedProjects.filter(
-    (p) => p.scope === "lead" || p.scope === "personal"
-  );
-  const ekipProjects = unifiedProjects.filter((p) => p.scope === "ekip");
+  const unifiedProjects = getUnifiedProjectsForMember(member, siteContent.works, crewMembers);
+  const personalProjects = unifiedProjects.filter((p) => p.scope === "personal");
+  const sharedProjects = unifiedProjects.filter((p) => p.scope !== "personal");
   const visibleProjects =
-    projectTab === "lead"
-      ? leadProjects
-      : projectTab === "ekip"
-      ? ekipProjects
+    projectTab === "personal"
+      ? personalProjects
+      : projectTab === "shared"
+      ? sharedProjects
       : unifiedProjects;
   const totalFramesCount = unifiedProjects.reduce(
     (sum, p) => sum + p.frames.length,
     0
   );
 
-  const teammates = getTeammatesForMember(member.slug);
+  const teammates = getTeammatesForMember(member.slug, siteContent.works, crewMembers);
 
-  const currentIdx = CREW_MEMBERS.findIndex((m) => m.slug === member.slug);
+  const currentIdx = crewMembers.findIndex((m) => m.slug === member.slug);
   const prevMember =
-    CREW_MEMBERS[(currentIdx - 1 + CREW_MEMBERS.length) % CREW_MEMBERS.length];
-  const nextMember = CREW_MEMBERS[(currentIdx + 1) % CREW_MEMBERS.length];
+    crewMembers[(currentIdx - 1 + crewMembers.length) % crewMembers.length];
+  const nextMember = crewMembers[(currentIdx + 1) % crewMembers.length];
 
   useEffect(() => {
     setProjectTab("all");
@@ -195,7 +196,7 @@ export function MemberSpotlightView({
             <ArrowLeft className="w-4 h-4" />
             <span>
               {isModal ? "ĐÓNG & QUAY LẠI TIMELINE" : "QUAY LẠI ROSTER"} [
-              {CREW_MEMBERS.length}]
+              {crewMembers.length}]
             </span>
           </button>
 
@@ -406,37 +407,37 @@ export function MemberSpotlightView({
                   TẤT CẢ [{unifiedProjects.length}]
                 </button>
 
-                {leadProjects.length > 0 && (
+                {personalProjects.length > 0 && (
                   <button
                     type="button"
                     onClick={() => {
                       soundEngine.playTick(0.8);
-                      setProjectTab("lead");
+                      setProjectTab("personal");
                     }}
                     className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold transition-all ${
-                      projectTab === "lead"
+                      projectTab === "personal"
+                        ? "bg-rec text-obsidian"
+                        : "border border-obsidian-border bg-obsidian text-ivory-muted hover:text-ivory"
+                    }`}
+                  >
+                    DỰ ÁN CÁ NHÂN [{personalProjects.length}]
+                  </button>
+                )}
+
+                {sharedProjects.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundEngine.playTick(0.8);
+                      setProjectTab("shared");
+                    }}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold transition-all ${
+                      projectTab === "shared"
                         ? "bg-cyan-400 text-obsidian"
                         : "border border-obsidian-border bg-obsidian text-ivory-muted hover:text-ivory"
                     }`}
                   >
-                    CHỦ ĐẠO &amp; CÁ NHÂN [{leadProjects.length}]
-                  </button>
-                )}
-
-                {ekipProjects.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      soundEngine.playTick(0.8);
-                      setProjectTab("ekip");
-                    }}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold transition-all ${
-                      projectTab === "ekip"
-                        ? "bg-amber-400 text-obsidian"
-                        : "border border-obsidian-border bg-obsidian text-ivory-muted hover:text-ivory"
-                    }`}
-                  >
-                    CHIẾN DỊCH CÙNG EKIP [{ekipProjects.length}]
+                    DỰ ÁN CHUNG [{sharedProjects.length}]
                   </button>
                 )}
               </div>
@@ -466,7 +467,7 @@ export function MemberSpotlightView({
                 href="/crew"
                 className="inline-flex items-center gap-2 text-xs font-mono text-rec hover:underline"
               >
-                <span>XEM TẤT CẢ {CREW_MEMBERS.length} ANH EM</span>
+                <span>XEM TẤT CẢ {crewMembers.length} ANH EM</span>
                 <span>→</span>
               </Link>
             </div>

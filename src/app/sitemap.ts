@@ -1,35 +1,30 @@
 import type { MetadataRoute } from "next";
-import { CREW_MEMBERS } from "@/data/crew";
-import { WORKS_DATA } from "@/data/works";
+import { getPublicSiteContent } from "@/lib/site-content";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://thietbigia.vn").replace(
-    /\/+$/,
-    ""
-  );
-  const now = new Date();
+export const dynamic = "force-dynamic";
 
-  const staticRoutes: MetadataRoute.Sitemap = [
-    { url: `${baseUrl}/`, lastModified: now, changeFrequency: "weekly", priority: 1.0 },
-    { url: `${baseUrl}/works`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${baseUrl}/crew`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${baseUrl}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
-    { url: `${baseUrl}/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.85 },
-  ];
-
-  const crewRoutes: MetadataRoute.Sitemap = CREW_MEMBERS.map((member) => ({
-    url: `${baseUrl}/crew/${member.slug}`,
-    lastModified: now,
-    changeFrequency: "monthly",
-    priority: 0.8,
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const content = await getPublicSiteContent();
+  const base = (
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://thietbigia.vn"
+  ).replace(/\/$/, "");
+  const staticRoutes = ["", "/works", "/crew", "/about", "/contact"].map((path) => ({
+    url: base + path,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: path === "" ? 1 : 0.8,
   }));
-
-  const workRoutes: MetadataRoute.Sitemap = WORKS_DATA.map((work) => ({
-    url: `${baseUrl}/works/${work.slug}`,
-    lastModified: now,
-    changeFrequency: "monthly",
-    priority: 0.85,
+  const crewRoutes = content.crew.map((member) => ({
+    url: base + "/crew/" + member.slug,
+    lastModified: new Date(),
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
   }));
-
+  const workRoutes = content.works.map((work) => ({
+    url: base + "/works/" + work.slug,
+    lastModified: new Date(),
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
   return [...staticRoutes, ...crewRoutes, ...workRoutes];
 }

@@ -15,23 +15,22 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { CREW_MEMBERS, getCrewBySlug } from "@/data/crew";
-import {
-  getWorksForMember,
-  WORKS_DATA,
-  type WorkProject,
-} from "@/data/works";
+import type { CrewMember } from "@/data/schema";
+import type { WorkProject } from "@/data/works";
 import { getRoleMeta } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
+import { useSiteContent } from "@/lib/store";
 
 gsap.registerPlugin(Flip);
 
 function WorkArchiveCard({
   work,
+  crewMembers,
   selectedMemberSlug,
   onSelectMember,
 }: {
   work: WorkProject;
+  crewMembers: CrewMember[];
   selectedMemberSlug: string;
   onSelectMember: (slug: string) => void;
 }) {
@@ -215,7 +214,7 @@ function WorkArchiveCard({
 
           <div className="flex flex-wrap items-center gap-1.5">
             {work.credits.slice(0, 5).map((credit) => {
-              const m = getCrewBySlug(credit.memberSlug);
+              const m = crewMembers.find((member) => member.slug === credit.memberSlug);
               if (!m) return null;
               const isSelected = selectedMemberSlug === m.slug;
               const shortName =
@@ -258,6 +257,9 @@ function WorkArchiveCard({
 }
 
 export function WorksArchiveGrid() {
+  const siteContent = useSiteContent();
+  const crewMembers = siteContent.crew;
+  const workProjects = siteContent.works;
   const [selectedMemberSlug, setSelectedMemberSlug] = useState<string>("ALL");
   const [query, setQuery] = useState("");
   const gridRef = useRef<HTMLDivElement>(null);
@@ -268,7 +270,7 @@ export function WorksArchiveGrid() {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const mSlug = params.get("member");
-    if (mSlug && CREW_MEMBERS.some((m) => m.slug === mSlug)) {
+    if (mSlug && crewMembers.some((m) => m.slug === mSlug)) {
       setSelectedMemberSlug(mSlug);
     }
   }, []);
@@ -312,14 +314,16 @@ export function WorksArchiveGrid() {
   };
 
   const selectedMember =
-    selectedMemberSlug !== "ALL" ? getCrewBySlug(selectedMemberSlug) : undefined;
+    selectedMemberSlug !== "ALL"
+      ? crewMembers.find((member) => member.slug === selectedMemberSlug)
+      : undefined;
   const normalizedQuery = query.trim().toLowerCase();
 
   // Prioritize the selected member's Lead Projects first, then Ekip shoots, then 16-member Collective Archive
   const orderedWorks =
     selectedMemberSlug === "ALL"
-      ? WORKS_DATA
-      : [...WORKS_DATA].sort((a, b) => {
+      ? workProjects
+      : [...workProjects].sort((a, b) => {
           const rank = (w: WorkProject) => {
             if (w.credits[0]?.memberSlug === selectedMemberSlug) return 0;
             if (w.slug === "hau-truong-thiet-bi-gia" || w.credits.length >= 12) return 2;
@@ -338,7 +342,7 @@ export function WorksArchiveGrid() {
             <span>THIẾT BỊ GIA // COLLECTIVE &amp; MEMBER PROJECT ARCHIVE</span>
           </div>
           <h1 className="font-display text-4xl sm:text-5xl font-bold text-ivory tracking-tight">
-            KHO PROJECT &amp; BỘ SƯU TẬP [{WORKS_DATA.length}]
+            KHO PROJECT &amp; BỘ SƯU TẬP [{workProjects.length}]
           </h1>
           <p className="text-sm sm:text-base text-ivory-muted max-w-2xl">
             Chọn trực tiếp{" "}
@@ -367,7 +371,7 @@ export function WorksArchiveGrid() {
         <div className="flex items-center justify-between gap-2 text-xs font-mono text-ivory-muted">
           <span className="inline-flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-rec" />
-            <span>LỌC PROJECT THEO THÀNH VIÊN ({CREW_MEMBERS.length} ANH EM):</span>
+            <span>LỌC PROJECT THEO THÀNH VIÊN ({crewMembers.length} ANH EM):</span>
           </span>
           {selectedMemberSlug !== "ALL" && (
             <button
@@ -391,11 +395,13 @@ export function WorksArchiveGrid() {
                 : "border border-obsidian-border bg-obsidian text-ivory-muted hover:text-ivory"
             }`}
           >
-            TẤT CẢ EKIP [{WORKS_DATA.length}]
+            TẤT CẢ EKIP [{workProjects.length}]
           </button>
 
-          {CREW_MEMBERS.map((m) => {
-            const count = getWorksForMember(m.slug).length;
+          {crewMembers.map((m) => {
+            const count = workProjects.filter((work) =>
+              work.credits.some((credit) => credit.memberSlug === m.slug)
+            ).length;
             const active = selectedMemberSlug === m.slug;
             const meta = getRoleMeta(m.roleCategory);
             const shortName =
@@ -506,6 +512,7 @@ export function WorksArchiveGrid() {
             >
               <WorkArchiveCard
                 work={work}
+                crewMembers={crewMembers}
                 selectedMemberSlug={selectedMemberSlug}
                 onSelectMember={handleMemberSelect}
               />

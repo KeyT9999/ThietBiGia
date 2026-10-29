@@ -5,16 +5,18 @@ import { useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { Flip } from "gsap/Flip";
 import { ArrowUpRight, Film, Images, Search, Users } from "lucide-react";
-import { CREW_MEMBERS, type CrewMember } from "@/data/crew";
+import { type CrewMember } from "@/data/schema";
 import { getUnifiedProjectsForMember } from "@/data/works";
 import { getRoleMeta, ROLE_STYLES, type RoleCategory } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
+import { useSiteContent } from "@/lib/store";
 import { StopMotionGroupHero } from "./StopMotionGroupHero";
 
 gsap.registerPlugin(Flip);
 
 function CrewRosterCard({ member }: { member: CrewMember }) {
-  const projects = getUnifiedProjectsForMember(member);
+  const siteContent = useSiteContent();
+  const projects = getUnifiedProjectsForMember(member, siteContent.works, siteContent.crew);
   const topProjects = projects.slice(0, 3);
   const [hoveredProjTitle, setHoveredProjTitle] = useState<string | null>(null);
 
@@ -173,6 +175,8 @@ function CrewRosterCard({ member }: { member: CrewMember }) {
 }
 
 export function FlipCrewGrid() {
+  const siteContent = useSiteContent();
+  const crewMembers = siteContent.crew;
   const [selectedRole, setSelectedRole] = useState<string>("ALL");
   const [query, setQuery] = useState("");
   const gridRef = useRef<HTMLDivElement>(null);
@@ -204,7 +208,7 @@ export function FlipCrewGrid() {
     flipStateRef.current = null;
   }, [selectedRole, query]);
 
-  const roleCounts = CREW_MEMBERS.reduce<Record<string, number>>((acc, m) => {
+  const roleCounts = crewMembers.reduce<Record<string, number>>((acc, m) => {
     m.roles.forEach((r) => {
       acc[r] = (acc[r] ?? 0) + 1;
     });
@@ -230,7 +234,7 @@ export function FlipCrewGrid() {
             <span>THIẾT BỊ GIA // OFFICIAL MEMBER ROSTER</span>
           </div>
           <h1 className="font-display text-4xl sm:text-5xl font-bold text-ivory tracking-tight">
-            ANH EM THIẾT BỊ GIA [{CREW_MEMBERS.length}]
+            ANH EM THIẾT BỊ GIA [{crewMembers.length}]
           </h1>
           <p className="text-sm sm:text-base text-ivory-muted max-w-2xl">
             Danh sách chính thức các thành viên mảng Chụp ảnh, Quay phim và IT của Thiết Bị Gia — kèm dải{" "}
@@ -269,7 +273,7 @@ export function FlipCrewGrid() {
               : "border border-obsidian-border bg-obsidian-surface text-ivory-muted hover:text-ivory"
           }`}
         >
-          TẤT CẢ [{CREW_MEMBERS.length}]
+          TẤT CẢ [{crewMembers.length}]
         </button>
 
         {(Object.keys(ROLE_STYLES) as RoleCategory[]).map((cat) => {
@@ -298,7 +302,7 @@ export function FlipCrewGrid() {
         ref={gridRef}
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
       >
-        {CREW_MEMBERS.map((member) => {
+        {crewMembers.map((member) => {
           const matchesRole =
             selectedRole === "ALL" ||
             member.roles.includes(selectedRole as RoleCategory);

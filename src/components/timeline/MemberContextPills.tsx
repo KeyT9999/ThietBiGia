@@ -3,22 +3,24 @@
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpRight, Film, IdCard, Images, RefreshCw } from "lucide-react";
-import { CREW_MEMBERS, type CrewMember } from "@/data/crew";
+import type { CrewMember } from "@/data/schema";
 import {
   getTeammatesForMember,
   getUnifiedProjectsForMember,
 } from "@/data/works";
 import { getRoleMeta } from "@/lib/utils";
-import { useAppStore } from "@/lib/store";
+import { useAppStore, useSiteContent } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
 
 export function MemberContextPills({ member }: { member: CrewMember }) {
+  const siteContent = useSiteContent();
+  const crewMembers = siteContent.crew;
   const setCursor = useAppStore((s) => s.setCursor);
   const setActiveWorkIndex = useAppStore((s) => s.setActiveWorkIndex);
 
-  const allProjects = getUnifiedProjectsForMember(member);
+  const allProjects = getUnifiedProjectsForMember(member, siteContent.works, crewMembers);
   const previewProjects = allProjects.slice(0, 3);
-  const topTeammate = getTeammatesForMember(member.slug)[0]?.member;
+  const topTeammate = getTeammatesForMember(member.slug, siteContent.works, crewMembers)[0]?.member;
   const shortName =
     member.nickname ?? member.name.split(" ").slice(-2).join(" ");
 
@@ -126,7 +128,7 @@ export function MemberContextPills({ member }: { member: CrewMember }) {
             <button
               type="button"
               onClick={() => {
-                const targetIdx = CREW_MEMBERS.findIndex(
+                const targetIdx = crewMembers.findIndex(
                   (m) => m.slug === topTeammate.slug
                 );
                 if (targetIdx >= 0) {

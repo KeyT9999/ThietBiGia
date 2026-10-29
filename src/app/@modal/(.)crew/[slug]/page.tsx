@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
-import { getCrewBySlug } from "@/data/crew";
+import { getPublicSiteContent } from "@/lib/site-content";
 import { ModalOverlayShell } from "@/components/layout/ModalOverlayShell";
 import { MemberSpotlightView } from "@/components/crew/MemberSpotlightView";
+
+export const dynamic = "force-dynamic";
 
 export default async function InterceptedCrewModal({
   params,
@@ -9,7 +11,8 @@ export default async function InterceptedCrewModal({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const member = getCrewBySlug(slug);
+  const content = await getPublicSiteContent();
+  const member = content.crew.find((item) => item.slug === slug);
   if (!member) notFound();
 
   return (

@@ -1,6 +1,5 @@
 import { ImageResponse } from "next/og";
-import { getCrewBySlug } from "@/data/crew";
-import { getUnifiedProjectsForMember } from "@/data/works";
+import { getPublicSiteContent } from "@/lib/site-content";
 import { loadViOgFont, readPublicImageDataUri, toAsciiStudio } from "@/lib/og-helper";
 import { getCombinedRoleBadge, getRoleMeta } from "@/lib/utils";
 
@@ -14,7 +13,8 @@ export default async function CrewOpenGraphImage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const member = getCrewBySlug(slug);
+  const siteContent = await getPublicSiteContent();
+  const member = siteContent.crew.find((item) => item.slug === slug);
   const fontData = await loadViOgFont();
   const fmt = (s: string) => (fontData ? s : toAsciiStudio(s));
 
@@ -43,7 +43,17 @@ export default async function CrewOpenGraphImage({
 
   const avatarUri = await readPublicImageDataUri(member.avatar);
   const roleMeta = getRoleMeta(member.roles[0] ?? member.roleCategory);
-  const projectCount = getUnifiedProjectsForMember(member).length;
+  const memberWorks = siteContent.works.filter((work) =>
+    work.credits.some((credit) => credit.memberSlug === member.slug)
+  );
+  const projectSlugs = new Set(memberWorks.map((work) => work.slug));
+  const projectCovers = new Set(memberWorks.map((work) => work.coverImage));
+  const personalProjects = member.showcase.filter((item) => {
+    if (item.projectSlug && projectSlugs.has(item.projectSlug)) return false;
+    const frames = item.gallery?.length ? item.gallery : [item.image];
+    return frames.length > 1 || !projectCovers.has(item.image);
+  });
+  const projectCount = memberWorks.length + personalProjects.length;
 
   return new ImageResponse(
     (

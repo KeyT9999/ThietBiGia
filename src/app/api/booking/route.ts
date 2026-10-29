@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import { getCrewBySlug } from "@/data/crew";
-import { getWorkBySlug } from "@/data/works";
+import { getPublicSiteContent } from "@/lib/site-content";
 
 const BookingPayloadSchema = z.object({
   name: z.string().trim().min(1, "Vui lòng nhập tên hoặc thương hiệu").max(120),
@@ -37,12 +36,15 @@ export async function POST(req: Request) {
   }
 
   const data = parsed.data;
+  const siteContent = await getPublicSiteContent();
   const uniqueSlugs = Array.from(new Set(data.crewSlugs));
   const selectedCrew = uniqueSlugs
-    .map((slug) => getCrewBySlug(slug))
-    .filter((m): m is NonNullable<typeof m> => Boolean(m));
+    .map((slug) => siteContent.crew.find((member) => member.slug === slug))
+    .filter((member): member is NonNullable<typeof member> => Boolean(member));
 
-  const refWork = data.projectRef ? getWorkBySlug(data.projectRef) : undefined;
+  const refWork = data.projectRef
+    ? siteContent.works.find((work) => work.slug === data.projectRef)
+    : undefined;
 
   const year = new Date().getFullYear();
   const suffix = Math.floor(1000 + Math.random() * 9000);

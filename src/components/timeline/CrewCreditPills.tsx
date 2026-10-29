@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpRight, Users } from "lucide-react";
-import { getCrewBySlug } from "@/data/crew";
 import { type WorkProject } from "@/data/schema";
 import { getRoleMeta } from "@/lib/utils";
-import { useAppStore } from "@/lib/store";
+import { useAppStore, useSiteContent } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
 
 export function CrewCreditPills({ work }: { work: WorkProject }) {
   const setCursor = useAppStore((s) => s.setCursor);
+  const crewMembers = useSiteContent().crew;
   const visibleCredits = work.credits.slice(0, 3);
   const remainingCount = Math.max(0, work.credits.length - visibleCredits.length);
 
@@ -18,7 +18,7 @@ export function CrewCreditPills({ work }: { work: WorkProject }) {
     <div className="pointer-events-auto flex flex-col items-start gap-2">
       <AnimatePresence mode="popLayout">
         {visibleCredits.map((credit, idx) => {
-          const member = getCrewBySlug(credit.memberSlug);
+          const member = crewMembers.find((item) => item.slug === credit.memberSlug);
           if (!member) return null;
           const roleMeta = getRoleMeta(member.roleCategory);
 

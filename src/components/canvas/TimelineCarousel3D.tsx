@@ -6,14 +6,57 @@ import { useFrame } from "@react-three/fiber";
 import { PerspectiveCamera, useVideoTexture, View } from "@react-three/drei";
 import { easing } from "maath";
 import { usePathname, useRouter } from "next/navigation";
-import { CREW_MEMBERS, type CrewMember } from "@/data/crew";
-import { WORKS_DATA, type WorkProject } from "@/data/works";
-import { timelineMotion, useAppStore } from "@/lib/store";
+import type { CrewMember } from "@/data/schema";
+import type { WorkProject } from "@/data/schema";
+import { timelineMotion, useAppStore, useSiteContent } from "@/lib/store";
 import { getRoleMeta } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
 
-const CARD_SPACING_ANGLE = 0.245;
-const ARC_RADIUS = 11.0;
+const CAROUSEL_CIRCLE_RADIUS = 3.2;
+
+function getResponsiveCircleRadius(viewportWidth: number) {
+  if (viewportWidth < 640) return 2.25;
+  if (viewportWidth < 1024) return 2.75;
+  return CAROUSEL_CIRCLE_RADIUS;
+}
+
+function getResponsiveCameraZ(viewportWidth: number) {
+  if (viewportWidth < 640) return 11.8;
+  if (viewportWidth < 1024) return 9.8;
+  return 8.4;
+}
+
+function getCircularOffset(index: number, currentIndex: number, total: number) {
+  if (total <= 0) return 0;
+  let offset = (index - currentIndex) % total;
+  if (offset > total / 2) offset -= total;
+  if (offset < -total / 2) offset += total;
+  return offset;
+}
+
+function getCarouselRingAngle(position: number, total: number) {
+  const slotCount = Math.max(1, total - 1);
+  const maxPosition = slotCount - 1;
+  if (maxPosition <= 3) {
+    const span = 2 * Math.PI - (2 * Math.PI / slotCount);
+    return Math.PI + position * (span / Math.max(1, maxPosition));
+  }
+
+  // Give the four next-in-line cards more room along the left arc so they
+  // remain visible before passing behind the featured card.
+  const leadSteps = 3;
+  const arcSpan = 2 * Math.PI - (2 * Math.PI / slotCount);
+  const leadStep = Math.PI / 9;
+  const trailingSteps = maxPosition - leadSteps;
+  const trailingStep = (arcSpan - leadSteps * leadStep) / trailingSteps;
+
+  if (position <= leadSteps) return Math.PI - position * leadStep;
+  return Math.PI - leadSteps * leadStep - (position - leadSteps) * trailingStep;
+}
+
+function wrapIndex(index: number, total: number) {
+  return total > 0 ? ((index % total) + total) % total : 0;
+}
 
 /**
  * Generates a subdivided rounded-rectangle geometry or subdivided plane so custom
@@ -347,7 +390,7 @@ function useMemberCardTexture(member: CrewMember) {
 
 /**
  * Renders a high-DPI Cinema Clapper / Slate Collector Card CanvasTexture (768x960)
- * for `WORKS_DATA` so Works Timeline Mode has full Vietnamese titles, SCENE badges,
+ * for `workProjects` so Works Timeline Mode has full Vietnamese titles, SCENE badges,
  * timecodes, EXIF/camera specs, and crew count!
  */
 function useWorkCardTexture(work: WorkProject) {
@@ -562,6 +605,7 @@ function ActiveWorkVideoPlane({ url }: { url: string }) {
 interface MemberCardMeshProps {
   member: CrewMember;
   index: number;
+  total: number;
   cardGeo: THREE.BufferGeometry;
   bezelGeo: THREE.BufferGeometry;
   onActivateOrOpen: (index: number, href: string) => void;
@@ -570,6 +614,7 @@ interface MemberCardMeshProps {
 function MemberCardMesh({
   member,
   index,
+  total,
   cardGeo,
   bezelGeo,
   onActivateOrOpen,
@@ -603,29 +648,41 @@ function MemberCardMesh({
     };
   }, [cardMaterial]);
 
-  useFrame((_, delta) => {
-    const offset = index - timelineMotion.currentIndex;
+  useFrame((state, delta) => {
+    const offset = getCircularOffset(index, timelineMotion.currentIndex, total);
     const absOffset = Math.abs(offset);
-    const angle = offset * CARD_SPACING_ANGLE;
-
-    const targetX = Math.sin(angle) * ARC_RADIUS;
-    const targetZ = (Math.cos(angle) - 1) * ARC_RADIUS * 0.86 - absOffset * 0.28;
-    const targetY = hovered ? 0.14 : -Math.min(0.32, absOffset * 0.05);
-
-    easing.damp3(groupRef.current.position, [targetX, targetY, targetZ], 0.14, delta);
-
-    const rotY = -angle * 0.72;
-    const rotZ = THREE.MathUtils.clamp(-timelineMotion.velocity * 0.045, -0.14, 0.14);
-    easing.dampE(groupRef.current.rotation, [0, rotY, rotZ], 0.14, delta);
-
     const isCenter = absOffset < 0.45;
-    const scaleBoost = isCenter
-      ? hovered
-        ? 1.18
-        : 1.13
-      : hovered
-      ? 0.95
-      : Math.max(0.7, 0.92 - absOffset * 0.05);
+    const ringPosition = offset > 0
+      ? offset - 1
+      : total - 1 + offset;
+    const angle = total > 1 ? getCarouselRingAngle(ringPosition, total) : 0;
+
+    // Orbit the cards behind the featured card. The next card approaches from
+    // the left and the current card recedes to the right.
+    const orbitBlend = Math.min(1, absOffset / 0.75);
+    const circleRadius = getResponsiveCircleRadius(state.size.width);
+    const targetX = Math.cos(angle) * circleRadius * orbitBlend;
+    const targetY = Math.sin(angle) * circleRadius * 0.9 * orbitBlend +
+      (state.size.width < 640 ? 0.45 : 0);
+    let targetZ = THREE.MathUtils.lerp(
+      0.95,
+      -1.35,
+      orbitBlend
+    );
+    if (hovered && !isCenter) targetZ += 0.18;
+
+    easing.damp3(groupRef.current.position, [targetX, targetY, targetZ], 0.18, delta);
+
+    const rotY = isCenter ? 0 : Math.sin(angle) * 0.16;
+    const rotZ = THREE.MathUtils.clamp(-timelineMotion.velocity * 0.045, -0.14, 0.14);
+    easing.dampE(groupRef.current.rotation, [0, rotY, rotZ], 0.18, delta);
+
+    const scaleBoost = (hovered
+      ? isCenter ? 1.28 : 0.44
+      : isCenter
+        ? 1.2
+        : 0.38 + 0.49 * Math.exp(-0.48 * Math.max(0, absOffset - 1))) *
+      (state.size.width < 640 ? 0.8 : 1);
 
     const baseW = 2.4;
     const baseH = 3.0;
@@ -649,14 +706,14 @@ function MemberCardMesh({
       easing.damp(
         frameMat,
         "opacity",
-        isCenter ? 0.92 : hovered ? 0.45 : 0.14,
+        isCenter ? 0.96 : hovered ? 0.62 : 0.48,
         0.15,
         delta
       );
     }
 
     cardMaterial.color.lerp(isCenter || hovered ? whiteColor : dimColor, 0.14);
-    easing.damp(cardMaterial, "opacity", absOffset > 5.0 ? 0 : 1, 0.15, delta);
+    easing.damp(cardMaterial, "opacity", isCenter ? 1 : 0.92, 0.15, delta);
 
     if (cardMaterial.userData.uniforms?.uBend) {
       const bendTarget = THREE.MathUtils.clamp(
@@ -673,7 +730,7 @@ function MemberCardMesh({
       );
     }
 
-    groupRef.current.visible = absOffset < 5.6;
+    groupRef.current.visible = true;
   });
 
   return (
@@ -691,7 +748,9 @@ function MemberCardMesh({
           e.stopPropagation();
           setHovered(true);
           soundEngine.playHover();
-          const isActive = Math.abs(index - timelineMotion.currentIndex) < 0.45;
+          const isActive = Math.abs(
+            getCircularOffset(index, timelineMotion.currentIndex, total)
+          ) < 0.45;
           setCursor(
             "crew",
             isActive
@@ -719,6 +778,7 @@ function MemberCardMesh({
 interface WorkCardMeshProps {
   work: WorkProject;
   index: number;
+  total: number;
   isActiveCenter: boolean;
   cardGeo: THREE.BufferGeometry;
   bezelGeo: THREE.BufferGeometry;
@@ -728,6 +788,7 @@ interface WorkCardMeshProps {
 function WorkCardMesh({
   work,
   index,
+  total,
   isActiveCenter,
   cardGeo,
   bezelGeo,
@@ -760,29 +821,35 @@ function WorkCardMesh({
     };
   }, [slateMaterial]);
 
-  useFrame((_, delta) => {
-    const offset = index - timelineMotion.currentIndex;
+  useFrame((state, delta) => {
+    const offset = getCircularOffset(index, timelineMotion.currentIndex, total);
     const absOffset = Math.abs(offset);
-    const angle = offset * CARD_SPACING_ANGLE;
+    const ringPosition = offset > 0
+      ? offset - 1
+      : total - 1 + offset;
+    const angle = total > 1 ? getCarouselRingAngle(ringPosition, total) : 0;
+    const circleRadius = getResponsiveCircleRadius(state.size.width);
+    const orbitBlend = Math.min(1, absOffset / 0.75);
+    const isCenter = absOffset < 0.45;
 
-    const targetX = Math.sin(angle) * ARC_RADIUS;
-    const targetZ = (Math.cos(angle) - 1) * ARC_RADIUS * 0.85 - absOffset * 0.28;
-    const targetY = hovered ? 0.14 : -Math.min(0.32, absOffset * 0.05);
+    const targetX = Math.cos(angle) * circleRadius * orbitBlend;
+    const targetZ = THREE.MathUtils.lerp(0.95, -1.35, orbitBlend);
+    const targetY = Math.sin(angle) * circleRadius * 0.9 * orbitBlend +
+      (state.size.width < 640 ? 0.45 : 0) +
+      (hovered ? 0.14 : 0);
 
     easing.damp3(groupRef.current.position, [targetX, targetY, targetZ], 0.14, delta);
 
-    const rotY = -angle * 0.72;
+    const rotY = isCenter ? 0 : Math.sin(angle) * 0.16;
     const rotZ = THREE.MathUtils.clamp(-timelineMotion.velocity * 0.045, -0.14, 0.14);
     easing.dampE(groupRef.current.rotation, [0, rotY, rotZ], 0.14, delta);
 
-    const isCenter = absOffset < 0.45;
-    const scaleBoost = isCenter
-      ? hovered
-        ? 1.18
-        : 1.13
-      : hovered
-      ? 0.94
-      : Math.max(0.72, 0.92 - absOffset * 0.05);
+    const scaleBoost = (hovered
+      ? isCenter ? 1.28 : 0.44
+      : isCenter
+        ? 1.2
+        : 0.38 + 0.49 * Math.exp(-0.48 * Math.max(0, absOffset - 1))) *
+      (state.size.width < 640 ? 0.8 : 1);
     const baseW = 2.4;
     const baseH = 3.0;
 
@@ -812,7 +879,13 @@ function WorkCardMesh({
     }
 
     slateMaterial.color.lerp(isCenter || hovered ? whiteColor : dimColor, 0.14);
-    easing.damp(slateMaterial, "opacity", absOffset > 4.8 ? 0 : 1, 0.15, delta);
+    easing.damp(
+      slateMaterial,
+      "opacity",
+      isCenter ? 1 : 0.88 - Math.min(0.18, Math.max(0, absOffset - 1) * 0.018),
+      0.15,
+      delta
+    );
 
     if (slateMaterial.userData.uniforms?.uBend) {
       const bendTarget = THREE.MathUtils.clamp(
@@ -829,7 +902,7 @@ function WorkCardMesh({
       );
     }
 
-    groupRef.current.visible = absOffset < 5.2;
+    groupRef.current.visible = true;
   });
 
   return (
@@ -847,7 +920,9 @@ function WorkCardMesh({
           e.stopPropagation();
           setHovered(true);
           soundEngine.playHover();
-          const isActive = Math.abs(index - timelineMotion.currentIndex) < 0.45;
+          const isActive = Math.abs(
+            getCircularOffset(index, timelineMotion.currentIndex, total)
+          ) < 0.45;
           setCursor("project", isActive ? "MỞ DỰ ÁN" : `SCENE ${work.indexLabel}`);
         }}
         onPointerOut={() => {
@@ -871,13 +946,24 @@ function WorkCardMesh({
 }
 
 function CarouselRig({ active }: { active: boolean }) {
+  const siteContent = useSiteContent();
+  const crewMembers = siteContent.crew;
+  const workProjects = siteContent.works;
   const router = useRouter();
   const rigRef = useRef<THREE.Group>(null!);
   const timelineMode = useAppStore((s) => s.timelineMode);
   const activeWorkIndex = useAppStore((s) => s.activeWorkIndex);
   const setActiveWorkIndex = useAppStore((s) => s.setActiveWorkIndex);
 
-  const total = timelineMode === "crew" ? CREW_MEMBERS.length : WORKS_DATA.length;
+  const total = timelineMode === "crew" ? crewMembers.length : workProjects.length;
+
+  useEffect(() => {
+    if (!active || total <= 1) return;
+    const interval = window.setInterval(() => {
+      timelineMotion.targetIndex = Math.round(timelineMotion.targetIndex) + 1;
+    }, 2000);
+    return () => window.clearInterval(interval);
+  }, [active, timelineMode, total]);
 
   // Subdivided PlaneGeometry (20x24) for silky smooth GLSL velocity arch deformation
   const sharedCardGeo = useMemo(
@@ -898,12 +984,8 @@ function CarouselRig({ active }: { active: boolean }) {
 
   useFrame((state, delta) => {
     if (!active) return;
+
     const prev = timelineMotion.currentIndex;
-    timelineMotion.targetIndex = THREE.MathUtils.clamp(
-      timelineMotion.targetIndex,
-      0,
-      total - 1
-    );
 
     easing.damp(
       timelineMotion,
@@ -917,27 +999,35 @@ function CarouselRig({ active }: { active: boolean }) {
       delta > 0.0001 ? (timelineMotion.currentIndex - prev) / delta : 0;
 
     const nearest = Math.round(timelineMotion.currentIndex);
-    if (nearest !== useAppStore.getState().activeWorkIndex) {
-      setActiveWorkIndex(nearest, false);
+    const displayIndex = wrapIndex(nearest, total);
+    if (displayIndex !== useAppStore.getState().activeWorkIndex) {
+      setActiveWorkIndex(displayIndex, false);
     }
 
     easing.damp3(
       state.camera.position,
-      [state.pointer.x * 0.42, state.pointer.y * 0.26 + 0.08, 6.2],
+      [
+        state.pointer.x * 0.42,
+        state.pointer.y * 0.26 + 0.08,
+        getResponsiveCameraZ(state.size.width),
+      ],
       0.28,
       delta
     );
     state.camera.lookAt(0, 0.05, 0);
   });
 
+  const openCard = (href: string) => {
+    soundEngine.playShutter();
+    useAppStore.getState().setCursor("default", "");
+    router.push(href, { scroll: false });
+  };
+
   const handleActivateOrOpen = (index: number, href: string) => {
-    const dist = Math.abs(index - timelineMotion.currentIndex);
+    const dist = Math.abs(getCircularOffset(index, timelineMotion.currentIndex, total));
     if (dist < 0.42) {
-      soundEngine.playShutter();
-      useAppStore.getState().setCursor("default", "");
-      router.push(href, { scroll: false });
+      openCard(href);
     } else {
-      timelineMotion.targetIndex = index;
       setActiveWorkIndex(index, true);
     }
   };
@@ -945,21 +1035,23 @@ function CarouselRig({ active }: { active: boolean }) {
   return (
     <group ref={rigRef} visible={active}>
       {timelineMode === "crew"
-        ? CREW_MEMBERS.map((member, idx) => (
+        ? crewMembers.map((member, idx) => (
             <MemberCardMesh
               key={member.id}
               member={member}
               index={idx}
+              total={total}
               cardGeo={sharedCardGeo}
               bezelGeo={sharedBezelGeo}
               onActivateOrOpen={handleActivateOrOpen}
             />
           ))
-        : WORKS_DATA.map((work, idx) => (
+        : workProjects.map((work, idx) => (
             <WorkCardMesh
               key={work.id}
               work={work}
               index={idx}
+              total={total}
               isActiveCenter={idx === activeWorkIndex}
               cardGeo={sharedCardGeo}
               bezelGeo={sharedBezelGeo}
@@ -981,7 +1073,7 @@ export function TimelineCarousel3DView() {
       index={1}
       className={`w-full h-full ${isActive ? "" : "pointer-events-none"}`}
     >
-      <PerspectiveCamera makeDefault position={[0, 0.08, 6.2]} fov={38} />
+      <PerspectiveCamera makeDefault position={[0, 0.08, 8.4]} fov={38} />
       <ambientLight intensity={1.2} />
       <Suspense fallback={null}>
         <CarouselRig active={isActive} />

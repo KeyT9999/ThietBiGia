@@ -15,17 +15,16 @@ import {
   Users,
   X,
 } from "lucide-react";
-import {
-  GROUP_CATEGORY_META,
-  GROUP_MOMENTS,
-  type GroupMomentCategory,
-} from "@/data/moments";
-import { getCrewBySlug } from "@/data/crew";
+import { GROUP_CATEGORY_META, type GroupMomentCategory } from "@/data/moments";
 import { soundEngine } from "@/lib/sound";
+import { useSiteContent } from "@/lib/store";
 
 const INITIAL_VISIBLE_COUNT = 18;
 
 export function CollectiveAlbumWall() {
+  const siteContent = useSiteContent();
+  const moments = siteContent.moments;
+  const crewMembers = siteContent.crew;
   const [activeCategory, setActiveCategory] = useState<
     "all" | GroupMomentCategory
   >("all");
@@ -36,7 +35,7 @@ export function CollectiveAlbumWall() {
   // Build frequency-sorted member filter chips from recognized faces across the 36 group photos
   const memberFilterChips = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const m of GROUP_MOMENTS) {
+    for (const m of moments) {
       for (const slug of m.memberSlugs ?? []) {
         counts.set(slug, (counts.get(slug) ?? 0) + 1);
       }
@@ -45,26 +44,26 @@ export function CollectiveAlbumWall() {
       .map(([slug, count]) => ({
         slug,
         count,
-        member: getCrewBySlug(slug),
+        member: crewMembers.find((member) => member.slug === slug),
       }))
-      .filter((x): x is { slug: string; count: number; member: NonNullable<ReturnType<typeof getCrewBySlug>> } => Boolean(x.member))
+      .filter((x): x is { slug: string; count: number; member: (typeof crewMembers)[number] } => Boolean(x.member))
       .sort((a, b) => b.count - a.count);
-  }, []);
+  }, [moments, crewMembers]);
 
   const categoryCounts = useMemo(() => {
     return {
-      all: GROUP_MOMENTS.length,
-      "dai-gia-dinh": GROUP_MOMENTS.filter((m) => m.category === "dai-gia-dinh")
+      all: moments.length,
+      "dai-gia-dinh": moments.filter((m) => m.category === "dai-gia-dinh")
         .length,
-      "hau-truong": GROUP_MOMENTS.filter((m) => m.category === "hau-truong")
+      "hau-truong": moments.filter((m) => m.category === "hau-truong")
         .length,
-      "doi-thuong": GROUP_MOMENTS.filter((m) => m.category === "doi-thuong")
+      "doi-thuong": moments.filter((m) => m.category === "doi-thuong")
         .length,
     };
-  }, []);
+  }, [moments]);
 
   const filteredMoments = useMemo(() => {
-    return GROUP_MOMENTS.filter((m) => {
+    return moments.filter((m) => {
       if (activeCategory !== "all" && m.category !== activeCategory) {
         return false;
       }
@@ -76,7 +75,7 @@ export function CollectiveAlbumWall() {
       }
       return true;
     });
-  }, [activeCategory, activeMemberSlug]);
+  }, [moments, activeCategory, activeMemberSlug]);
 
   const isFiltered = activeCategory !== "all" || activeMemberSlug !== null;
   const visibleMoments =
@@ -123,7 +122,7 @@ export function CollectiveAlbumWall() {
             KHO ẢNH CHUNG ĐẠI GIA ĐÌNH THIẾT BỊ GIA
           </h2>
           <p className="text-sm sm:text-base text-ivory-muted max-w-3xl leading-relaxed">
-            Tuyển chọn {GROUP_MOMENTS.length} khung hình tập thể giàu cảm xúc nhất từ hơn 310 bức ảnh chung của Thiết Bị Gia — từ những buổi hội quân đông đủ 30+ anh chị em, hậu trường set đèn, sân khấu lớn cho đến những đêm lửa trại và dã ngoại bên nhau.
+            Tuyển chọn {moments.length} khung hình tập thể giàu cảm xúc nhất từ hơn 310 bức ảnh chung của Thiết Bị Gia — từ những buổi hội quân đông đủ 30+ anh chị em, hậu trường set đèn, sân khấu lớn cho đến những đêm lửa trại và dã ngoại bên nhau.
           </p>
         </div>
 
@@ -234,7 +233,7 @@ export function CollectiveAlbumWall() {
         {visibleMoments.map((moment, idx) => {
           const catMeta = GROUP_CATEGORY_META[moment.category];
           const recognizedCrew = (moment.memberSlugs ?? [])
-            .map((s) => getCrewBySlug(s))
+            .map((slug) => crewMembers.find((member) => member.slug === slug))
             .filter(Boolean);
 
           return (
@@ -346,7 +345,7 @@ export function CollectiveAlbumWall() {
       </div>
 
       {/* Expand / Collapse All 36 Photos Button */}
-      {!isFiltered && GROUP_MOMENTS.length > INITIAL_VISIBLE_COUNT && (
+      {!isFiltered && moments.length > INITIAL_VISIBLE_COUNT && (
         <div className="pt-2 flex justify-center">
           <button
             type="button"
@@ -360,7 +359,7 @@ export function CollectiveAlbumWall() {
             <span>
               {showAll
                 ? "THU GỌN BỚT DANH SÁCH ẢNH CHUNG"
-                : `XEM ĐẦY ĐỦ CẢ ${GROUP_MOMENTS.length} ẢNH CHUNG (+${hiddenCount} KHUNG HÌNH NỮA)`}
+                : `XEM ĐẦY ĐỦ CẢ ${moments.length} ẢNH CHUNG (+${hiddenCount} KHUNG HÌNH NỮA)`}
             </span>
             <ChevronDown
               className={`w-4 h-4 transition-transform ${
@@ -478,7 +477,7 @@ export function CollectiveAlbumWall() {
                         Thành viên có mặt:
                       </span>
                       {activeMoment.memberSlugs.map((slug) => {
-                        const member = getCrewBySlug(slug);
+                        const member = crewMembers.find((item) => item.slug === slug);
                         if (!member) return null;
                         return (
                           <Link

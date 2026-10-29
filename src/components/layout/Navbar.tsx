@@ -4,13 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Volume2, VolumeX, Menu, X, Search } from "lucide-react";
-import { CREW_MEMBERS } from "@/data/crew";
-import { WORKS_DATA } from "@/data/works";
-import { useAppStore } from "@/lib/store";
+import { useAppStore, useSiteContent } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
 
 export function Navbar() {
   const pathname = usePathname();
+  const siteContent = useSiteContent();
+  const settings = siteContent.settings;
   const soundMuted = useAppStore((s) => s.soundMuted);
   const toggleSound = useAppStore((s) => s.toggleSound);
   const isOverlayOpen = useAppStore((s) => s.isOverlayOpen);
@@ -40,22 +40,24 @@ export function Navbar() {
   const navItems = [
     {
       href: "/",
-      label: "TIMELINE 3D",
+      label: settings.navTimelineLabel || "TIMELINE 3D",
       match: (p: string) => p === "/",
     },
     {
       href: "/works",
-      label: `PROJECTS [${WORKS_DATA.length}]`,
+      label: (settings.navProjectsLabel || "PROJECTS") + " [" + siteContent.works.length + "]",
       match: (p: string) => p.startsWith("/works"),
     },
     {
       href: "/crew",
-      label: `CREW [${CREW_MEMBERS.length}]`,
+      label: (settings.navCrewLabel || "CREW") + " [" + siteContent.crew.length + "]",
       match: (p: string) => p.startsWith("/crew"),
     },
-    { href: "/about", label: "ABOUT & GEAR", match: (p: string) => p.startsWith("/about") },
-    { href: "/contact", label: "CONTACT", match: (p: string) => p.startsWith("/contact") },
+    { href: "/about", label: settings.navAboutLabel || "ABOUT & GEAR", match: (p: string) => p.startsWith("/about") },
+    { href: "/contact", label: settings.navContactLabel || "CONTACT", match: (p: string) => p.startsWith("/contact") },
   ];
+
+  if (pathname.startsWith("/admin")) return null;
 
   return (
     <>
@@ -69,10 +71,10 @@ export function Navbar() {
         }`}
       />
 
-      <header className="fixed top-3 left-3 right-3 sm:left-5 sm:right-5 z-[60]">
-      <div className="mx-auto max-w-[1680px] rounded-xl border border-obsidian-border/90 bg-obsidian-surface/80 backdrop-blur-xl px-4 sm:px-6 h-14 flex items-center justify-between gap-4 shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
+      <header className="fixed top-[max(0.625rem,env(safe-area-inset-top))] left-[max(0.5rem,env(safe-area-inset-left))] right-[max(0.5rem,env(safe-area-inset-right))] sm:top-3 sm:left-5 sm:right-5 z-[60]">
+      <div className="mx-auto max-w-[1680px] rounded-xl border border-obsidian-border/90 bg-obsidian-surface/90 backdrop-blur-xl px-2.5 min-[390px]:px-3.5 sm:px-6 h-14 flex items-center justify-between gap-1.5 sm:gap-4 shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
         {/* Left descriptor */}
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-3 min-w-0 shrink-0">
           <Link
             href="/"
             onClick={() => soundEngine.playHover()}
@@ -82,7 +84,7 @@ export function Navbar() {
               TBG
             </span>
             <span className="hidden lg:inline-block text-xs font-mono tracking-[0.18em] text-ivory-muted uppercase truncate">
-              Creative Media &amp; Design Collective
+              {settings.brandSubtitle || "Creative Media & Design Collective"}
             </span>
           </Link>
         </div>
@@ -90,14 +92,14 @@ export function Navbar() {
         {/* Center Brand Wordmark */}
         <Link
           href="/"
-          className="font-display font-bold text-base sm:text-lg tracking-[0.08em] text-ivory hover:text-rec transition-colors shrink-0"
+          className="font-display font-bold text-[13px] min-[390px]:text-sm sm:text-lg tracking-[0.025em] sm:tracking-[0.08em] text-ivory hover:text-rec transition-colors shrink-0"
         >
-          THIẾT BỊ GIA
+          {settings.brandName || "THIẾT BỊ GIA"}
         </Link>
 
         {/* Right Nav + Sound + Live Time */}
-        <div className="flex items-center gap-2 sm:gap-5">
-          <nav className="hidden md:flex items-center gap-1">
+        <div className="flex items-center gap-1 sm:gap-2 xl:gap-5 shrink-0">
+          <nav className="hidden lg:flex items-center gap-1">
             {navItems.map((item) => {
               const active = item.match(pathname);
               return (
@@ -120,7 +122,7 @@ export function Navbar() {
             })}
           </nav>
 
-          <div className="h-4 w-[1px] bg-obsidian-border hidden md:block" />
+          <div className="h-4 w-[1px] bg-obsidian-border hidden lg:block" />
 
           <button
             type="button"
@@ -129,7 +131,7 @@ export function Navbar() {
               setCommandPaletteOpen(true);
             }}
             title="Tìm nhanh Thành viên, Dự án & Thiết bị (Ctrl+K)"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-obsidian-border bg-obsidian/70 hover:border-rec/60 text-xs font-mono text-ivory-muted hover:text-ivory transition-colors cursor-pointer"
+            className="min-w-10 min-h-10 flex items-center justify-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg border border-obsidian-border bg-obsidian/70 hover:border-rec/60 text-xs font-mono text-ivory-muted hover:text-ivory transition-colors cursor-pointer"
           >
             <Search className="w-3.5 h-3.5 text-rec" />
             <span className="hidden lg:inline">CTRL+K</span>
@@ -139,7 +141,7 @@ export function Navbar() {
             type="button"
             onClick={toggleSound}
             title={soundMuted ? "Bật âm thanh tương tác" : "Tắt âm thanh tương tác"}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-mono transition-colors ${
+            className={`min-w-10 min-h-10 flex items-center justify-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg border text-xs font-mono transition-colors ${
               soundMuted
                 ? "border-obsidian-border text-ivory-subtle bg-obsidian/50"
                 : "border-rec/40 text-ivory bg-rec/10 hover:bg-rec/20"
@@ -157,7 +159,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => setMobileOpen((v) => !v)}
-            className="md:hidden p-1.5 rounded-lg border border-obsidian-border text-ivory"
+            className="lg:hidden min-w-10 min-h-10 flex items-center justify-center p-1.5 rounded-lg border border-obsidian-border text-ivory"
             aria-label="Menu"
           >
             {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -167,7 +169,7 @@ export function Navbar() {
 
       {/* Mobile Dropdown */}
       {mobileOpen && (
-        <div className="md:hidden mt-2 rounded-xl border border-obsidian-border bg-obsidian-surface/95 backdrop-blur-xl p-3 flex flex-col gap-1 shadow-2xl">
+        <div className="lg:hidden mt-2 rounded-xl border border-obsidian-border bg-obsidian-surface/95 backdrop-blur-xl p-3 flex flex-col gap-1 shadow-2xl">
           {navItems.map((item) => {
             const active = item.match(pathname);
             return (

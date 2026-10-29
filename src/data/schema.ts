@@ -6,6 +6,7 @@ export const BentoItemSchema = z.object({
   id: z.string(),
   title: z.string(),
   subtitle: z.string(),
+  year: z.string().optional(),
   kind: z.enum(["reel", "photo", "poster", "motion"]),
   span: z.enum(["wide", "tall", "normal"]),
   image: z.string(),
@@ -41,6 +42,8 @@ export const CrewMemberSchema = z.object({
     email: z.string().optional(),
   }),
   showcase: z.array(BentoItemSchema),
+  profileSharedWorkIds: z.array(z.string()).optional(),
+  profileProjectOrder: z.array(z.string()).optional(),
 });
 
 export const ProjectCreditSchema = z.object({

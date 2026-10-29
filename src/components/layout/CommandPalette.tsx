@@ -14,11 +14,9 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { CREW_MEMBERS } from "@/data/crew";
-import { GEAR_ARSENAL } from "@/data/gear";
-import { WORKS_DATA } from "@/data/works";
+
 import { soundEngine } from "@/lib/sound";
-import { useAppStore } from "@/lib/store";
+import { useAppStore, useSiteContent } from "@/lib/store";
 import { getCombinedRoleBadge } from "@/lib/utils";
 
 function normalizeVi(input: string): string {
@@ -42,6 +40,10 @@ interface PaletteItem {
 }
 
 export function CommandPalette() {
+  const siteContent = useSiteContent();
+  const crewMembers = siteContent.crew;
+  const workProjects = siteContent.works;
+  const gearArsenal = siteContent.gear;
   const router = useRouter();
   const open = useAppStore((s) => s.commandPaletteOpen);
   const setOpen = useAppStore((s) => s.setCommandPaletteOpen);
@@ -95,7 +97,7 @@ export function CommandPalette() {
         id: "act-works-3d",
         group: "THAO TÁC NHANH",
         title: "Mở Timeline 3D — Chế Độ Dự Án Nhóm (Cinema Slate)",
-        subtitle: `Xoay trục 3D ${WORKS_DATA.length} dự án tiêu biểu của Thiết Bị Gia`,
+        subtitle: `Xoay trục 3D ${workProjects.length} dự án tiêu biểu của Thiết Bị Gia`,
         badge: "3D STAGE",
         href: "/?mode=works",
         searchBlob: normalizeVi("timeline 3d du an nhom works cinema slate"),
@@ -117,7 +119,7 @@ export function CommandPalette() {
       {
         id: "act-crew-roster",
         group: "THAO TÁC NHANH",
-        title: `Xem Toàn Bộ Roster ${CREW_MEMBERS.length} Thành Viên`,
+        title: `Xem Toàn Bộ Roster ${crewMembers.length} Thành Viên`,
         subtitle: "Lọc theo Chụp ảnh, Quay phim, IT & Hậu kỳ",
         badge: "ROSTER",
         href: "/crew",
@@ -125,7 +127,7 @@ export function CommandPalette() {
       },
     ];
 
-    const crewItems: PaletteItem[] = CREW_MEMBERS.map((m) => ({
+    const crewItems: PaletteItem[] = crewMembers.map((m) => ({
       id: `crew-${m.slug}`,
       group: "THÀNH VIÊN EKIP",
       title: m.nickname ? `${m.name} (${m.nickname})` : m.name,
@@ -146,7 +148,7 @@ export function CommandPalette() {
       ),
     }));
 
-    const workItems: PaletteItem[] = WORKS_DATA.map((w) => ({
+    const workItems: PaletteItem[] = workProjects.map((w) => ({
       id: `work-${w.slug}`,
       group: "DỰ ÁN & BỘ ẢNH",
       title: w.title,
@@ -166,7 +168,7 @@ export function CommandPalette() {
       ),
     }));
 
-    const gearItems: PaletteItem[] = GEAR_ARSENAL.flatMap((cat) =>
+    const gearItems: PaletteItem[] = gearArsenal.flatMap((cat) =>
       cat.items.map((g, idx) => ({
         id: `gear-${cat.id}-${idx}`,
         group: "THIẾT BỊ & GEAR",

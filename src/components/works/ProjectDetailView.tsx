@@ -15,10 +15,10 @@ import {
   SlidersHorizontal,
   Users,
 } from "lucide-react";
-import { getCrewBySlug } from "@/data/crew";
 import { type WorkProject } from "@/data/schema";
 import { getRoleMeta } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
+import { useSiteContent } from "@/lib/store";
 import { BeforeAfterGradeSlider } from "./BeforeAfterGradeSlider";
 
 export function ProjectDetailView({
@@ -29,6 +29,7 @@ export function ProjectDetailView({
   isModal?: boolean;
 }) {
   const router = useRouter();
+  const crewMembers = useSiteContent().crew;
   const [playing, setPlaying] = useState(false);
   const [compareGrade, setCompareGrade] = useState(false);
   const [activeGalleryIdx, setActiveGalleryIdx] = useState(0);
@@ -292,7 +293,7 @@ export function ProjectDetailView({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {work.credits.map((c) => {
-                const member = getCrewBySlug(c.memberSlug);
+                const member = crewMembers.find((item) => item.slug === c.memberSlug);
                 if (!member) return null;
                 const meta = getRoleMeta(member.roleCategory);
 

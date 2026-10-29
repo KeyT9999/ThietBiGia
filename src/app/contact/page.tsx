@@ -16,10 +16,10 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { CREW_MEMBERS } from "@/data/crew";
-import { getWorkBySlug } from "@/data/works";
+
 import { soundEngine } from "@/lib/sound";
 import { getCombinedRoleBadge, getRoleMeta, type RoleCategory } from "@/lib/utils";
+import { useSiteContent } from "@/lib/store";
 
 const SERVICE_OPTIONS = [
   "Trọn gói Ekip Quay & Chụp",
@@ -33,6 +33,9 @@ const SERVICE_OPTIONS = [
 type RoleFilter = "all" | RoleCategory;
 
 export default function ContactBookingPage() {
+  const siteContent = useSiteContent();
+  const crewMembers = siteContent.crew;
+  const workProjects = siteContent.works;
   const [selectedServices, setSelectedServices] = useState<string[]>([
     "Trọn gói Ekip Quay & Chụp",
   ]);
@@ -64,7 +67,7 @@ export default function ContactBookingPage() {
       const validSlugs = crewParam
         .split(",")
         .map((s) => s.trim())
-        .filter((slug) => CREW_MEMBERS.some((m) => m.slug === slug));
+        .filter((slug) => crewMembers.some((m) => m.slug === slug));
       if (validSlugs.length > 0) {
         setSelectedCrewSlugs(Array.from(new Set(validSlugs)));
       }
@@ -72,7 +75,7 @@ export default function ContactBookingPage() {
 
     if (projParam) {
       setProjectRef(projParam);
-      const refWork = getWorkBySlug(projParam);
+      const refWork = workProjects.find((work) => work.slug === projParam);
       if (refWork) {
         setBrief((prev) =>
           prev
@@ -86,19 +89,19 @@ export default function ContactBookingPage() {
   const selectedCrewMembers = useMemo(
     () =>
       selectedCrewSlugs
-        .map((slug) => CREW_MEMBERS.find((m) => m.slug === slug))
-        .filter((m): m is (typeof CREW_MEMBERS)[number] => Boolean(m)),
+        .map((slug) => crewMembers.find((m) => m.slug === slug))
+        .filter((m): m is (typeof crewMembers)[number] => Boolean(m)),
     [selectedCrewSlugs]
   );
 
   const filteredCrew = useMemo(() => {
-    if (crewFilter === "all") return CREW_MEMBERS;
-    return CREW_MEMBERS.filter((m) => m.roles.includes(crewFilter));
+    if (crewFilter === "all") return crewMembers;
+    return crewMembers.filter((m) => m.roles.includes(crewFilter));
   }, [crewFilter]);
 
   const refWorkObj = useMemo(
-    () => (projectRef ? getWorkBySlug(projectRef) : undefined),
-    [projectRef]
+    () => workProjects.find((work) => work.slug === projectRef),
+    [projectRef, workProjects]
   );
 
   const toggleService = (service: string) => {
@@ -193,7 +196,7 @@ export default function ContactBookingPage() {
               <span className="inline-flex items-center gap-2 text-xs font-mono font-bold text-rec uppercase">
                 <Users className="w-4 h-4" />
                 <span>
-                  ĐỘI HÌNH ĐANG CHỌN [{selectedCrewMembers.length}/{CREW_MEMBERS.length}]
+                  ĐỘI HÌNH ĐANG CHỌN [{selectedCrewMembers.length}/{crewMembers.length}]
                 </span>
               </span>
               {selectedCrewMembers.length > 0 && (
@@ -386,7 +389,7 @@ export default function ContactBookingPage() {
                 <div className="flex flex-wrap items-center gap-1">
                   {(
                     [
-                      { id: "all", label: `TẤT CẢ [${CREW_MEMBERS.length}]` },
+                      { id: "all", label: `TẤT CẢ [${crewMembers.length}]` },
                       { id: "chup-anh", label: "CHỤP ẢNH" },
                       { id: "quay-phim", label: "QUAY PHIM" },
                       { id: "it-tech", label: "IT & KỸ THUẬT" },

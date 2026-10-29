@@ -22,6 +22,7 @@ import {
 import { type CrewMember } from "@/data/schema";
 import { getCombinedRoleBadge, getRoleMeta } from "@/lib/utils";
 import { getUnifiedProjectsForMember } from "@/data/works";
+import { useSiteContent } from "@/lib/store";
 import { generateQrMatrix } from "@/lib/qr";
 import { soundEngine } from "@/lib/sound";
 
@@ -407,10 +408,12 @@ function createStrapRibbonGeometry() {
 
 function PhysicsBadgeAssembly({
   member,
+  unifiedCount,
   flipped,
   onToggleFlip,
 }: {
   member: CrewMember;
+  unifiedCount: number;
   flipped: boolean;
   onToggleFlip?: () => void;
 }) {
@@ -425,11 +428,6 @@ function PhysicsBadgeAssembly({
   const [hovered, setHovered] = useState(false);
 
   const { camera } = useThree();
-  const unifiedCount = useMemo(
-    () => getUnifiedProjectsForMember(member).length,
-    [member]
-  );
-
   const frontTex = useMemo(() => {
     const canvas = document.createElement("canvas");
     canvas.width = 1024;
@@ -772,6 +770,13 @@ export function LanyardPressPass3DView({
   flipped?: boolean;
   onToggleFlip?: () => void;
 }) {
+  const siteContent = useSiteContent();
+  const unifiedCount = getUnifiedProjectsForMember(
+    member,
+    siteContent.works,
+    siteContent.crew
+  ).length;
+
   return (
     <View index={2} className="w-full h-full">
       <PerspectiveCamera makeDefault position={[0, 0, 6.6]} fov={34} />
@@ -808,6 +813,7 @@ export function LanyardPressPass3DView({
           <PhysicsBadgeAssembly
             key={member.slug}
             member={member}
+            unifiedCount={unifiedCount}
             flipped={flipped}
             onToggleFlip={onToggleFlip}
           />

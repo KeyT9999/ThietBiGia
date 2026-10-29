@@ -5,42 +5,40 @@ import { useEffect, useRef } from "react";
 import { ReactLenis, type LenisRef } from "lenis/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useAppStore } from "@/lib/store";
+import { SiteContentProvider, useAppStore } from "@/lib/store";
+import type { SiteContent } from "@/lib/content-schema";
 import "lenis/dist/lenis.css";
 
 gsap.registerPlugin(ScrollTrigger);
 
-export function SmoothScrollProvider({ children }: { children: React.ReactNode }) {
+export function SmoothScrollProvider({
+  children,
+  initialContent,
+}: {
+  children: React.ReactNode;
+  initialContent: SiteContent;
+}) {
   const lenisRef = useRef<LenisRef>(null);
   const pathname = usePathname();
-  const isOverlayOpen = useAppStore((s) => s.isOverlayOpen);
+  const isOverlayOpen = useAppStore((state) => state.isOverlayOpen);
   const wasOverlayOpenRef = useRef(false);
 
   useEffect(() => {
     function update(time: number) {
       lenisRef.current?.lenis?.raf(time * 1000);
     }
-
     gsap.ticker.add(update);
     gsap.ticker.lagSmoothing(0);
-
-    return () => {
-      gsap.ticker.remove(update);
-    };
+    return () => gsap.ticker.remove(update);
   }, []);
 
-  // Pause root window Lenis while an intercepting modal is open
   useEffect(() => {
     const lenis = lenisRef.current?.lenis;
     if (!lenis) return;
-    if (isOverlayOpen) {
-      lenis.stop();
-    } else {
-      lenis.start();
-    }
+    if (isOverlayOpen) lenis.stop();
+    else lenis.start();
   }, [isOverlayOpen]);
 
-  // Reset window scroll cleanly on standalone route transitions (while preserving background scroll on modal close)
   useEffect(() => {
     if (!isOverlayOpen && !wasOverlayOpenRef.current) {
       lenisRef.current?.lenis?.scrollTo(0, { immediate: true });
@@ -50,12 +48,14 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
   }, [pathname, isOverlayOpen]);
 
   return (
-    <ReactLenis
-      root
-      options={{ autoRaf: false, lerp: 0.085, smoothWheel: true }}
-      ref={lenisRef}
-    >
-      {children}
-    </ReactLenis>
+    <SiteContentProvider initialContent={initialContent}>
+      <ReactLenis
+        root
+        options={{ autoRaf: false, lerp: 0.085, smoothWheel: true }}
+        ref={lenisRef}
+      >
+        {children}
+      </ReactLenis>
+    </SiteContentProvider>
   );
 }

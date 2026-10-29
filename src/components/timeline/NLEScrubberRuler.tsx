@@ -2,15 +2,16 @@
 
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
-import { CREW_MEMBERS } from "@/data/crew";
-import { WORKS_DATA } from "@/data/works";
-import { timelineMotion, useAppStore } from "@/lib/store";
+import { timelineMotion, useAppStore, useSiteContent } from "@/lib/store";
 import { formatTimecodeFromProgress } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
 
 const TOTAL_TICKS = 84;
 
 export function NLEScrubberRuler() {
+  const siteContent = useSiteContent();
+  const crewMembers = siteContent.crew;
+  const workProjects = siteContent.works;
   const timelineMode = useAppStore((s) => s.timelineMode);
   const activeWorkIndex = useAppStore((s) => s.activeWorkIndex);
   const setActiveWorkIndex = useAppStore((s) => s.setActiveWorkIndex);
@@ -23,14 +24,16 @@ export function NLEScrubberRuler() {
   const draggingRef = useRef(false);
 
   const isCrewMode = timelineMode === "crew";
-  const totalItems = isCrewMode ? CREW_MEMBERS.length : WORKS_DATA.length;
+  const totalItems = isCrewMode ? crewMembers.length : workProjects.length;
 
   useEffect(() => {
     const updateScrubberUI = () => {
-      const progress =
-        totalItems > 1
-          ? Math.max(0, Math.min(1, timelineMotion.currentIndex / (totalItems - 1)))
-          : 0;
+      let progress = 0;
+      if (totalItems > 1) {
+        const wrappedIndex =
+          ((timelineMotion.currentIndex % totalItems) + totalItems) % totalItems;
+        progress = wrappedIndex / totalItems;
+      }
 
       if (playheadRef.current) {
         playheadRef.current.style.left = `${progress * 100}%`;
@@ -62,20 +65,26 @@ export function NLEScrubberRuler() {
     return () => {
       gsap.ticker.remove(updateScrubberUI);
     };
-  }, [totalItems]);
+  }, [isCrewMode, totalItems]);
 
   const scrubFromClientX = (clientX: number) => {
     if (!trackRef.current) return;
     const rect = trackRef.current.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     const exactIndex = ratio * (totalItems - 1);
-    timelineMotion.targetIndex = exactIndex;
+    if (totalItems > 1) {
+      const rawOffset = exactIndex - timelineMotion.currentIndex;
+      const wrappedOffset =
+        ((rawOffset + totalItems / 2) % totalItems + totalItems) % totalItems -
+        totalItems / 2;
+      timelineMotion.targetIndex = timelineMotion.currentIndex + wrappedOffset;
+    } else timelineMotion.targetIndex = exactIndex;
     setActiveWorkIndex(Math.round(exactIndex), false);
   };
 
   const activeName = isCrewMode
-    ? CREW_MEMBERS[activeWorkIndex]?.name ?? ""
-    : WORKS_DATA[activeWorkIndex]?.title ?? "";
+    ? crewMembers[activeWorkIndex]?.name ?? ""
+    : workProjects[activeWorkIndex]?.title ?? "";
 
   return (
     <div className="w-full max-w-[1440px] mx-auto px-3 sm:px-6 pointer-events-auto select-none">
@@ -174,7 +183,7 @@ export function NLEScrubberRuler() {
         {/* Numbered Markers (01..16 Members or 01..12 Works) */}
         <div className="flex items-center justify-between pt-1.5 border-t border-white/[0.06] overflow-x-auto">
           {isCrewMode
-            ? CREW_MEMBERS.map((m, idx) => {
+            ? crewMembers.map((m, idx) => {
                 const isActive = idx === activeWorkIndex;
                 return (
                   <button
@@ -185,7 +194,7 @@ export function NLEScrubberRuler() {
                       soundEngine.playTick(0.95);
                       setActiveWorkIndex(idx, true);
                     }}
-                    className={`px-1 sm:px-1.5 py-0.5 rounded font-mono text-xs transition-all shrink-0 ${
+                    className={`min-w-7 min-h-8 flex items-center justify-center px-1 sm:px-1.5 py-0.5 rounded font-mono text-xs transition-all shrink-0 ${
                       isActive
                         ? "text-rec font-bold scale-110 bg-rec/10"
                         : "text-ivory-subtle hover:text-ivory"
@@ -195,7 +204,7 @@ export function NLEScrubberRuler() {
                   </button>
                 );
               })
-            : WORKS_DATA.map((w, idx) => {
+            : workProjects.map((w, idx) => {
                 const isActive = idx === activeWorkIndex;
                 return (
                   <button
@@ -206,7 +215,7 @@ export function NLEScrubberRuler() {
                       soundEngine.playTick(0.95);
                       setActiveWorkIndex(idx, true);
                     }}
-                    className={`px-1.5 py-0.5 rounded font-mono text-xs transition-all shrink-0 ${
+                    className={`min-w-7 min-h-8 flex items-center justify-center px-1.5 py-0.5 rounded font-mono text-xs transition-all shrink-0 ${
                       isActive
                         ? "text-rec font-bold scale-110 bg-rec/10"
                         : "text-ivory-subtle hover:text-ivory"

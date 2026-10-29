@@ -7,19 +7,21 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { AnimatePresence, motion } from "motion/react";
 import { ChevronLeft, ChevronRight, Film, Maximize2, Users, X } from "lucide-react";
-import { FILM_STRIP_MOMENTS } from "@/data/moments";
-import { getCrewBySlug } from "@/data/crew";
+import { useSiteContent } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
 
 gsap.registerPlugin(ScrollTrigger);
 
 export function FilmStripArchive() {
+  const siteContent = useSiteContent();
+  const moments = siteContent.moments.filter((moment) => moment.onFilmStrip);
+  const crewMembers = siteContent.crew;
   const sectionRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const stripRef = useRef<HTMLDivElement>(null);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
-  const sprocketCount = Math.max(40, FILM_STRIP_MOMENTS.length * 8);
+  const sprocketCount = Math.max(40, moments.length * 8);
 
   useGSAP(
     () => {
@@ -49,14 +51,14 @@ export function FilmStripArchive() {
       if (e.key === "Escape") setLightboxIdx(null);
       if (e.key === "ArrowRight") {
         setLightboxIdx((i) =>
-          i === null ? null : (i + 1) % FILM_STRIP_MOMENTS.length
+          i === null ? null : (i + 1) % moments.length
         );
       }
       if (e.key === "ArrowLeft") {
         setLightboxIdx((i) =>
           i === null
             ? null
-            : (i - 1 + FILM_STRIP_MOMENTS.length) % FILM_STRIP_MOMENTS.length
+            : (i - 1 + moments.length) % moments.length
         );
       }
     };
@@ -73,7 +75,7 @@ export function FilmStripArchive() {
   };
 
   const activeMoment =
-    lightboxIdx !== null ? FILM_STRIP_MOMENTS[lightboxIdx] : null;
+    lightboxIdx !== null ? moments[lightboxIdx] : null;
 
   return (
     <section ref={sectionRef} className="space-y-6 overflow-hidden">
@@ -88,13 +90,13 @@ export function FilmStripArchive() {
             CUỘN PHIM KỶ NIỆM ANH EM THIẾT BỊ GIA
           </h2>
           <p className="text-sm text-ivory-muted max-w-2xl">
-            Lướt ngang qua dải phim nhựa 35mm gồm {FILM_STRIP_MOMENTS.length} khoảnh khắc tập thể tiêu biểu nhất — nhấn vào từng frame để phóng lớn toàn màn hình.
+            Lướt ngang qua dải phim nhựa 35mm gồm {moments.length} khoảnh khắc tập thể tiêu biểu nhất — nhấn vào từng frame để phóng lớn toàn màn hình.
           </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
           <span className="text-xs font-mono text-ivory-subtle hidden md:inline">
-            KODAK PORTRA 400 • {FILM_STRIP_MOMENTS.length} KEY FRAMES
+            KODAK PORTRA 400 • {moments.length} KEY FRAMES
           </span>
           <div className="flex items-center gap-1.5">
             <button
@@ -147,7 +149,7 @@ export function FilmStripArchive() {
 
           {/* Film Frames Row */}
           <div className="flex items-stretch gap-5 px-2">
-            {FILM_STRIP_MOMENTS.map((moment, idx) => (
+            {moments.map((moment, idx) => (
               <button
                 key={moment.id}
                 type="button"
@@ -191,7 +193,7 @@ export function FilmStripArchive() {
 
           {/* Edge Film Numbers Bottom */}
           <div className="flex items-center justify-around px-4 pt-2 text-xs font-mono text-amber-400/80 tracking-widest">
-            {FILM_STRIP_MOMENTS.map((m) => (
+            {moments.map((m) => (
               <span key={m.id}>{m.frameCode}</span>
             ))}
           </div>
@@ -257,8 +259,8 @@ export function FilmStripArchive() {
                   onClick={() => {
                     soundEngine.playTick(0.85);
                     setLightboxIdx(
-                      (lightboxIdx - 1 + FILM_STRIP_MOMENTS.length) %
-                        FILM_STRIP_MOMENTS.length
+                      (lightboxIdx - 1 + moments.length) %
+                        moments.length
                     );
                   }}
                   className="absolute left-3 p-2.5 rounded-full bg-obsidian/80 border border-white/15 hover:border-rec text-ivory cursor-pointer"
@@ -271,7 +273,7 @@ export function FilmStripArchive() {
                   onClick={() => {
                     soundEngine.playTick(0.85);
                     setLightboxIdx(
-                      (lightboxIdx + 1) % FILM_STRIP_MOMENTS.length
+                      (lightboxIdx + 1) % moments.length
                     );
                   }}
                   className="absolute right-3 p-2.5 rounded-full bg-obsidian/80 border border-white/15 hover:border-rec text-ivory cursor-pointer"
@@ -302,7 +304,7 @@ export function FilmStripArchive() {
                       Nhận diện thành viên:
                     </span>
                     {activeMoment.memberSlugs.map((slug) => {
-                      const member = getCrewBySlug(slug);
+                      const member = crewMembers.find((item) => item.slug === slug);
                       if (!member) return null;
                       return (
                         <Link

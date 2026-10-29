@@ -6,10 +6,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { Observer } from "gsap/Observer";
-import { Film, IdCard, Play, Users } from "lucide-react";
-import { CREW_MEMBERS } from "@/data/crew";
-import { WORKS_DATA } from "@/data/works";
-import { timelineMotion, useAppStore } from "@/lib/store";
+import { Film, IdCard, MousePointerClick, Play, Users } from "lucide-react";
+import { timelineMotion, useAppStore, useSiteContent } from "@/lib/store";
 import { getRoleMeta } from "@/lib/utils";
 import { CrewCreditPills } from "./CrewCreditPills";
 import { MemberContextPills } from "./MemberContextPills";
@@ -28,6 +26,9 @@ const TimelineCarousel3DView = dynamic(
 );
 
 export function LivingTimelineStage() {
+  const siteContent = useSiteContent();
+  const crewMembers = siteContent.crew;
+  const workProjects = siteContent.works;
   const stageRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const timelineMode = useAppStore((s) => s.timelineMode);
@@ -39,10 +40,10 @@ export function LivingTimelineStage() {
   const isBackgrounded = isOverlayOpen || pathname !== "/";
 
   const isCrewMode = timelineMode === "crew";
-  const total = isCrewMode ? CREW_MEMBERS.length : WORKS_DATA.length;
+  const total = isCrewMode ? crewMembers.length : workProjects.length;
 
-  const activeMember = CREW_MEMBERS[activeWorkIndex] ?? CREW_MEMBERS[0];
-  const activeWork = WORKS_DATA[activeWorkIndex] ?? WORKS_DATA[0];
+  const activeMember = crewMembers[activeWorkIndex] ?? crewMembers[0];
+  const activeWork = workProjects[activeWorkIndex] ?? workProjects[0];
 
   const activeAccentColor = isCrewMode
     ? getRoleMeta(activeMember.roles[0] ?? activeMember.roleCategory).color
@@ -54,7 +55,7 @@ export function LivingTimelineStage() {
     const memberSlug = params.get("member");
     const reqMode = params.get("mode");
     if (memberSlug) {
-      const idx = CREW_MEMBERS.findIndex((m) => m.slug === memberSlug);
+      const idx = crewMembers.findIndex((m) => m.slug === memberSlug);
       if (idx >= 0) {
         useAppStore.getState().setTimelineMode("crew", idx);
         timelineMotion.currentIndex = idx;
@@ -72,22 +73,17 @@ export function LivingTimelineStage() {
 
     const obs = Observer.create({
       target: stageRef.current,
-      type: "wheel,touch,pointer",
-      wheelSpeed: -1,
+      type: "touch,pointer",
       onChange: (self) => {
         if (timelineMotion.isDragging) return;
-        const isWheel = self.event.type === "wheel";
-        if (!isWheel && !self.isDragging) return;
+        if (!self.isDragging) return;
 
         const deltaRaw =
           Math.abs(self.deltaX) > Math.abs(self.deltaY) ? self.deltaX : self.deltaY;
-        const sensitivity = isWheel ? 0.0038 : -0.0085;
-        const step = isWheel ? -deltaRaw * sensitivity : deltaRaw * sensitivity;
+        const step = deltaRaw * -0.0085;
 
-        timelineMotion.targetIndex = Math.max(
-          0,
-          Math.min(total - 1, timelineMotion.targetIndex + step)
-        );
+        const nextTarget = timelineMotion.targetIndex + step;
+        timelineMotion.targetIndex = nextTarget;
       },
       onRelease: () => {
         timelineMotion.targetIndex = Math.round(timelineMotion.targetIndex);
@@ -109,13 +105,13 @@ export function LivingTimelineStage() {
       obs.kill();
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [isBackgrounded, total]);
+  }, [isBackgrounded, isCrewMode, total]);
 
   return (
     <section
       ref={stageRef}
       aria-hidden={isBackgrounded}
-      className={`relative w-full h-[100dvh] overflow-hidden bg-obsidian flex flex-col justify-between pt-20 pb-4 select-none transition-opacity duration-200 ${
+      className={`relative w-full h-[100dvh] overflow-hidden bg-obsidian flex flex-col justify-between pt-[calc(76px+env(safe-area-inset-top))] pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:pt-[calc(80px+env(safe-area-inset-top))] sm:pb-4 select-none transition-opacity duration-200 ${
         isBackgrounded ? "invisible opacity-0 pointer-events-none" : "opacity-100"
       }`}
     >
@@ -129,12 +125,12 @@ export function LivingTimelineStage() {
 
       {/* Top Active Metadata HUD + Mode Switcher (Crew [16] vs Works [12]) */}
       <div
-        className={`relative z-[45] max-w-[1440px] w-full mx-auto px-4 sm:px-8 flex flex-wrap items-center justify-between gap-3 pointer-events-none ${
+        className={`relative z-[45] max-w-[1440px] w-full mx-auto px-3 sm:px-8 flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 pointer-events-none ${
           isBackgrounded ? "hidden" : ""
         }`}
       >
-        <div className="space-y-0.5">
-          <div className="flex items-center gap-2 text-xs font-mono text-ivory-muted">
+          <div className="min-w-0 space-y-0.5">
+          <div className="flex items-center gap-2 text-[10px] sm:text-xs font-mono text-ivory-muted truncate">
             <span
               className="inline-block w-2 h-2 rounded-full"
               style={{ backgroundColor: activeAccentColor }}
@@ -150,7 +146,7 @@ export function LivingTimelineStage() {
               </span>
             )}
           </div>
-          <div className="text-xs font-mono text-ivory-subtle">
+          <div className="hidden sm:block text-xs font-mono text-ivory-subtle truncate">
             <DecoderText
               text={
                 isCrewMode
@@ -162,20 +158,20 @@ export function LivingTimelineStage() {
         </div>
 
         {/* Interactive Mode Switcher Pill */}
-        <div className="pointer-events-auto flex items-center gap-1 p-1 rounded-full border border-obsidian-border bg-obsidian-surface/85 backdrop-blur-xl shadow-lg">
+        <div className="pointer-events-auto self-start sm:self-auto flex items-center gap-0.5 sm:gap-1 p-1 rounded-full border border-obsidian-border bg-obsidian-surface/85 backdrop-blur-xl shadow-lg">
           <button
             type="button"
             onClick={() => {
               if (!isCrewMode) setTimelineMode("crew", 0);
             }}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-mono transition-all ${
+            className={`inline-flex items-center gap-1 px-2.5 sm:px-3.5 py-1.5 rounded-full text-[10px] sm:text-xs font-mono transition-all ${
               isCrewMode
                 ? "bg-rec text-obsidian font-bold shadow-[0_0_18px_rgba(255,77,0,0.4)]"
                 : "text-ivory-muted hover:text-ivory"
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>THÀNH VIÊN [{CREW_MEMBERS.length}]</span>
+            <span>THÀNH VIÊN [{crewMembers.length}]</span>
           </button>
 
           <button
@@ -183,14 +179,14 @@ export function LivingTimelineStage() {
             onClick={() => {
               if (isCrewMode) setTimelineMode("works", 0);
             }}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-mono transition-all ${
+            className={`inline-flex items-center gap-1 px-2.5 sm:px-3.5 py-1.5 rounded-full text-[10px] sm:text-xs font-mono transition-all ${
               !isCrewMode
                 ? "bg-rec text-obsidian font-bold shadow-[0_0_18px_rgba(255,77,0,0.4)]"
                 : "text-ivory-muted hover:text-ivory"
             }`}
           >
             <Film className="w-3.5 h-3.5" />
-            <span>DỰ ÁN NHÓM [{WORKS_DATA.length}]</span>
+            <span>DỰ ÁN [{workProjects.length}]</span>
           </button>
         </div>
       </div>
@@ -208,6 +204,19 @@ export function LivingTimelineStage() {
             isBackgrounded ? "hidden" : ""
           }`}
         >
+          {isCrewMode && activeMember ? (
+            <Link
+              href={`/crew/${activeMember.slug}`}
+              scroll={false}
+              onClick={() => soundEngine.playShutter()}
+              aria-label={`Mở hồ sơ ${activeMember.name}`}
+              title={`Mở hồ sơ ${activeMember.name}`}
+              className="pointer-events-auto absolute left-1/2 top-[calc(50%_+_7rem)] z-[46] flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center text-rec drop-shadow-[0_0_12px_rgba(255,77,0,0.9)] transition-transform hover:scale-110 focus-visible:rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rec sm:top-[calc(50%_+_11rem)] lg:top-[calc(50%_+_12rem)]"
+            >
+              <MousePointerClick className="cursor-click-hint h-8 w-8" aria-hidden="true" />
+            </Link>
+          ) : null}
+
           {isCrewMode ? (
             <>
               {/* Left Active Member Spotlight Summary Card */}

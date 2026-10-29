@@ -1,4 +1,4 @@
-import { WorkProjectSchema, type WorkProject, type CrewMember } from "./schema";
+import { WorkProjectSchema, type WorkProject, type CrewMember, type BentoItem } from "./schema";
 import { CREW_MEMBERS } from "./crew";
 export type { WorkProject };
 
@@ -401,10 +401,25 @@ export function getWorkBySlug(slug: string): WorkProject | undefined {
   return WORKS_DATA.find((w) => w.slug === slug);
 }
 
-export function getWorksForMember(memberSlug: string): WorkProject[] {
-  return WORKS_DATA.filter((w) =>
+export function getWorksForMember(
+  memberSlug: string,
+  works: WorkProject[] = WORKS_DATA
+): WorkProject[] {
+  return works.filter((w) =>
     w.credits.some((c) => c.memberSlug === memberSlug)
   );
+}
+
+export function getSharedWorkIdsForMember(
+  member: CrewMember,
+  works: WorkProject[] = WORKS_DATA
+): string[] {
+  const creditedWorks = getWorksForMember(member.slug, works);
+  if (member.profileSharedWorkIds === undefined) {
+    return creditedWorks.map((work) => work.id);
+  }
+  const selected = new Set(member.profileSharedWorkIds);
+  return creditedWorks.filter((work) => selected.has(work.id)).map((work) => work.id);
 }
 
 export interface TeammateConnection {
@@ -412,9 +427,13 @@ export interface TeammateConnection {
   sharedCount: number;
 }
 
-export function getTeammatesForMember(memberSlug: string): TeammateConnection[] {
+export function getTeammatesForMember(
+  memberSlug: string,
+  works: WorkProject[] = WORKS_DATA,
+  crew: CrewMember[] = CREW_MEMBERS
+): TeammateConnection[] {
   const counts = new Map<string, number>();
-  for (const work of WORKS_DATA) {
+  for (const work of works) {
     const involved = work.credits.some((c) => c.memberSlug === memberSlug);
     if (!involved) continue;
     for (const c of work.credits) {
@@ -426,14 +445,14 @@ export function getTeammatesForMember(memberSlug: string): TeammateConnection[] 
 
   const results: TeammateConnection[] = [];
   counts.forEach((sharedCount, slug) => {
-    const found = CREW_MEMBERS.find((m) => m.slug === slug);
+      const found = crew.find((m) => m.slug === slug);
     if (found) {
       results.push({ member: found, sharedCount });
     }
   });
 
   if (results.length < 6) {
-    for (const m of CREW_MEMBERS) {
+    for (const m of crew) {
       if (m.slug !== memberSlug && !results.some((r) => r.member.slug === m.slug)) {
         results.push({ member: m, sharedCount: 1 });
         if (results.length >= 6) break;
@@ -461,6 +480,10 @@ export interface UnifiedMemberProject {
   coverImage: string;
   frames: string[];
   workSlug?: string;
+  kind?: BentoItem["kind"];
+  span?: BentoItem["span"];
+  videoUrl?: string;
+  externalUrl?: string;
   coCreators: CrewMember[];
   totalCrewCount: number;
 }
@@ -470,9 +493,12 @@ export interface UnifiedMemberProject {
  * series into a unified, visual-first project list (Lead Projects -> Personal Albums -> Ekip Campaigns).
  */
 export function getUnifiedProjectsForMember(
-  member: CrewMember
+  member: CrewMember,
+  works: WorkProject[] = WORKS_DATA,
+  crew: CrewMember[] = CREW_MEMBERS
 ): UnifiedMemberProject[] {
-  const memberWorks = getWorksForMember(member.slug);
+  const selectedWorkIds = new Set(getSharedWorkIdsForMember(member, works));
+  const memberWorks = getWorksForMember(member.slug, works).filter((work) => selectedWorkIds.has(work.id));
   const seenWorkSlugs = new Set<string>();
   const seenCoverImages = new Set<string>();
 
@@ -488,7 +514,7 @@ export function getUnifiedProjectsForMember(
     const coCreators: CrewMember[] = [];
     for (const c of w.credits) {
       if (c.memberSlug === member.slug) continue;
-      const found = CREW_MEMBERS.find((m) => m.slug === c.memberSlug);
+      const found = crew.find((m) => m.slug === c.memberSlug);
       if (found) coCreators.push(found);
     }
 
@@ -507,6 +533,7 @@ export function getUnifiedProjectsForMember(
       coverImage: w.coverImage,
       frames: w.galleryImages.length > 0 ? w.galleryImages : [w.coverImage],
       workSlug: w.slug,
+      videoUrl: w.videoEmbedUrl ?? w.videoUrl,
       coCreators,
       totalCrewCount: w.credits.length,
     };
@@ -524,7 +551,7 @@ export function getUnifiedProjectsForMember(
       title: item.title,
       subtitle: item.subtitle,
       category: item.durationOrSpec ?? "Bộ Sưu Tập Cá Nhân",
-      year: "2026",
+      year: item.year ?? "2026",
       roleBadge: item.durationOrSpec ?? member.roleTitle,
       scope: "personal",
       accentColor: "#FF4D00",
@@ -536,6 +563,10 @@ export function getUnifiedProjectsForMember(
       coverImage: item.image,
       frames: itemFrames,
       workSlug: item.projectSlug,
+      kind: item.kind,
+      span: item.span,
+      videoUrl: item.videoUrl,
+      externalUrl: item.externalUrl,
       coCreators: [],
       totalCrewCount: 1,
     });
@@ -551,13 +582,24 @@ export function getUnifiedProjectsForMember(
     (p) => p.workSlug === "hau-truong-thiet-bi-gia"
   );
 
-  return [
+  const defaultOrder = [
     ...leadProjects,
     ...multiFramePersonal,
     ...specificEkipProjects,
     ...singleFramePersonal,
     ...collectiveArchive,
   ];
+  if (!member.profileProjectOrder) return defaultOrder;
+
+  const byId = new Map(defaultOrder.map((project) => [project.id, project]));
+  const seen = new Set<string>();
+  const savedOrder = member.profileProjectOrder.flatMap((id) => {
+    const project = byId.get(id);
+    if (!project || seen.has(id)) return [];
+    seen.add(id);
+    return [project];
+  });
+  return [...savedOrder, ...defaultOrder.filter((project) => !seen.has(project.id))];
 }
 
 if (process.env.NODE_ENV !== "production") {
