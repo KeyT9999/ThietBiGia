@@ -20,6 +20,9 @@ export const WORKS_DATA: WorkProject[] = [
     galleryImages: [
       "/anhchungtbg.jpg",
       "/anhchungtbg2.jpg",
+      "/media/fuda/group-01.jpg",
+      "/media/fuda/group-02.jpg",
+      "/media/fuda/group-03.jpg",
       "/media/keyt/pkl-03.jpg",
     ],
     btsNotes: [
