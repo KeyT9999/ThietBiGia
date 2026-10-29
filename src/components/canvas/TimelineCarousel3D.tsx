@@ -964,7 +964,7 @@ function CarouselRig({ active }: { active: boolean }) {
     if (!active || total <= 1) return;
     const interval = window.setInterval(() => {
       timelineMotion.targetIndex = Math.round(timelineMotion.targetIndex) + 1;
-    }, 2000);
+    }, 3000);
     return () => window.clearInterval(interval);
   }, [active, timelineMode, total]);
 
