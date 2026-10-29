@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ImagePlus, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ImagePlus, Plus, Trash2 } from "lucide-react";
 
 class CloudinaryFileSizeError extends Error {
   constructor(message: string, readonly maximumBytes?: number) {
@@ -134,12 +134,14 @@ export function AdminStringListField({
   onChange,
   placeholder = "Nhập nội dung",
   addLabel = "THÊM MỤC",
+  reorderable = false,
 }: {
   label: string;
   value: string[];
   onChange: (value: string[]) => void;
   placeholder?: string;
   addLabel?: string;
+  reorderable?: boolean;
 }) {
   function updateItem(index: number, text: string) {
     onChange(value.map((item, itemIndex) => itemIndex === index ? text : item));
@@ -147,6 +149,14 @@ export function AdminStringListField({
 
   function removeItem(index: number) {
     onChange(value.filter((_, itemIndex) => itemIndex !== index));
+  }
+
+  function moveItem(from: number, to: number) {
+    if (to < 0 || to >= value.length) return;
+    const next = [...value];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    onChange(next);
   }
 
   return (
@@ -165,6 +175,7 @@ export function AdminStringListField({
             placeholder={placeholder}
             className="min-w-0 flex-1 rounded-xl border border-white/10 bg-obsidian px-3.5 py-3 text-sm text-ivory outline-none focus:border-rec"
           />
+          {reorderable ? <div className="flex shrink-0 flex-col gap-1"><button type="button" disabled={index === 0} onClick={() => moveItem(index, index - 1)} aria-label={`Đưa ${label} ${index + 1} lên`} className="rounded border border-white/10 p-1.5 text-ivory-muted disabled:opacity-30"><ArrowUp className="h-3 w-3" /></button><button type="button" disabled={index === value.length - 1} onClick={() => moveItem(index, index + 1)} aria-label={`Đưa ${label} ${index + 1} xuống`} className="rounded border border-white/10 p-1.5 text-ivory-muted disabled:opacity-30"><ArrowDown className="h-3 w-3" /></button></div> : null}
           <button type="button" onClick={() => removeItem(index)} aria-label={`Gỡ ${label} ${index + 1}`} className="rounded-lg border border-red-400/20 p-2.5 text-red-300 hover:bg-red-400/10">
             <Trash2 className="h-4 w-4" />
           </button>

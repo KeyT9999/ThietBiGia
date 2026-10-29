@@ -3,7 +3,7 @@
 import { Trash2 } from "lucide-react";
 import type { CrewMember, ProjectCredit, WorkProject } from "@/data/schema";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
-import { AdminField, AdminImageField, AdminListField } from "./AdminFields";
+import { AdminField, AdminImageField, AdminMultiImageField, AdminStringListField } from "./AdminFields";
 
 export function ProjectEditor({
   work,
@@ -49,12 +49,16 @@ export function ProjectEditor({
 
       <AdminField label="Tóm tắt dự án" value={work.summary} multiline rows={5} onChange={(summary) => onChange({ summary })} />
       <AdminImageField label="Ảnh bìa" value={work.coverImage} folder="thiet-bi-gia/projects" onChange={(coverImage) => onChange({ coverImage })} />
-      <AdminListField label="Ảnh gallery" value={work.galleryImages} onChange={(galleryImages) => onChange({ galleryImages })} />
+      <section className="space-y-3 rounded-2xl border border-white/10 p-4">
+        <div><h3 className="font-display text-lg font-bold">Album ảnh dự án ({work.galleryImages.length})</h3><p className="mt-1 text-xs text-ivory-muted">Tải nhiều ảnh cùng lúc, xóa ảnh không dùng hoặc đổi thứ tự hiển thị.</p></div>
+        <AdminMultiImageField label="Thêm ảnh vào album" folder="thiet-bi-gia/projects" onUploaded={(urls) => onChange({ galleryImages: [...work.galleryImages, ...urls] })} />
+        <AdminStringListField label="Ảnh trong album (URL)" value={work.galleryImages} onChange={(galleryImages) => onChange({ galleryImages })} placeholder="Dán URL ảnh" addLabel="THÊM URL ẢNH" reorderable />
+      </section>
       <AdminField label="Ảnh trước hậu kỳ (tùy chọn)" value={work.beforeImage ?? ""} onChange={(beforeImage) => onChange({ beforeImage: beforeImage || undefined })} />
       <AdminField label="Link video YouTube" value={work.videoEmbedUrl ?? ""} onChange={(videoEmbedUrl) => onChange({ videoEmbedUrl: videoEmbedUrl || undefined })} hint="Dán link watch, Shorts hoặc youtu.be. Website sẽ nhúng player trong trang dự án." />
       {work.videoEmbedUrl && !toYoutubeEmbedUrl(work.videoEmbedUrl) ? <p className="text-xs text-amber-300">Link YouTube chưa hợp lệ; kiểm tra trước khi lưu.</p> : null}
-      <AdminListField label="Ghi chú hậu trường" value={work.btsNotes} onChange={(btsNotes) => onChange({ btsNotes })} />
-      <AdminListField label="Thiết bị sử dụng" value={work.gearUsed} onChange={(gearUsed) => onChange({ gearUsed })} />
+      <AdminStringListField label="Ghi chú hậu trường" value={work.btsNotes} onChange={(btsNotes) => onChange({ btsNotes })} placeholder="Nhập ghi chú hậu trường" addLabel="THÊM GHI CHÚ" reorderable />
+      <AdminStringListField label="Thiết bị sử dụng" value={work.gearUsed} onChange={(gearUsed) => onChange({ gearUsed })} placeholder="Nhập thiết bị sử dụng" addLabel="THÊM THIẾT BỊ" reorderable />
 
       <section className="space-y-3 rounded-2xl border border-white/10 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -78,7 +82,7 @@ export function ProjectEditor({
         {work.credits.map((credit, index) => (
           <div key={credit.memberSlug} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
             <select value={credit.memberSlug} onChange={(event) => updateCredit(index, { memberSlug: event.target.value })} className="rounded-lg border border-white/10 bg-obsidian px-3 py-2 text-sm text-ivory">
-              {crew.map((member) => <option key={member.slug} value={member.slug}>{member.name}</option>)}
+              {crew.map((member) => <option key={member.slug} value={member.slug} disabled={work.credits.some((candidate, candidateIndex) => candidateIndex !== index && candidate.memberSlug === member.slug)}>{member.name}</option>)}
             </select>
             <input value={credit.roleOnProject} onChange={(event) => updateCredit(index, { roleOnProject: event.target.value })} placeholder="Vai trò" className="rounded-lg border border-white/10 bg-obsidian px-3 py-2 text-sm text-ivory" />
             <button type="button" onClick={() => onChange({ credits: work.credits.filter((_, i) => i !== index) })} className="rounded-lg border border-red-400/20 px-3 py-2 text-red-300" title="Gỡ thành viên"><Trash2 className="h-4 w-4" /></button>

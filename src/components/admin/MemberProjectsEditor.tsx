@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import type { BentoItem, CrewMember, WorkProject } from "@/data/schema";
 import { getSharedWorkIdsForMember, getUnifiedProjectsForMember } from "@/data/works";
@@ -24,6 +25,7 @@ export function MemberProjectsEditor({
   crew: CrewMember[];
   onChange: (patch: Partial<CrewMember>) => void;
 }) {
+  const [projectFilter, setProjectFilter] = useState<"all" | "personal" | "shared">("all");
   const eligibleSharedWorks = works.filter((work) =>
     work.credits.some((credit) => credit.memberSlug === member.slug)
   );
@@ -71,7 +73,14 @@ export function MemberProjectsEditor({
           <h3 className="font-display text-xl font-bold">Dự án chung trên profile</h3>
           <p className="mt-1 text-sm text-ivory-muted">Chọn những dự án tập thể đã gắn thành viên này. Bỏ chọn sẽ chỉ ẩn dự án khỏi profile, không xóa dự án chung.</p>
         </div>
-        {eligibleSharedWorks.length ? (
+        <div className="flex flex-wrap gap-2" aria-label="Lọc công cụ dự án thành viên">
+          {([
+            ["all", `TẤT CẢ (${member.showcase.length + eligibleSharedWorks.length})`],
+            ["personal", `CÁ NHÂN (${member.showcase.length})`],
+            ["shared", `DỰ ÁN CHUNG (${eligibleSharedWorks.length})`],
+          ] as const).map(([filter, label]) => <button key={filter} type="button" aria-pressed={projectFilter === filter} onClick={() => setProjectFilter(filter)} className={"rounded-lg border px-3 py-2 text-[10px] font-mono transition " + (projectFilter === filter ? "border-rec bg-rec/10 text-rec" : "border-white/10 text-ivory-muted hover:border-white/25 hover:text-ivory")}>{label}</button>)}
+        </div>
+        {projectFilter !== "personal" ? eligibleSharedWorks.length ? (
           <div className="grid gap-2 sm:grid-cols-2">
             {eligibleSharedWorks.map((work) => (
               <label key={work.id} className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-obsidian/70 p-3 hover:border-rec/50">
@@ -90,10 +99,10 @@ export function MemberProjectsEditor({
           </div>
         ) : (
           <p className="rounded-xl border border-white/10 p-4 text-sm text-ivory-muted">Chưa có dự án chung gắn với thành viên này. Hãy thêm thành viên vào dự án trong mục “Dự án”.</p>
-        )}
+        ) : <p className="rounded-xl border border-white/10 p-4 text-sm text-ivory-muted">Đang lọc dự án cá nhân; dự án chung hiện được ẩn.</p>}
       </section>
 
-      <section className="space-y-4 rounded-3xl border border-white/10 bg-white/[0.025] p-5 sm:p-7">
+      {projectFilter !== "shared" ? <section className="space-y-4 rounded-3xl border border-white/10 bg-white/[0.025] p-5 sm:p-7">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="font-display text-xl font-bold">Dự án cá nhân ({member.showcase.length})</h3>
@@ -173,7 +182,7 @@ export function MemberProjectsEditor({
         )) : (
           <p className="rounded-xl border border-white/10 p-4 text-sm text-ivory-muted">Chưa có dự án cá nhân. Bấm “Thêm dự án cá nhân” để tạo bài đầu tiên.</p>
         )}
-      </section>
+      </section> : null}
 
       <section className="space-y-4 rounded-3xl border border-white/10 bg-white/[0.025] p-5 sm:p-7">
         <div>

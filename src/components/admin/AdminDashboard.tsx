@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, LogOut, Plus, Save } from "lucide-react";
+import { Check, LogOut, Plus, Save, Search } from "lucide-react";
 import type { CrewMember, WorkProject } from "@/data/schema";
 import type { SiteContent } from "@/lib/content-schema";
 import { useSetSiteContent } from "@/lib/store";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
-import { AdminField, AdminImageField, JsonArrayField } from "./AdminFields";
+import { AdminField, AdminImageField } from "./AdminFields";
+import { GearManager, GroupMomentsManager } from "./AboutToolsEditor";
 import { MemberEditor } from "./MemberEditor";
 import { ProjectEditor } from "./ProjectEditor";
 import { moveCrewMemberToBadgeNumber, normalizeCrewOrder } from "@/lib/crew-order";
@@ -29,6 +30,9 @@ export function AdminDashboard() {
   const [tab, setTab] = useState<Tab>("home");
   const [memberId, setMemberId] = useState("");
   const [workId, setWorkId] = useState("");
+  const [memberSearch, setMemberSearch] = useState("");
+  const [workSearch, setWorkSearch] = useState("");
+  const [savedSnapshot, setSavedSnapshot] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -49,6 +53,7 @@ export function AdminDashboard() {
       .then((result) => {
         if (!alive || !result) return;
         setContent(result.content as SiteContent);
+        setSavedSnapshot(JSON.stringify(result.content));
         setMemberId(result.content.crew[0]?.id ?? "");
         setWorkId(result.content.works[0]?.id ?? "");
       })
@@ -63,6 +68,25 @@ export function AdminDashboard() {
 
   const member = useMemo(() => content?.crew.find((item) => item.id === memberId) ?? null, [content, memberId]);
   const work = useMemo(() => content?.works.find((item) => item.id === workId) ?? null, [content, workId]);
+  const isDirty = Boolean(content && JSON.stringify(content) !== savedSnapshot);
+  const filteredMembers = useMemo(() => {
+    const query = memberSearch.trim().toLowerCase();
+    return (content?.crew ?? []).filter((item) => !query || `${item.name} ${item.nickname ?? ""} ${item.slug} ${item.badgeNumber} ${item.roleTitle}`.toLowerCase().includes(query));
+  }, [content, memberSearch]);
+  const filteredWorks = useMemo(() => {
+    const query = workSearch.trim().toLowerCase();
+    return (content?.works ?? []).filter((item) => !query || `${item.title} ${item.slug} ${item.clientOrSeries} ${item.category} ${item.year}`.toLowerCase().includes(query));
+  }, [content, workSearch]);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const warnBeforeLeave = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeLeave);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeave);
+  }, [isDirty]);
 
   function update<K extends keyof SiteContent>(key: K, value: SiteContent[K]) {
     setContent((current) => current ? { ...current, [key]: value } : current);
@@ -87,10 +111,16 @@ export function AdminDashboard() {
           ...item,
           credits: item.credits.map((credit) => credit.memberSlug === oldMember.slug ? { ...credit, memberSlug: updated.slug } : credit),
         })),
-        moments: oldMember.slug === updated.slug ? current.moments : current.moments.map((moment) => ({
-          ...moment,
-          memberSlugs: moment.memberSlugs?.map((slug) => slug === oldMember.slug ? updated.slug : slug),
-        })),
+        moments: oldMember.slug === updated.slug && oldMember.name === updated.name ? current.moments : current.moments.map((moment) => {
+          const isTagged = moment.memberSlugs?.includes(oldMember.slug) ?? false;
+          return {
+            ...moment,
+            memberSlugs: oldMember.slug === updated.slug ? moment.memberSlugs : moment.memberSlugs?.map((slug) => slug === oldMember.slug ? updated.slug : slug),
+            memberNames: isTagged && oldMember.name !== updated.name
+              ? moment.memberNames?.map((name) => name === oldMember.name ? updated.name : name)
+              : moment.memberNames,
+          };
+        }),
       };
     });
     setNotice("");
@@ -119,7 +149,14 @@ export function AdminDashboard() {
       ...content,
       crew,
       works: content.works.map((item) => ({ ...item, credits: item.credits.filter((credit) => credit.memberSlug !== slug) })),
-      moments: content.moments.map((item) => ({ ...item, memberSlugs: item.memberSlugs?.filter((itemSlug) => itemSlug !== slug) })),
+      moments: content.moments.map((item) => {
+        const wasTagged = item.memberSlugs?.includes(slug) ?? false;
+        return {
+          ...item,
+          memberSlugs: item.memberSlugs?.filter((itemSlug) => itemSlug !== slug),
+          memberNames: wasTagged ? item.memberNames?.filter((name) => name !== member.name) : item.memberNames,
+        };
+      }),
     });
     setMemberId(crew[0]?.id ?? "");
   }
@@ -171,15 +208,16 @@ export function AdminDashboard() {
   }
 
   async function save() {
-    if (!content) return;
+    if (!content || !isDirty) return;
     setSaving(true);
     setError("");
     setNotice("");
+    const submittedContent = JSON.stringify(content);
     try {
       const response = await fetch("/api/admin/content", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(content),
+        body: submittedContent,
       });
       const result = await response.json();
       if (response.status === 401) {
@@ -187,7 +225,9 @@ export function AdminDashboard() {
         return;
       }
       if (!response.ok) throw new Error(result.error || "Không lưu được dữ liệu.");
-      setContent(result.content as SiteContent);
+      const savedContent = result.content as SiteContent;
+      setContent((current) => JSON.stringify(current) === submittedContent ? savedContent : current);
+      setSavedSnapshot(JSON.stringify(savedContent));
       updateSiteContent(result.content as SiteContent);
       setNotice("Đã lưu nội dung vào Supabase.");
       router.refresh();
@@ -199,9 +239,14 @@ export function AdminDashboard() {
   }
 
   async function logout() {
+    if (isDirty && !window.confirm("Bạn còn thay đổi chưa lưu. Thoát và bỏ các thay đổi này?")) return;
     await createSupabaseBrowserClient()?.auth.signOut();
     router.replace("/admin/login");
   }
+
+  useEffect(() => {
+    if (isDirty) setError("");
+  }, [isDirty]);
 
   if (loading) return <main className="min-h-screen bg-obsidian px-5 pt-32 text-center font-mono text-sm text-ivory-muted">ĐANG TẢI BẢNG QUẢN TRỊ...</main>;
   if (!content) {
@@ -230,8 +275,9 @@ export function AdminDashboard() {
             <p className="mt-2 text-sm text-ivory-muted">Nội dung được lưu tập trung trong Supabase.</p>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={save} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-rec px-4 py-3 text-xs font-mono font-bold text-obsidian disabled:opacity-60">
-              <Save className="h-4 w-4" /> {saving ? "ĐANG LƯU..." : "LƯU THAY ĐỔI"}
+            <span className={"hidden text-xs sm:inline " + (isDirty ? "text-amber-300" : "text-emerald-300")}>{isDirty ? "Có thay đổi chưa lưu" : "Mọi thay đổi đã lưu"}</span>
+            <button type="button" onClick={save} disabled={saving || !isDirty} className="inline-flex items-center gap-2 rounded-xl bg-rec px-4 py-3 text-xs font-mono font-bold text-obsidian disabled:cursor-not-allowed disabled:opacity-45">
+              <Save className="h-4 w-4" /> {saving ? "ĐANG LƯU..." : isDirty ? "LƯU THAY ĐỔI" : "ĐÃ LƯU"}
             </button>
             <button type="button" onClick={logout} className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-3 text-xs font-mono text-ivory-muted hover:text-ivory"><LogOut className="h-4 w-4" /> THOÁT</button>
           </div>
@@ -261,21 +307,23 @@ export function AdminDashboard() {
             ) : null}
 
             {tab === "members" ? (
-              <div className="grid gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">
+              <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
                 <div className="space-y-3 rounded-3xl border border-white/10 bg-obsidian-surface p-4">
                   <div className="flex items-center justify-between gap-2"><h2 className="font-display text-xl font-bold">Thành viên ({content.crew.length})</h2><button type="button" onClick={addMember} className="rounded-lg bg-rec p-2 text-obsidian" title="Thêm thành viên"><Plus className="h-4 w-4" /></button></div>
                   <p className="text-xs text-ivory-subtle">Danh sách được sắp theo số thẻ.</p>
-                  <div className="max-h-[65vh] space-y-1 overflow-y-auto">{content.crew.map((item) => <button key={item.id} type="button" onClick={() => setMemberId(item.id)} className={"w-full rounded-lg px-3 py-2 text-left text-sm " + (item.id === memberId ? "bg-white/10 text-ivory" : "text-ivory-muted hover:bg-white/5 hover:text-ivory")}><span className="font-mono text-[10px] text-rec">#{item.badgeNumber}</span><span className="ml-2">{item.name}</span></button>)}</div>
+                  <label className="relative block"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ivory-subtle" /><input value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="Tìm tên, số thẻ, vai trò..." aria-label="Tìm thành viên" className="w-full rounded-xl border border-white/10 bg-obsidian py-2.5 pl-9 pr-3 text-sm text-ivory outline-none placeholder:text-ivory-subtle focus:border-rec" /></label>
+                  <div className="max-h-[65vh] space-y-1 overflow-y-auto">{filteredMembers.map((item) => <button key={item.id} type="button" onClick={() => setMemberId(item.id)} className={"w-full rounded-lg px-3 py-2 text-left text-sm " + (item.id === memberId ? "bg-white/10 text-ivory" : "text-ivory-muted hover:bg-white/5 hover:text-ivory")}><span className="font-mono text-[10px] text-rec">#{item.badgeNumber}</span><span className="ml-2">{item.name}</span></button>)}{filteredMembers.length === 0 ? <p className="rounded-lg px-3 py-4 text-sm text-ivory-subtle">Không tìm thấy thành viên.</p> : null}</div>
                 </div>
                 {member ? <MemberEditor member={member} memberCount={content.crew.length} works={content.works} crew={content.crew} canDelete={content.crew.length > 1} onChange={(patch) => updateMember(member.id, patch)} onDelete={deleteMember} /> : null}
               </div>
             ) : null}
 
             {tab === "projects" ? (
-              <div className="grid gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">
+              <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
                 <div className="space-y-3 rounded-3xl border border-white/10 bg-obsidian-surface p-4">
                   <div className="flex items-center justify-between gap-2"><h2 className="font-display text-xl font-bold">Dự án ({content.works.length})</h2><button type="button" onClick={addWork} className="rounded-lg bg-rec p-2 text-obsidian" title="Thêm dự án"><Plus className="h-4 w-4" /></button></div>
-                  <div className="max-h-[65vh] space-y-1 overflow-y-auto">{content.works.map((item) => <button key={item.id} type="button" onClick={() => setWorkId(item.id)} className={"w-full rounded-lg px-3 py-2 text-left text-sm " + (item.id === workId ? "bg-white/10 text-ivory" : "text-ivory-muted hover:bg-white/5 hover:text-ivory")}><span className="font-mono text-[10px] text-rec">{item.indexLabel}</span><span className="ml-2">{item.title}</span></button>)}</div>
+                  <label className="relative block"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ivory-subtle" /><input value={workSearch} onChange={(event) => setWorkSearch(event.target.value)} placeholder="Tìm tên, khách hàng, năm..." aria-label="Tìm dự án" className="w-full rounded-xl border border-white/10 bg-obsidian py-2.5 pl-9 pr-3 text-sm text-ivory outline-none placeholder:text-ivory-subtle focus:border-rec" /></label>
+                  <div className="max-h-[65vh] space-y-1 overflow-y-auto">{filteredWorks.map((item) => <button key={item.id} type="button" onClick={() => setWorkId(item.id)} className={"w-full rounded-lg px-3 py-2 text-left text-sm " + (item.id === workId ? "bg-white/10 text-ivory" : "text-ivory-muted hover:bg-white/5 hover:text-ivory")}><span className="font-mono text-[10px] text-rec">{item.indexLabel}</span><span className="ml-2">{item.title}</span></button>)}{filteredWorks.length === 0 ? <p className="rounded-lg px-3 py-4 text-sm text-ivory-subtle">Không tìm thấy dự án.</p> : null}</div>
                 </div>
                 {work ? <ProjectEditor work={work} crew={content.crew} canDelete={content.works.length > 1} onChange={(patch) => updateWork(work.id, patch)} onDelete={deleteWork} /> : null}
               </div>
@@ -290,10 +338,8 @@ export function AdminDashboard() {
                   <AdminField label="Tiêu đề câu chuyện" value={content.about.storyTitle} onChange={(storyTitle) => update("about", { ...content.about, storyTitle })} />
                   <AdminField label="Câu chuyện" value={content.about.storyBody} multiline rows={4} onChange={(storyBody) => update("about", { ...content.about, storyBody })} />
                 </div>
-                <div className="grid gap-5 xl:grid-cols-2">
-                  <JsonArrayField label={"Kho thiết bị (" + content.gear.length + " nhóm)"} value={content.gear} onChange={(gear) => update("gear", gear)} />
-                  <JsonArrayField label={"Album kỷ niệm (" + content.moments.length + " ảnh)"} value={content.moments} onChange={(moments) => update("moments", moments)} />
-                </div>
+                <GearManager categories={content.gear} onChange={(gear) => update("gear", gear)} />
+                <GroupMomentsManager moments={content.moments} crew={content.crew} onChange={(moments) => update("moments", moments)} />
               </div>
             ) : null}
 

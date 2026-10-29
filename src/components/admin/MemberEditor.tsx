@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 import type { CrewMember, WorkProject } from "@/data/schema";
-import { AdminField, AdminImageField, AdminListField, AdminStringListField } from "./AdminFields";
+import { AdminField, AdminImageField, AdminStringListField } from "./AdminFields";
 import { MemberProjectsEditor } from "./MemberProjectsEditor";
 
 type Role = "chup-anh" | "quay-phim" | "it-tech";
@@ -103,9 +103,9 @@ export function MemberEditor({
         </div>
       </div>
 
-      <AdminField label="Vai trò phụ" value={member.secondaryRoles.join("\n")} multiline onChange={(text) => onChange({ secondaryRoles: text.split(/\r?\n/).map((item) => item.trim()).filter(Boolean) })} hint="Mỗi dòng một vai trò." />
+      <AdminStringListField label="Vai trò phụ" value={member.secondaryRoles} onChange={(secondaryRoles) => onChange({ secondaryRoles })} placeholder="Ví dụ: Camera Operator" addLabel="THÊM VAI TRÒ" reorderable />
       <AdminField label="Giới thiệu cá nhân" value={member.bio} multiline rows={6} onChange={(bio) => onChange({ bio })} />
-      <AdminStringListField label="Gear yêu thích" value={member.favoriteGear} onChange={(favoriteGear) => onChange({ favoriteGear })} placeholder="Ví dụ: Sony FX6" addLabel="THÊM THIẾT BỊ" />
+      <AdminStringListField label="Gear yêu thích" value={member.favoriteGear} onChange={(favoriteGear) => onChange({ favoriteGear })} placeholder="Ví dụ: Sony FX6" addLabel="THÊM THIẾT BỊ" reorderable />
       <AdminImageField label="Ảnh đại diện" value={member.avatar} folder="thiet-bi-gia/members" onChange={(avatar) => onChange({ avatar })} />
       <AdminField label="Alt text ảnh" value={member.avatarAlt ?? ""} onChange={(avatarAlt) => onChange({ avatarAlt: avatarAlt || undefined })} />
 
