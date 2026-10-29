@@ -104,6 +104,17 @@ export function CommandPalette() {
         },
       },
       {
+        id: "act-about-group-album",
+        group: "THAO TÁC NHANH",
+        title: "Giới Thiệu Thiết Bị Gia & Kho Ảnh Chung Tập Thể",
+        subtitle: "Xem cuộn phim 35mm và 36 bức ảnh chung đại gia đình TBG",
+        badge: "ABOUT • 36 ẢNH",
+        href: "/about#anh-chung",
+        searchBlob: normalizeVi(
+          "gioi thieu thiet bi gia anh chung anh nhom tap the about fuda"
+        ),
+      },
+      {
         id: "act-crew-roster",
         group: "THAO TÁC NHANH",
         title: `Xem Toàn Bộ Roster ${CREW_MEMBERS.length} Thành Viên`,

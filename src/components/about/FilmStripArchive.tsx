@@ -1,31 +1,35 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronLeft, ChevronRight, Film, Maximize2, X } from "lucide-react";
-import { GROUP_MOMENTS } from "@/data/moments";
+import { ChevronLeft, ChevronRight, Film, Maximize2, Users, X } from "lucide-react";
+import { FILM_STRIP_MOMENTS } from "@/data/moments";
+import { getCrewBySlug } from "@/data/crew";
 import { soundEngine } from "@/lib/sound";
 
 gsap.registerPlugin(ScrollTrigger);
 
 export function FilmStripArchive() {
   const sectionRef = useRef<HTMLDivElement>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
   const stripRef = useRef<HTMLDivElement>(null);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
-  // GSAP ScrollTrigger horizontal parallax scrub (Skill: GSAP ScrollTrigger + Single Ticker)
+  const sprocketCount = Math.max(40, FILM_STRIP_MOMENTS.length * 8);
+
   useGSAP(
     () => {
       if (!stripRef.current || !sectionRef.current) return;
 
       gsap.fromTo(
         stripRef.current,
-        { x: 40 },
+        { x: 32 },
         {
-          x: -140,
+          x: -120,
           ease: "none",
           scrollTrigger: {
             trigger: sectionRef.current,
@@ -45,14 +49,14 @@ export function FilmStripArchive() {
       if (e.key === "Escape") setLightboxIdx(null);
       if (e.key === "ArrowRight") {
         setLightboxIdx((i) =>
-          i === null ? null : (i + 1) % GROUP_MOMENTS.length
+          i === null ? null : (i + 1) % FILM_STRIP_MOMENTS.length
         );
       }
       if (e.key === "ArrowLeft") {
         setLightboxIdx((i) =>
           i === null
             ? null
-            : (i - 1 + GROUP_MOMENTS.length) % GROUP_MOMENTS.length
+            : (i - 1 + FILM_STRIP_MOMENTS.length) % FILM_STRIP_MOMENTS.length
         );
       }
     };
@@ -60,7 +64,16 @@ export function FilmStripArchive() {
     return () => window.removeEventListener("keydown", onKey);
   }, [lightboxIdx]);
 
-  const activeMoment = lightboxIdx !== null ? GROUP_MOMENTS[lightboxIdx] : null;
+  const scrollStrip = (dir: -1 | 1) => {
+    soundEngine.playTick(0.85);
+    scrollerRef.current?.scrollBy({
+      left: dir * 460,
+      behavior: "smooth",
+    });
+  };
+
+  const activeMoment =
+    lightboxIdx !== null ? FILM_STRIP_MOMENTS[lightboxIdx] : null;
 
   return (
     <section ref={sectionRef} className="space-y-6 overflow-hidden">
@@ -69,30 +82,53 @@ export function FilmStripArchive() {
         <div className="space-y-1.5">
           <div className="inline-flex items-center gap-2 text-xs font-mono text-rec uppercase tracking-widest">
             <Film className="w-3.5 h-3.5" />
-            <span>35MM CONTACT SHEET // NHẬT KÝ HÀNH TRÌNH</span>
+            <span>35MM CONTACT SHEET // CUỘN PHIM TẬP THỂ TIÊU BIỂU</span>
           </div>
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-ivory">
             CUỘN PHIM KỶ NIỆM ANH EM THIẾT BỊ GIA
           </h2>
           <p className="text-sm text-ivory-muted max-w-2xl">
-            Cuộn trang để lướt qua dải phim nhựa 35mm — nhấn vào từng frame để phóng lớn ảnh kỷ niệm chuyến đi và hậu trường của nhóm.
+            Lướt ngang qua dải phim nhựa 35mm gồm {FILM_STRIP_MOMENTS.length} khoảnh khắc tập thể tiêu biểu nhất — nhấn vào từng frame để phóng lớn toàn màn hình.
           </p>
         </div>
 
-        <div className="text-xs font-mono text-ivory-subtle shrink-0">
-          KODAK PORTRA 400 • {GROUP_MOMENTS.length} FRAMES ARCHIVED
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-xs font-mono text-ivory-subtle hidden md:inline">
+            KODAK PORTRA 400 • {FILM_STRIP_MOMENTS.length} KEY FRAMES
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => scrollStrip(-1)}
+              aria-label="Cuộn trái cuộn phim"
+              className="p-2 rounded-lg border border-obsidian-border bg-obsidian-surface hover:border-rec text-ivory-muted hover:text-ivory transition-colors cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollStrip(1)}
+              aria-label="Cuộn phải cuộn phim"
+              className="p-2 rounded-lg border border-obsidian-border bg-obsidian-surface hover:border-rec text-ivory-muted hover:text-ivory transition-colors cursor-pointer"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Physical 35mm Film Strip Container */}
-      <div className="relative rounded-2xl border border-obsidian-border bg-[#07080B] py-4 overflow-x-auto">
+      <div
+        ref={scrollerRef}
+        className="relative rounded-2xl border border-obsidian-border bg-[#07080B] py-4 overflow-x-auto"
+      >
         <div
           ref={stripRef}
           className="inline-flex flex-col min-w-full px-4 select-none"
         >
           {/* Top Film Rebate + Sprocket Holes */}
           <div className="flex items-center justify-between gap-3 px-2 pb-2.5">
-            {Array.from({ length: 34 }).map((_, i) => (
+            {Array.from({ length: sprocketCount }).map((_, i) => (
               <span
                 key={`top-${i}`}
                 className="w-3.5 h-2.5 rounded-[2px] bg-obsidian-surface border border-white/10 shrink-0"
@@ -103,14 +139,15 @@ export function FilmStripArchive() {
           {/* Edge Film Markings Top */}
           <div className="flex items-center justify-between px-4 pb-2 text-xs font-mono text-amber-400/80 tracking-widest">
             <span>KODAK PORTRA 400</span>
-            <span>THIẾT BỊ GIA ARCHIVE</span>
+            <span>THIẾT BỊ GIA COLLECTIVE ARCHIVE</span>
             <span>SAFETY FILM 5052</span>
+            <span>FUDA MASTERALBUM</span>
             <span>PORTRA 400</span>
           </div>
 
           {/* Film Frames Row */}
           <div className="flex items-stretch gap-5 px-2">
-            {GROUP_MOMENTS.map((moment, idx) => (
+            {FILM_STRIP_MOMENTS.map((moment, idx) => (
               <button
                 key={moment.id}
                 type="button"
@@ -118,15 +155,22 @@ export function FilmStripArchive() {
                   soundEngine.playShutter();
                   setLightboxIdx(idx);
                 }}
-                className="group relative w-[330px] sm:w-[410px] shrink-0 text-left rounded-md overflow-hidden border-2 border-white/10 hover:border-rec transition-colors bg-obsidian"
+                className="group relative w-[330px] sm:w-[410px] shrink-0 text-left rounded-md overflow-hidden border-2 border-white/10 hover:border-rec transition-colors bg-obsidian cursor-pointer"
               >
                 <div className="relative aspect-[3/2] overflow-hidden">
                   <img
                     src={moment.src}
                     alt={moment.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-obsidian/85 via-transparent to-transparent opacity-90" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-obsidian/90 via-transparent to-transparent opacity-90" />
+
+                  <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-obsidian/80 border border-white/15 text-[11px] font-mono text-ivory">
+                    <Users className="w-3 h-3 text-rec" />
+                    <span>{moment.detectedFaceCount ?? 8}+ anh em</span>
+                  </span>
 
                   <span className="absolute top-3 right-3 p-1.5 rounded-md bg-obsidian/75 border border-white/15 text-ivory opacity-0 group-hover:opacity-100 transition-opacity">
                     <Maximize2 className="w-3.5 h-3.5 text-rec" />
@@ -147,14 +191,14 @@ export function FilmStripArchive() {
 
           {/* Edge Film Numbers Bottom */}
           <div className="flex items-center justify-around px-4 pt-2 text-xs font-mono text-amber-400/80 tracking-widest">
-            {GROUP_MOMENTS.map((m) => (
+            {FILM_STRIP_MOMENTS.map((m) => (
               <span key={m.id}>{m.frameCode}</span>
             ))}
           </div>
 
           {/* Bottom Sprocket Holes */}
           <div className="flex items-center justify-between gap-3 px-2 pt-2.5">
-            {Array.from({ length: 34 }).map((_, i) => (
+            {Array.from({ length: sprocketCount }).map((_, i) => (
               <span
                 key={`bot-${i}`}
                 className="w-3.5 h-2.5 rounded-[2px] bg-obsidian-surface border border-white/10 shrink-0"
@@ -194,18 +238,18 @@ export function FilmStripArchive() {
                 <button
                   type="button"
                   onClick={() => setLightboxIdx(null)}
-                  className="p-1.5 rounded-lg border border-obsidian-border hover:border-rec text-ivory-muted hover:text-ivory"
+                  className="p-1.5 rounded-lg border border-obsidian-border hover:border-rec text-ivory-muted hover:text-ivory cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Main Image */}
-              <div className="relative bg-obsidian flex items-center justify-center max-h-[70dvh] overflow-hidden">
+              <div className="relative bg-obsidian flex items-center justify-center max-h-[68dvh] overflow-hidden">
                 <img
                   src={activeMoment.src}
                   alt={activeMoment.title}
-                  className="max-h-[70dvh] w-auto object-contain"
+                  className="max-h-[68dvh] w-auto object-contain"
                 />
 
                 <button
@@ -213,11 +257,11 @@ export function FilmStripArchive() {
                   onClick={() => {
                     soundEngine.playTick(0.85);
                     setLightboxIdx(
-                      (lightboxIdx - 1 + GROUP_MOMENTS.length) %
-                        GROUP_MOMENTS.length
+                      (lightboxIdx - 1 + FILM_STRIP_MOMENTS.length) %
+                        FILM_STRIP_MOMENTS.length
                     );
                   }}
-                  className="absolute left-3 p-2.5 rounded-full bg-obsidian/80 border border-white/15 hover:border-rec text-ivory"
+                  className="absolute left-3 p-2.5 rounded-full bg-obsidian/80 border border-white/15 hover:border-rec text-ivory cursor-pointer"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
@@ -226,27 +270,58 @@ export function FilmStripArchive() {
                   type="button"
                   onClick={() => {
                     soundEngine.playTick(0.85);
-                    setLightboxIdx((lightboxIdx + 1) % GROUP_MOMENTS.length);
+                    setLightboxIdx(
+                      (lightboxIdx + 1) % FILM_STRIP_MOMENTS.length
+                    );
                   }}
-                  className="absolute right-3 p-2.5 rounded-full bg-obsidian/80 border border-white/15 hover:border-rec text-ivory"
+                  className="absolute right-3 p-2.5 rounded-full bg-obsidian/80 border border-white/15 hover:border-rec text-ivory cursor-pointer"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Caption Footer */}
-              <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-display text-xl font-bold text-ivory">
-                    {activeMoment.title}
-                  </h3>
-                  <p className="text-sm text-ivory-muted mt-0.5">
-                    {activeMoment.caption}
-                  </p>
+              <div className="p-5 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-display text-xl font-bold text-ivory">
+                      {activeMoment.title}
+                    </h3>
+                    <p className="text-sm text-ivory-muted mt-0.5">
+                      {activeMoment.caption}
+                    </p>
+                  </div>
+                  <span className="text-xs font-mono text-rec shrink-0">
+                    {activeMoment.location}
+                  </span>
                 </div>
-                <span className="text-xs font-mono text-rec shrink-0">
-                  {activeMoment.location}
-                </span>
+
+                {activeMoment.memberSlugs && activeMoment.memberSlugs.length > 0 && (
+                  <div className="pt-2.5 border-t border-obsidian-border flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] font-mono text-ivory-subtle uppercase">
+                      Nhận diện thành viên:
+                    </span>
+                    {activeMoment.memberSlugs.map((slug) => {
+                      const member = getCrewBySlug(slug);
+                      if (!member) return null;
+                      return (
+                        <Link
+                          key={slug}
+                          href={`/crew/${slug}`}
+                          onClick={() => setLightboxIdx(null)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-obsidian-border bg-obsidian hover:border-rec text-xs text-ivory transition-colors"
+                        >
+                          <img
+                            src={member.avatar}
+                            alt={member.name}
+                            className="w-4 h-4 rounded-full object-cover"
+                          />
+                          <span>{member.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>
@@ -255,4 +330,3 @@ export function FilmStripArchive() {
     </section>
   );
 }
-

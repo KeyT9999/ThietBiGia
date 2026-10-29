@@ -5,12 +5,23 @@ import { useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import { ArrowRight, Aperture, Clapperboard, Cpu, Layers, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  Aperture,
+  Camera,
+  Clapperboard,
+  Cpu,
+  Layers,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import { GEAR_ARSENAL } from "@/data/gear";
 import { CREW_MEMBERS } from "@/data/crew";
 import { WORKS_DATA } from "@/data/works";
+import { GROUP_MOMENTS } from "@/data/moments";
 import { soundEngine } from "@/lib/sound";
 import { FilmStripArchive } from "@/components/about/FilmStripArchive";
+import { CollectiveAlbumWall } from "@/components/about/CollectiveAlbumWall";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -71,60 +82,139 @@ export default function AboutGearPage() {
   ];
 
   return (
-    <div ref={containerRef} className="max-w-[1440px] mx-auto px-4 sm:px-8 pt-28 pb-24 space-y-20">
-      {/* Hero Story */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-end border-b border-obsidian-border pb-14">
-        <div className="lg:col-span-8 space-y-5">
-          <div className="about-reveal inline-flex items-center gap-2 text-xs font-mono text-rec uppercase tracking-widest">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>MANIFESTO // CÂU CHUYỆN THIẾT BỊ GIA</span>
-          </div>
-          <h1 className="about-reveal font-display text-4xl sm:text-6xl font-bold text-ivory leading-[1.06] tracking-tight">
-            NƠI NHỮNG NGƯỜI CẦM MÁY &amp; LÀM HÌNH HỌP THÀNH MỘT GIA ĐÌNH.
-          </h1>
-          <p className="about-reveal text-base sm:text-lg text-ivory-muted leading-relaxed max-w-3xl">
-            <strong className="text-ivory">Thiết Bị Gia</strong> khởi nguồn từ niềm đam mê chung với từng vòng xoay tiêu cự, từng dải sáng và nhịp cắt khung hình. Không chỉ là một nhóm làm nghề đơn lẻ, tụi mình vận hành như một{" "}
-            <span className="text-ivory">Creative Collective</span> đa chuyên môn — nơi mỗi dự án là sự bắt tay ăn ý giữa Photographer, DOP, Gaffer, Editor và Designer.
-          </p>
-        </div>
+    <div
+      ref={containerRef}
+      className="max-w-[1440px] mx-auto px-4 sm:px-8 pt-28 pb-24 space-y-20"
+    >
+      {/* Hero Story + Collective Banner */}
+      <section className="space-y-10 border-b border-obsidian-border pb-14">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-end">
+          <div className="lg:col-span-7 space-y-5">
+            <div className="about-reveal inline-flex items-center gap-2 text-xs font-mono text-rec uppercase tracking-widest">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>MANIFESTO // GIỚI THIỆU ĐẠI GIA ĐÌNH THIẾT BỊ GIA</span>
+            </div>
+            <h1 className="about-reveal font-display text-4xl sm:text-6xl font-bold text-ivory leading-[1.06] tracking-tight">
+              NƠI NHỮNG NGƯỜI CẦM MÁY &amp; LÀM HÌNH HỌP THÀNH MỘT GIA ĐÌNH.
+            </h1>
+            <p className="about-reveal text-base sm:text-lg text-ivory-muted leading-relaxed max-w-3xl">
+              <strong className="text-ivory">Thiết Bị Gia</strong> khởi nguồn từ niềm đam mê chung với từng vòng xoay tiêu cự, từng dải sáng và nhịp cắt khung hình. Không chỉ là một nhóm làm nghề đơn lẻ, tụi mình vận hành như một{" "}
+              <span className="text-ivory">Creative Collective</span> đa chuyên môn — nơi mỗi dự án là sự bắt tay ăn ý giữa Photographer, DOP, Gaffer, Editor và Designer.
+            </p>
 
-        <div className="lg:col-span-4 grid grid-cols-2 gap-4">
-          <div className="about-reveal rounded-2xl border border-obsidian-border bg-obsidian-surface p-5">
-            <div className="font-display text-4xl font-bold text-rec">
-              {CREW_MEMBERS.length}+
-            </div>
-            <div className="text-xs font-mono text-ivory-muted mt-1 uppercase">
-              Thành viên chuyên môn
+            <div className="about-reveal flex flex-wrap items-center gap-3 pt-1">
+              <a
+                href="#anh-chung"
+                onClick={() => soundEngine.playShutter()}
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-rec hover:bg-rec-glow text-obsidian font-mono font-bold text-xs transition-colors"
+              >
+                <Camera className="w-4 h-4" />
+                <span>XEM KHO ẢNH CHUNG [{GROUP_MOMENTS.length}] ↓</span>
+              </a>
+              <Link
+                href="/crew"
+                onClick={() => soundEngine.playTick(0.85)}
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border border-obsidian-border bg-obsidian-surface hover:border-rec/50 text-ivory font-mono text-xs transition-colors"
+              >
+                <Users className="w-4 h-4 text-rec" />
+                <span>GẶP {CREW_MEMBERS.length} THÀNH VIÊN →</span>
+              </Link>
             </div>
           </div>
-          <div className="about-reveal rounded-2xl border border-obsidian-border bg-obsidian-surface p-5">
-            <div className="font-display text-4xl font-bold text-ivory">
-              {WORKS_DATA.length}0+
-            </div>
-            <div className="text-xs font-mono text-ivory-muted mt-1 uppercase">
-              Chiến dịch &amp; Set quay
-            </div>
-          </div>
-          <div className="about-reveal col-span-2 rounded-2xl border border-obsidian-border bg-obsidian-surface p-5 flex items-center justify-between">
-            <div>
-              <div className="text-xs font-mono text-rec">FULL PIPELINE</div>
-              <div className="text-sm font-semibold text-ivory mt-0.5">
-                Tiền kỳ → Hiện trường → Hậu kỳ 4K RAW
+
+          <div className="lg:col-span-5 grid grid-cols-3 gap-3.5">
+            <div className="about-reveal rounded-2xl border border-obsidian-border bg-obsidian-surface p-4 sm:p-5">
+              <div className="font-display text-3xl sm:text-4xl font-bold text-rec">
+                {CREW_MEMBERS.length}+
+              </div>
+              <div className="text-[11px] font-mono text-ivory-muted mt-1 uppercase">
+                Thành viên ekip
               </div>
             </div>
-            <Link
-              href="/crew"
-              onClick={() => soundEngine.playShutter()}
-              className="px-3.5 py-2 rounded-lg bg-rec text-obsidian font-mono font-bold text-xs hover:bg-rec-glow transition-colors"
-            >
-              GẶP EKIP →
-            </Link>
+            <div className="about-reveal rounded-2xl border border-obsidian-border bg-obsidian-surface p-4 sm:p-5">
+              <div className="font-display text-3xl sm:text-4xl font-bold text-ivory">
+                310+
+              </div>
+              <div className="text-[11px] font-mono text-ivory-muted mt-1 uppercase">
+                Ảnh chung lưu trữ
+              </div>
+            </div>
+            <div className="about-reveal rounded-2xl border border-obsidian-border bg-obsidian-surface p-4 sm:p-5">
+              <div className="font-display text-3xl sm:text-4xl font-bold text-ivory">
+                {WORKS_DATA.length}0+
+              </div>
+              <div className="text-[11px] font-mono text-ivory-muted mt-1 uppercase">
+                Set quay &amp; Sự kiện
+              </div>
+            </div>
+            <div className="about-reveal col-span-3 rounded-2xl border border-obsidian-border bg-obsidian-surface p-5 flex items-center justify-between gap-4">
+              <div>
+                <div className="text-xs font-mono text-rec">FULL PIPELINE</div>
+                <div className="text-sm font-semibold text-ivory mt-0.5">
+                  Tiền kỳ → Hiện trường → Hậu kỳ 4K RAW &amp; Web 3D
+                </div>
+              </div>
+              <Link
+                href="/contact"
+                onClick={() => soundEngine.playShutter()}
+                className="shrink-0 px-3.5 py-2 rounded-lg bg-white/[0.06] hover:bg-rec hover:text-obsidian border border-obsidian-border text-ivory font-mono font-bold text-xs transition-colors"
+              >
+                BOOKING →
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Featured Wide Collective Hero Banner */}
+        <div className="about-reveal relative rounded-3xl border border-obsidian-border bg-obsidian-surface overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.55)]">
+          <div className="relative aspect-[16/10] sm:aspect-[21/9] overflow-hidden">
+            <img
+              src="/media/group/tbg-group-01.jpg"
+              alt="Đại Gia Đình Thiết Bị Gia FUDA Trên Đồi Hoàng Hôn"
+              className="w-full h-full object-cover object-[50%_46%]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-obsidian/90 via-obsidian/20 to-transparent" />
+
+            <div className="absolute top-4 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 flex flex-wrap items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-obsidian/80 backdrop-blur-md border border-white/15 text-xs font-mono text-ivory">
+                <span className="w-2 h-2 rounded-full bg-rec animate-pulse" />
+                <span>COLLECTIVE MASTERFRAME // FUDA MASTERALBUM</span>
+              </span>
+              <span className="px-3 py-1 rounded-full bg-rec text-obsidian font-mono font-bold text-xs">
+                30+ ANH CHỊ EM TRONG KHUNG HÌNH
+              </span>
+            </div>
+
+            <div className="absolute bottom-4 left-4 right-4 sm:bottom-7 sm:left-7 sm:right-7 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div className="space-y-1 max-w-2xl">
+                <div className="text-xs font-mono text-amber-400 font-bold tracking-wider">
+                  ĐỒI HOÀNG HÔN • ĐÀ NẴNG
+                </div>
+                <h2 className="font-display text-2xl sm:text-4xl font-bold text-ivory">
+                  ĐẠI GIA ĐÌNH THIẾT BỊ GIA — HƠN CẢ MỘT EKIP BẤM MÁY
+                </h2>
+                <p className="text-xs sm:text-sm text-ivory/80">
+                  Từ giảng đường FUDA, phòng chụp studio đến những chuyến thiện nguyện vùng cao và sân khấu hàng nghìn khán giả.
+                </p>
+              </div>
+
+              <a
+                href="#anh-chung"
+                onClick={() => soundEngine.playShutter()}
+                className="self-start sm:self-auto px-4 py-2.5 rounded-xl bg-obsidian/85 hover:bg-rec hover:text-obsidian backdrop-blur-md border border-white/20 text-ivory font-mono font-bold text-xs transition-colors"
+              >
+                KHÁM PHÁ TOÀN BỘ {GROUP_MOMENTS.length} ẢNH CHUNG ↓
+              </a>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Idea 4: 35mm Kodak Portra 400 Film Strip Contact Sheet */}
+      {/* 35mm Kodak Portra 400 Film Strip Contact Sheet (12 Key Collective Frames) */}
       <FilmStripArchive />
+
+      {/* Full Categorized & Crew-Tagged Collective Photo Wall (36 Group Photos) */}
+      <CollectiveAlbumWall />
 
       {/* 4 Core Disciplines */}
       <section className="space-y-6">

@@ -20,10 +20,14 @@ export const WORKS_DATA: WorkProject[] = [
     galleryImages: [
       "/anhchungtbg.jpg",
       "/anhchungtbg2.jpg",
-      "/media/fuda/group-01.jpg",
-      "/media/fuda/group-02.jpg",
-      "/media/fuda/group-03.jpg",
-      "/media/keyt/pkl-03.jpg",
+      "/media/group/tbg-group-01.jpg",
+      "/media/group/tbg-group-02.jpg",
+      "/media/group/tbg-group-03.jpg",
+      "/media/group/tbg-group-04.jpg",
+      "/media/group/tbg-group-10.jpg",
+      "/media/group/tbg-group-11.jpg",
+      "/media/group/tbg-group-23.jpg",
+      "/media/group/tbg-group-24.jpg",
     ],
     btsNotes: [
       "Đặt chân máy cố định bên bờ suối đá sương sớm để chụp 2 frame liên tiếp: Frame 01A giơ máy ngắm thẳng và Frame 02A đồng loạt chỉ tay lên bầu trời.",
