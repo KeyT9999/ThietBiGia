@@ -5,6 +5,7 @@ import { Trash2 } from "lucide-react";
 import type { CrewMember, WorkProject } from "@/data/schema";
 import { AdminField, AdminImageField, AdminStringListField } from "./AdminFields";
 import { MemberProjectsEditor } from "./MemberProjectsEditor";
+import { MemberAccountTools } from "./MemberAccountTools";
 
 type Role = "chup-anh" | "quay-phim" | "it-tech";
 const roles: { id: Role; label: string }[] = [
@@ -19,6 +20,7 @@ export function MemberEditor({
   works,
   crew,
   canDelete,
+  accountCanManage,
   onChange,
   onDelete,
 }: {
@@ -27,6 +29,7 @@ export function MemberEditor({
   works: WorkProject[];
   crew: CrewMember[];
   canDelete: boolean;
+  accountCanManage: boolean;
   onChange: (patch: Partial<CrewMember>) => void;
   onDelete: () => void;
 }) {
@@ -57,6 +60,8 @@ export function MemberEditor({
           <Trash2 className="h-4 w-4" /> XÓA HỒ SƠ
         </button>
       </div>
+
+      <MemberAccountTools memberId={member.id} slug={member.slug} canManage={accountCanManage} />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <AdminField label="Tên hiển thị" value={member.name} onChange={(name) => onChange({ name })} />

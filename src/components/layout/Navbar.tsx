@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Volume2, VolumeX, Menu, X, Search } from "lucide-react";
+import { Volume2, VolumeX, Menu, X, Search, UserRound } from "lucide-react";
 import { useAppStore, useSiteContent } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
 
@@ -57,7 +57,7 @@ export function Navbar() {
     { href: "/contact", label: settings.navContactLabel || "CONTACT", match: (p: string) => p.startsWith("/contact") },
   ];
 
-  if (pathname.startsWith("/admin")) return null;
+  if (pathname.startsWith("/admin") || pathname.startsWith("/member")) return null;
 
   return (
     <>
@@ -124,6 +124,10 @@ export function Navbar() {
 
           <div className="h-4 w-[1px] bg-obsidian-border hidden lg:block" />
 
+          <Link href="/member/login" title="Đăng nhập dành cho thành viên" className="hidden xl:inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-obsidian-border bg-obsidian/70 px-2.5 py-1.5 text-[10px] font-mono text-ivory-muted transition-colors hover:border-rec/60 hover:text-ivory">
+            <UserRound className="h-3.5 w-3.5 text-rec" /> MEMBER
+          </Link>
+
           <button
             type="button"
             onClick={() => {
@@ -185,6 +189,7 @@ export function Navbar() {
               </Link>
             );
           })}
+          <Link href="/member/login" onClick={() => setMobileOpen(false)} className="mt-1 inline-flex min-h-11 items-center gap-2 rounded-lg border border-rec/20 bg-rec/[0.06] px-3 py-2.5 text-xs font-mono text-ivory hover:border-rec"><UserRound className="h-4 w-4 text-rec" />ĐĂNG NHẬP MEMBER</Link>
         </div>
       )}
       </header>

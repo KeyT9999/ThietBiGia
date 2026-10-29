@@ -10,6 +10,10 @@ Trong Supabase, tạo project mới rồi mở **Project Settings → API**. L�
 
 Mở **SQL Editor** trong Supabase, chạy toàn bộ nội dung file `supabase/migrations/202610300001_site_content.sql`. Bảng cho phép khách truy cập đọc nội dung công khai; chỉ server dùng service role mới được ghi.
 
+## 2a. Tạo tài khoản đăng nhập member
+
+Chạy thêm file `supabase/migrations/202610300002_member_accounts.sql` trong **SQL Editor**. Member đăng nhập bằng username và mật khẩu do admin cấp tại `/member/login`; đây là luồng đăng nhập riêng của website, không tạo user trong Supabase Auth. Mật khẩu được băm trước khi lưu. Mật khẩu mặc định khi tạo member là `123`; member có thể đổi sau khi đăng nhập, với mật khẩu mới tối thiểu 6 ký tự. Admin có thể đặt lại mật khẩu nhưng không xem được mật khẩu hiện tại.
+
 ## 3. Tạo tài khoản admin
 
 Trong **Authentication → Users**, tạo người dùng admin bằng email và mật khẩu mạnh. Tắt đăng ký công khai nếu project không cần người dùng đăng ký. Email admin phải được khai báo trong `ADMIN_EMAILS`.
@@ -21,6 +25,7 @@ Tạo file `.env.local` ở thư mục dự án từ `.env.example`, rồi đi�
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `MEMBER_SESSION_SECRET` (tùy chọn; nếu để trống, website dùng server-only Supabase secret để ký cookie member)
 - `ADMIN_EMAILS` — email được phép quản trị
 - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
 

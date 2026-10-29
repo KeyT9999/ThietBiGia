@@ -80,9 +80,10 @@ async function optimizeImageForCloudinary(file: File, maximumBytes: number) {
 async function uploadImageToCloudinary(
   file: File,
   folder: string,
-  onStatus?: (status: string) => void
+  onStatus?: (status: string) => void,
+  signatureEndpoint = "/api/admin/cloudinary-signature"
 ) {
-  const signedResponse = await fetch("/api/admin/cloudinary-signature", {
+  const signedResponse = await fetch(signatureEndpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ folder }),
@@ -258,11 +259,13 @@ export function AdminImageField({
   value,
   folder,
   onChange,
+  signatureEndpoint,
 }: {
   label: string;
   value: string;
   folder: string;
   onChange: (value: string) => void;
+  signatureEndpoint?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
@@ -274,7 +277,7 @@ export function AdminImageField({
     setStatus("ĐANG GỬI ẢNH...");
     setError("");
     try {
-      const result = await uploadImageToCloudinary(file, folder, setStatus);
+      const result = await uploadImageToCloudinary(file, folder, setStatus, signatureEndpoint);
       onChange(result.url);
       if (result.optimized) setStatus("Ảnh đã được tự tối ưu và tải lên thành công.");
     } catch (cause) {
@@ -310,10 +313,12 @@ export function AdminMultiImageField({
   label,
   folder,
   onUploaded,
+  signatureEndpoint,
 }: {
   label: string;
   folder: string;
   onUploaded: (urls: string[]) => void;
+  signatureEndpoint?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
@@ -330,8 +335,11 @@ export function AdminMultiImageField({
     for (const [index, file] of files.entries()) {
       setStatus(`ĐANG TẢI ${index + 1}/${files.length}: ${file.name}`);
       try {
-        const result = await uploadImageToCloudinary(file, folder, (message) =>
-          setStatus(`${index + 1}/${files.length} · ${message}`)
+        const result = await uploadImageToCloudinary(
+          file,
+          folder,
+          (message) => setStatus(`${index + 1}/${files.length} · ${message}`),
+          signatureEndpoint
         );
         uploaded.push(result.url);
       } catch (cause) {

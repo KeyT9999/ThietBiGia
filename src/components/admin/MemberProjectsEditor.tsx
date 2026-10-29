@@ -19,11 +19,13 @@ export function MemberProjectsEditor({
   works,
   crew,
   onChange,
+  signatureEndpoint,
 }: {
   member: CrewMember;
   works: WorkProject[];
   crew: CrewMember[];
   onChange: (patch: Partial<CrewMember>) => void;
+  signatureEndpoint?: string;
 }) {
   const [projectFilter, setProjectFilter] = useState<"all" | "personal" | "shared">("all");
   const eligibleSharedWorks = works.filter((work) =>
@@ -153,7 +155,7 @@ export function MemberProjectsEditor({
               </div>
 
               <AdminField label="Mô tả dự án" value={item.description ?? ""} multiline rows={4} onChange={(description) => updateShowcaseItem(item.id, { description: description || undefined })} />
-              <AdminImageField label="Ảnh bìa" value={item.image} folder="thiet-bi-gia/projects" onChange={(image) => updateShowcaseItem(item.id, { image })} />
+              <AdminImageField label="Ảnh bìa" value={item.image} folder="thiet-bi-gia/projects" signatureEndpoint={signatureEndpoint} onChange={(image) => updateShowcaseItem(item.id, { image })} />
               <AdminField label="Thông số EXIF (tùy chọn)" value={item.exifSpec ?? ""} onChange={(exifSpec) => updateShowcaseItem(item.id, { exifSpec: exifSpec || undefined })} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <AdminField label="Link video (tùy chọn)" value={item.videoUrl ?? ""} onChange={(videoUrl) => updateShowcaseItem(item.id, { videoUrl: videoUrl || undefined })} hint="Dán link YouTube hoặc video liên quan." />
@@ -168,12 +170,13 @@ export function MemberProjectsEditor({
                 <AdminMultiImageField
                   label="Tải nhiều ảnh cùng lúc"
                   folder="thiet-bi-gia/projects"
+                  signatureEndpoint={signatureEndpoint}
                   onUploaded={(urls) => updateShowcaseItem(item.id, { gallery: [...(item.gallery ?? []).filter(Boolean), ...urls] })}
                 />
                 {(item.gallery ?? []).map((image, imageIndex) => (
                   <div key={`${item.id}-gallery-${imageIndex}`} className="rounded-xl border border-white/10 p-3">
                     <div className="mb-2 flex items-center justify-between text-xs text-ivory-subtle"><span>ẢNH {String(imageIndex + 1).padStart(2, "0")}</span><button type="button" onClick={() => updateShowcaseItem(item.id, { gallery: item.gallery?.filter((_, candidateIndex) => candidateIndex !== imageIndex) })} className="inline-flex items-center gap-1 text-red-300"><Trash2 className="h-3.5 w-3.5" /> GỠ</button></div>
-                    <AdminImageField label="Ảnh album" value={image} folder="thiet-bi-gia/projects" onChange={(nextImage) => updateShowcaseItem(item.id, { gallery: item.gallery?.map((src, candidateIndex) => candidateIndex === imageIndex ? nextImage : src) })} />
+                    <AdminImageField label="Ảnh album" value={image} folder="thiet-bi-gia/projects" signatureEndpoint={signatureEndpoint} onChange={(nextImage) => updateShowcaseItem(item.id, { gallery: item.gallery?.map((src, candidateIndex) => candidateIndex === imageIndex ? nextImage : src) })} />
                   </div>
                 ))}
               </div>

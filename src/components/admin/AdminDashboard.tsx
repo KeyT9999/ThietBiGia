@@ -33,6 +33,7 @@ export function AdminDashboard() {
   const [memberSearch, setMemberSearch] = useState("");
   const [workSearch, setWorkSearch] = useState("");
   const [savedSnapshot, setSavedSnapshot] = useState("");
+  const [savedMemberIds, setSavedMemberIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -54,6 +55,7 @@ export function AdminDashboard() {
         if (!alive || !result) return;
         setContent(result.content as SiteContent);
         setSavedSnapshot(JSON.stringify(result.content));
+        setSavedMemberIds((result.content as SiteContent).crew.map((item) => item.id));
         setMemberId(result.content.crew[0]?.id ?? "");
         setWorkId(result.content.works[0]?.id ?? "");
       })
@@ -228,6 +230,7 @@ export function AdminDashboard() {
       const savedContent = result.content as SiteContent;
       setContent((current) => JSON.stringify(current) === submittedContent ? savedContent : current);
       setSavedSnapshot(JSON.stringify(savedContent));
+      setSavedMemberIds(savedContent.crew.map((item) => item.id));
       updateSiteContent(result.content as SiteContent);
       setNotice("Đã lưu nội dung vào Supabase.");
       router.refresh();
@@ -314,7 +317,7 @@ export function AdminDashboard() {
                   <label className="relative block"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ivory-subtle" /><input value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="Tìm tên, số thẻ, vai trò..." aria-label="Tìm thành viên" className="w-full rounded-xl border border-white/10 bg-obsidian py-2.5 pl-9 pr-3 text-sm text-ivory outline-none placeholder:text-ivory-subtle focus:border-rec" /></label>
                   <div className="max-h-[65vh] space-y-1 overflow-y-auto">{filteredMembers.map((item) => <button key={item.id} type="button" onClick={() => setMemberId(item.id)} className={"w-full rounded-lg px-3 py-2 text-left text-sm " + (item.id === memberId ? "bg-white/10 text-ivory" : "text-ivory-muted hover:bg-white/5 hover:text-ivory")}><span className="font-mono text-[10px] text-rec">#{item.badgeNumber}</span><span className="ml-2">{item.name}</span></button>)}{filteredMembers.length === 0 ? <p className="rounded-lg px-3 py-4 text-sm text-ivory-subtle">Không tìm thấy thành viên.</p> : null}</div>
                 </div>
-                {member ? <MemberEditor member={member} memberCount={content.crew.length} works={content.works} crew={content.crew} canDelete={content.crew.length > 1} onChange={(patch) => updateMember(member.id, patch)} onDelete={deleteMember} /> : null}
+                {member ? <MemberEditor member={member} memberCount={content.crew.length} works={content.works} crew={content.crew} canDelete={content.crew.length > 1} accountCanManage={savedMemberIds.includes(member.id)} onChange={(patch) => updateMember(member.id, patch)} onDelete={deleteMember} /> : null}
               </div>
             ) : null}
 
