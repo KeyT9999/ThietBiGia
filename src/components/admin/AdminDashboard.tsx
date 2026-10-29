@@ -365,6 +365,18 @@ export function AdminDashboard() {
                 </div></details>
               </div>
             ) : null}
+
+            {isDirty ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rec/25 bg-rec/[0.06] p-4 sm:p-5">
+                <div>
+                  <p className="text-sm font-semibold text-ivory">Mục này có thay đổi chưa lưu</p>
+                  <p className="mt-1 text-xs text-ivory-muted">Nút này lưu mọi nội dung đang chỉnh sửa trên website.</p>
+                </div>
+                <button type="button" onClick={save} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-rec px-4 py-3 text-xs font-mono font-bold text-obsidian disabled:cursor-not-allowed disabled:opacity-60">
+                  <Save className="h-4 w-4" /> {saving ? "ĐANG LƯU..." : "LƯU THAY ĐỔI"}
+                </button>
+              </div>
+            ) : null}
           </section>
         </div>
       </div>
