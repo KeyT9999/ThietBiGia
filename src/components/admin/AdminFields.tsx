@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ImagePlus } from "lucide-react";
+import { ImagePlus, Plus, Trash2 } from "lucide-react";
 
 class CloudinaryFileSizeError extends Error {
   constructor(message: string, readonly maximumBytes?: number) {
@@ -75,6 +75,106 @@ async function optimizeImageForCloudinary(file: File, maximumBytes: number) {
   } finally {
     bitmap.close();
   }
+}
+
+async function uploadImageToCloudinary(
+  file: File,
+  folder: string,
+  onStatus?: (status: string) => void
+) {
+  const signedResponse = await fetch("/api/admin/cloudinary-signature", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ folder }),
+  });
+  const signed = await signedResponse.json();
+  if (!signedResponse.ok) throw new Error(signed.error || "Không thể bắt đầu upload.");
+
+  async function sendToCloudinary(image: File) {
+    const form = new FormData();
+    form.append("file", image);
+    form.append("api_key", signed.apiKey);
+    form.append("timestamp", String(signed.timestamp));
+    form.append("folder", signed.folder);
+    form.append("signature", signed.signature);
+    const response = await fetch(
+      "https://api.cloudinary.com/v1_1/" + signed.cloudName + "/image/upload",
+      { method: "POST", body: form }
+    );
+    const result = await response.json();
+    if (!response.ok || !result.secure_url) {
+      const message = result.error?.message || "Cloudinary từ chối ảnh.";
+      const maximumMatch = message.match(/maximum\s+is\s+([\d,]+)/i);
+      const maximumBytes = maximumMatch
+        ? Number(maximumMatch[1].replaceAll(",", ""))
+        : undefined;
+      if (response.status === 413 || /file size too large/i.test(message)) {
+        throw new CloudinaryFileSizeError(message, maximumBytes);
+      }
+      throw new Error(message);
+    }
+    return result.secure_url as string;
+  }
+
+  try {
+    return { url: await sendToCloudinary(file), optimized: false };
+  } catch (cause) {
+    if (!(cause instanceof CloudinaryFileSizeError)) throw cause;
+    onStatus?.("ẢNH VƯỢT HẠN MỨC CLOUDINARY — ĐANG TỰ TỐI ƯU...");
+    const maximumBytes = cause.maximumBytes || 10 * 1024 * 1024;
+    const optimized = await optimizeImageForCloudinary(file, maximumBytes);
+    onStatus?.("ĐANG TẢI ẢNH ĐÃ TỐI ƯU...");
+    return { url: await sendToCloudinary(optimized), optimized: true };
+  }
+}
+
+export function AdminStringListField({
+  label,
+  value,
+  onChange,
+  placeholder = "Nhập nội dung",
+  addLabel = "THÊM MỤC",
+}: {
+  label: string;
+  value: string[];
+  onChange: (value: string[]) => void;
+  placeholder?: string;
+  addLabel?: string;
+}) {
+  function updateItem(index: number, text: string) {
+    onChange(value.map((item, itemIndex) => itemIndex === index ? text : item));
+  }
+
+  function removeItem(index: number) {
+    onChange(value.filter((_, itemIndex) => itemIndex !== index));
+  }
+
+  return (
+    <div className="space-y-2">
+      <span className="block text-xs font-mono font-semibold uppercase tracking-wide text-ivory-muted">{label}</span>
+      {value.map((item, index) => (
+        <div key={`${label}-${index}`} className="flex items-center gap-2">
+          <span className="w-7 shrink-0 text-center font-mono text-[10px] text-rec">{String(index + 1).padStart(2, "0")}</span>
+          <input
+            value={item}
+            onChange={(event) => updateItem(index, event.target.value)}
+            onBlur={() => {
+              const cleaned = value.map((entry) => entry.trim()).filter(Boolean);
+              if (cleaned.length !== value.length || cleaned.some((entry, itemIndex) => entry !== value[itemIndex])) onChange(cleaned);
+            }}
+            placeholder={placeholder}
+            className="min-w-0 flex-1 rounded-xl border border-white/10 bg-obsidian px-3.5 py-3 text-sm text-ivory outline-none focus:border-rec"
+          />
+          <button type="button" onClick={() => removeItem(index)} aria-label={`Gỡ ${label} ${index + 1}`} className="rounded-lg border border-red-400/20 p-2.5 text-red-300 hover:bg-red-400/10">
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ))}
+      <button type="button" onClick={() => onChange([...value, ""])} className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs font-mono text-ivory hover:border-rec">
+        <Plus className="h-3.5 w-3.5 text-rec" /> {addLabel}
+      </button>
+    </div>
+  );
 }
 
 export function AdminField({
@@ -163,53 +263,9 @@ export function AdminImageField({
     setStatus("ĐANG GỬI ẢNH...");
     setError("");
     try {
-      const signedResponse = await fetch("/api/admin/cloudinary-signature", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folder }),
-      });
-      const signed = await signedResponse.json();
-      if (!signedResponse.ok) throw new Error(signed.error || "Không thể bắt đầu upload.");
-
-      async function sendToCloudinary(image: File) {
-        const form = new FormData();
-        form.append("file", image);
-        form.append("api_key", signed.apiKey);
-        form.append("timestamp", String(signed.timestamp));
-        form.append("folder", signed.folder);
-        form.append("signature", signed.signature);
-        const response = await fetch(
-          "https://api.cloudinary.com/v1_1/" + signed.cloudName + "/image/upload",
-          { method: "POST", body: form }
-        );
-        const result = await response.json();
-        if (!response.ok || !result.secure_url) {
-          const message = result.error?.message || "Cloudinary từ chối ảnh.";
-          const maximumMatch = message.match(/maximum\s+is\s+([\d,]+)/i);
-          const maximumBytes = maximumMatch
-            ? Number(maximumMatch[1].replaceAll(",", ""))
-            : undefined;
-          if (response.status === 413 || /file size too large/i.test(message)) {
-            throw new CloudinaryFileSizeError(message, maximumBytes);
-          }
-          throw new Error(message);
-        }
-        return result.secure_url as string;
-      }
-
-      let imageUrl: string;
-      try {
-        imageUrl = await sendToCloudinary(file);
-      } catch (cause) {
-        if (!(cause instanceof CloudinaryFileSizeError)) throw cause;
-        setStatus("ẢNH VƯỢT HẠN MỨC CLOUDINARY — ĐANG TỰ TỐI ƯU...");
-        const maximumBytes = cause.maximumBytes || 10 * 1024 * 1024;
-        const optimized = await optimizeImageForCloudinary(file, maximumBytes);
-        setStatus("ĐANG TẢI ẢNH ĐÃ TỐI ƯU...");
-        imageUrl = await sendToCloudinary(optimized);
-        setStatus("Ảnh đã được tự tối ưu và tải lên thành công.");
-      }
-      onChange(imageUrl);
+      const result = await uploadImageToCloudinary(file, folder, setStatus);
+      onChange(result.url);
+      if (result.optimized) setStatus("Ảnh đã được tự tối ưu và tải lên thành công.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Upload ảnh thất bại.");
     } finally {
@@ -235,6 +291,80 @@ export function AdminImageField({
       <AdminField label="URL ảnh" value={value} onChange={onChange} />
       {status ? <p className="text-xs text-emerald-300">{status}</p> : null}
       {error ? <p className="text-xs text-red-300">{error}</p> : null}
+    </div>
+  );
+}
+
+export function AdminMultiImageField({
+  label,
+  folder,
+  onUploaded,
+}: {
+  label: string;
+  folder: string;
+  onUploaded: (urls: string[]) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
+
+  async function upload(files: File[]) {
+    if (!files.length) return;
+    setBusy(true);
+    setError("");
+    setStatus("");
+    const uploaded: string[] = [];
+    const failures: string[] = [];
+
+    for (const [index, file] of files.entries()) {
+      setStatus(`ĐANG TẢI ${index + 1}/${files.length}: ${file.name}`);
+      try {
+        const result = await uploadImageToCloudinary(file, folder, (message) =>
+          setStatus(`${index + 1}/${files.length} · ${message}`)
+        );
+        uploaded.push(result.url);
+      } catch (cause) {
+        failures.push(`${file.name}: ${cause instanceof Error ? cause.message : "Upload thất bại."}`);
+      }
+    }
+
+    if (uploaded.length) onUploaded(uploaded);
+    setBusy(false);
+    if (failures.length) {
+      const summary = failures.slice(0, 3).join(" · ");
+      const remaining = failures.length > 3 ? ` · và ${failures.length - 3} ảnh khác` : "";
+      setError(`Tải được ${uploaded.length}/${files.length} ảnh. ${summary}${remaining}`);
+      setStatus("");
+    } else {
+      setStatus(`Đã tải xong ${uploaded.length} ảnh vào album.`);
+    }
+  }
+
+  return (
+    <div className="space-y-2 rounded-xl border border-white/10 bg-obsidian/40 p-3 sm:p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <span className="block text-xs font-mono font-semibold uppercase tracking-wide text-ivory-muted">{label}</span>
+          <span className="mt-1 block text-xs text-ivory-subtle">Chọn nhiều ảnh trong cùng một lần. Ảnh sẽ được thêm vào cuối album.</span>
+        </div>
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/15 px-3.5 py-2.5 text-xs font-mono text-ivory hover:border-rec">
+          <ImagePlus className="h-4 w-4 text-rec" />
+          {busy ? "ĐANG TẢI..." : "CHỌN NHIỀU ẢNH"}
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            disabled={busy}
+            className="hidden"
+            onChange={(event) => {
+              void upload(Array.from(event.currentTarget.files ?? []));
+              event.currentTarget.value = "";
+            }}
+          />
+        </label>
+      </div>
+      {status ? <p className="text-xs text-emerald-300">{status}</p> : null}
+      {error ? <p className="break-words text-xs text-red-300">{error}</p> : null}
     </div>
   );
 }

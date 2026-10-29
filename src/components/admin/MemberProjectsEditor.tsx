@@ -3,7 +3,7 @@
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import type { BentoItem, CrewMember, WorkProject } from "@/data/schema";
 import { getSharedWorkIdsForMember, getUnifiedProjectsForMember } from "@/data/works";
-import { AdminField, AdminImageField } from "./AdminFields";
+import { AdminField, AdminImageField, AdminMultiImageField } from "./AdminFields";
 
 function moveItem<T>(items: T[], from: number, to: number) {
   if (to < 0 || to >= items.length) return items;
@@ -156,6 +156,11 @@ export function MemberProjectsEditor({
                   <div><h4 className="text-sm font-bold">Ảnh trong album ({item.gallery?.length ?? 0})</h4><p className="mt-1 text-xs text-ivory-subtle">Từng ảnh có thể tải lên Cloudinary hoặc nhập URL.</p></div>
                   <button type="button" onClick={() => updateShowcaseItem(item.id, { gallery: [...(item.gallery ?? []), ""] })} className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-xs text-ivory hover:border-rec"><Plus className="h-3.5 w-3.5" /> THÊM ẢNH</button>
                 </div>
+                <AdminMultiImageField
+                  label="Tải nhiều ảnh cùng lúc"
+                  folder="thiet-bi-gia/projects"
+                  onUploaded={(urls) => updateShowcaseItem(item.id, { gallery: [...(item.gallery ?? []).filter(Boolean), ...urls] })}
+                />
                 {(item.gallery ?? []).map((image, imageIndex) => (
                   <div key={`${item.id}-gallery-${imageIndex}`} className="rounded-xl border border-white/10 p-3">
                     <div className="mb-2 flex items-center justify-between text-xs text-ivory-subtle"><span>ẢNH {String(imageIndex + 1).padStart(2, "0")}</span><button type="button" onClick={() => updateShowcaseItem(item.id, { gallery: item.gallery?.filter((_, candidateIndex) => candidateIndex !== imageIndex) })} className="inline-flex items-center gap-1 text-red-300"><Trash2 className="h-3.5 w-3.5" /> GỠ</button></div>
