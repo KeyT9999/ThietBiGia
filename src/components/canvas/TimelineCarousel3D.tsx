@@ -677,12 +677,13 @@ function MemberCardMesh({
     const rotZ = THREE.MathUtils.clamp(-timelineMotion.velocity * 0.045, -0.14, 0.14);
     easing.dampE(groupRef.current.rotation, [0, rotY, rotZ], 0.18, delta);
 
+    const mobileScale = state.size.width < 640 ? (isCenter ? 1.05 : 0.8) : 1;
     const scaleBoost = (hovered
       ? isCenter ? 1.28 : 0.44
       : isCenter
         ? 1.2
         : 0.38 + 0.49 * Math.exp(-0.48 * Math.max(0, absOffset - 1))) *
-      (state.size.width < 640 ? 0.8 : 1);
+      mobileScale;
 
     const baseW = 2.4;
     const baseH = 3.0;

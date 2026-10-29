@@ -30,6 +30,9 @@ export function LivingTimelineStage() {
   const crewMembers = siteContent.crew;
   const workProjects = siteContent.works;
   const stageRef = useRef<HTMLDivElement>(null);
+  const carouselGestureAreaRef = useRef<HTMLDivElement>(null);
+  const carouselGestureStartedInsideRef = useRef(false);
+  const carouselGestureChangedRef = useRef(false);
   const pathname = usePathname();
   const timelineMode = useAppStore((s) => s.timelineMode);
   const setTimelineMode = useAppStore((s) => s.setTimelineMode);
@@ -74,22 +77,41 @@ export function LivingTimelineStage() {
     const obs = Observer.create({
       target: stageRef.current,
       type: "touch,pointer",
+      onPress: (self) => {
+        const bounds = carouselGestureAreaRef.current?.getBoundingClientRect();
+        const x = self.startX;
+        const y = self.startY;
+        carouselGestureChangedRef.current = false;
+        carouselGestureStartedInsideRef.current = Boolean(
+          bounds &&
+            x !== undefined &&
+            y !== undefined &&
+            x >= bounds.left &&
+            x <= bounds.right &&
+            y >= bounds.top &&
+            y <= bounds.bottom
+        );
+      },
       onChange: (self) => {
-        if (timelineMotion.isDragging) return;
+        if (timelineMotion.isDragging || !carouselGestureStartedInsideRef.current) return;
         if (!self.isDragging) return;
+        // Horizontal swipes move the carousel; vertical swipes remain native page scrolling.
+        if (Math.abs(self.deltaX) <= Math.abs(self.deltaY)) return;
+        const step = self.deltaX * -0.0085;
 
-        const deltaRaw =
-          Math.abs(self.deltaX) > Math.abs(self.deltaY) ? self.deltaX : self.deltaY;
-        const step = deltaRaw * -0.0085;
-
+        carouselGestureChangedRef.current = true;
         const nextTarget = timelineMotion.targetIndex + step;
         timelineMotion.targetIndex = nextTarget;
       },
       onRelease: () => {
-        timelineMotion.targetIndex = Math.round(timelineMotion.targetIndex);
+        if (carouselGestureStartedInsideRef.current && carouselGestureChangedRef.current) {
+          timelineMotion.targetIndex = Math.round(timelineMotion.targetIndex);
+        }
+        carouselGestureStartedInsideRef.current = false;
+        carouselGestureChangedRef.current = false;
       },
       tolerance: 6,
-      preventDefault: true,
+      preventDefault: false,
     });
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -111,7 +133,7 @@ export function LivingTimelineStage() {
     <section
       ref={stageRef}
       aria-hidden={isBackgrounded}
-      className={`relative w-full h-[100dvh] overflow-hidden bg-obsidian flex flex-col justify-between pt-[calc(76px+env(safe-area-inset-top))] pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:pt-[calc(80px+env(safe-area-inset-top))] sm:pb-4 select-none transition-opacity duration-200 ${
+      className={`relative w-full h-[100dvh] overflow-hidden bg-obsidian flex flex-col justify-between pt-[calc(76px+env(safe-area-inset-top))] pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:pt-[calc(80px+env(safe-area-inset-top))] sm:pb-4 select-none touch-pan-y transition-opacity duration-200 ${
         isBackgrounded ? "invisible opacity-0 pointer-events-none" : "opacity-100"
       }`}
     >
@@ -192,7 +214,10 @@ export function LivingTimelineStage() {
       </div>
 
       {/* Center 3D WebGL Carousel Stage + Floating Info & Context Pills */}
-      <div className="relative flex-1 w-full min-h-0 flex items-center justify-center">
+      <div
+        ref={carouselGestureAreaRef}
+        className="relative flex-1 w-full min-h-0 flex items-center justify-center"
+      >
         {/* Drei View Tracking Container (z-10 -> renders on PersistentCanvas z-40) */}
         <div className="absolute inset-0 z-10">
           <TimelineCarousel3DView />
