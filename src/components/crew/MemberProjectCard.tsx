@@ -13,6 +13,8 @@ import {
 import { type UnifiedMemberProject } from "@/data/works";
 import { getRoleMeta } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
+import { shouldUseYoutubeCoverPreview } from "@/lib/youtube";
+import { YouTubePreview } from "@/components/works/YouTubePreview";
 
 export function MemberProjectCard({
   project,
@@ -31,6 +33,7 @@ export function MemberProjectCard({
   const [isPortraitFrame, setIsPortraitFrame] = useState(false);
   const [isCoverPortraitFrame, setIsCoverPortraitFrame] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isVideoHovered, setIsVideoHovered] = useState(false);
   const [driveFrames, setDriveFrames] = useState<string[]>([]);
   const [driveHasMore, setDriveHasMore] = useState(false);
   const [driveLoading, setDriveLoading] = useState(false);
@@ -94,6 +97,7 @@ export function MemberProjectCard({
     : project.frames.length > 0 ? project.frames : [project.coverImage];
   const currentSrc = frames[activeFrame] ?? project.coverImage;
   const previewFrames = project.galleryDriveFolderUrl ? drivePreviewFrames : frames;
+  const shouldPlayVideoCover = shouldUseYoutubeCoverPreview(project.videoUrl, project.coverImage);
   const showFrameStrip = project.galleryDriveFolderUrl
     ? driveLoading || Boolean(driveError) || drivePreviewFrames.length > 0
     : frames.length > 1;
@@ -113,7 +117,7 @@ export function MemberProjectCard({
     photo: "ẢNH",
     poster: "POSTER",
     motion: "MOTION",
-  }[project.kind] : null;
+  }[project.kind] : shouldPlayVideoCover ? "VIDEO" : null;
 
   const scopeBadge =
     project.scope === "lead"
@@ -123,12 +127,12 @@ export function MemberProjectCard({
       : { label: "CÙNG EKIP", bg: "#1E2433", text: "#F4F1EA" };
 
   useEffect(() => {
-    if (!isHovered || frames.length <= 1) return;
+    if (!isHovered || frames.length <= 1 || shouldPlayVideoCover) return;
     const timer = window.setInterval(() => {
       setActiveFrame((current) => (current + 1) % frames.length);
     }, 2000);
     return () => window.clearInterval(timer);
-  }, [isHovered, frames.length]);
+  }, [isHovered, frames.length, shouldPlayVideoCover]);
 
   const toAlbumFrameIndex = (frameIndex: number) =>
     project.galleryDriveFolderUrl && drivePreviewFrames.length > 0
@@ -199,9 +203,13 @@ export function MemberProjectCard({
 
         {/* Main Cinema / Gallery Stage */}
         <div
-          onPointerEnter={() => setIsHovered(true)}
+          onPointerEnter={(event) => {
+            setIsHovered(true);
+            if (event.pointerType === "mouse") setIsVideoHovered(true);
+          }}
           onPointerLeave={() => {
             setIsHovered(false);
+            setIsVideoHovered(false);
             if (project.galleryDriveFolderUrl) setActiveFrame(0);
           }}
           onClick={() => onOpenAlbum(project, toAlbumFrameIndex(activeFrame))}
@@ -209,7 +217,13 @@ export function MemberProjectCard({
             stageAspect
           } group/stage w-full bg-obsidian overflow-hidden cursor-pointer flex items-center justify-center`}
         >
-          {project.galleryDriveFolderUrl ? (
+          {shouldPlayVideoCover ? (
+            <YouTubePreview
+              videoUrl={project.videoUrl!}
+              title={project.title}
+              isHovered={isVideoHovered}
+            />
+          ) : project.galleryDriveFolderUrl ? (
             <>
               {/* Keep the project cover as the non-hover image, independent of React state. */}
               <img

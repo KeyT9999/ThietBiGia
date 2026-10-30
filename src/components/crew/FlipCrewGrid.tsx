@@ -10,7 +10,6 @@ import { getUnifiedProjectsForMember } from "@/data/works";
 import { getRoleMeta, ROLE_STYLES, type RoleCategory } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
 import { useSiteContent } from "@/lib/store";
-import { StopMotionGroupHero } from "./StopMotionGroupHero";
 
 gsap.registerPlugin(Flip);
 
@@ -258,9 +257,6 @@ export function FlipCrewGrid() {
           />
         </div>
       </div>
-
-      {/* Idea 1: 2-Frame Stop-Motion Group Hero Banner */}
-      <StopMotionGroupHero />
 
       {/* Multi-Role Filter Pills Bar (GSAP Flip Powered) */}
       <div className="flex flex-wrap items-center gap-2">

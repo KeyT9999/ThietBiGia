@@ -27,3 +27,29 @@ export function toYoutubeEmbedUrl(input: string): string | null {
     return null;
   }
 }
+
+export function isGenericWorkCover(src: string) {
+  const path = src.trim().replace(/^https?:\/\/[^/]+/i, "").split(/[?#]/, 1)[0];
+  return !path || /^\/media\/works\/work-\d+\.(?:jpe?g|png|webp)$/i.test(path);
+}
+
+export function shouldUseYoutubeCoverPreview(videoUrl: string | undefined, coverImage: string) {
+  return Boolean(videoUrl && toYoutubeEmbedUrl(videoUrl) && isGenericWorkCover(coverImage));
+}
+
+export function getYoutubePreviewUrl(input: string, autoPlay: boolean) {
+  const embedUrl = toYoutubeEmbedUrl(input);
+  if (!embedUrl) return null;
+  const videoId = embedUrl.split("/").pop();
+  const params = new URLSearchParams();
+  if (autoPlay) {
+    params.set("autoplay", "1");
+    params.set("mute", "1");
+    params.set("controls", "0");
+    params.set("loop", "1");
+    if (videoId) params.set("playlist", videoId);
+  }
+  params.set("playsinline", "1");
+  params.set("rel", "0");
+  return `${embedUrl}?${params.toString()}`;
+}

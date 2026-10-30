@@ -8,10 +8,19 @@ import { easing } from "maath";
 import { usePathname, useRouter } from "next/navigation";
 import type { CrewMember } from "@/data/schema";
 import type { WorkProject } from "@/data/schema";
-import { timelineMotion, useAppStore, useSiteContent } from "@/lib/store";
+import {
+  deferTimelineAutoplay,
+  timelineMotion,
+  useAppStore,
+  useSiteContent,
+} from "@/lib/store";
 import { getRoleMeta } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
-import { toYoutubeEmbedUrl } from "@/lib/youtube";
+import {
+  getYoutubePreviewUrl,
+  shouldUseYoutubeCoverPreview,
+  toYoutubeEmbedUrl,
+} from "@/lib/youtube";
 
 const CAROUSEL_CIRCLE_RADIUS = 3.2;
 
@@ -149,11 +158,6 @@ function wrapCanvasText(
   }
   if (line) lines.push(line);
   return lines;
-}
-
-function isGenericWorkCover(src: string) {
-  const path = src.trim().replace(/^https?:\/\/[^/]+/i, "").split(/[?#]/, 1)[0];
-  return !path || /^\/media\/works\/work-\d+\.(?:jpe?g|png|webp)$/i.test(path);
 }
 
 /**
@@ -700,17 +704,14 @@ function ActiveWorkVideoPlane({ url }: { url: string }) {
 }
 
 function ActiveYoutubeCardPlayer({
-  embedUrl,
-  videoId,
+  videoUrl,
   autoPlay,
 }: {
-  embedUrl: string;
-  videoId: string;
+  videoUrl: string;
   autoPlay: boolean;
 }) {
-  const src = autoPlay
-    ? `${embedUrl}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&playsinline=1&rel=0`
-    : `${embedUrl}?playsinline=1&rel=0`;
+  const src = getYoutubePreviewUrl(videoUrl, autoPlay);
+  if (!src) return null;
 
   return (
     <Html
@@ -887,6 +888,8 @@ function MemberCardMesh({
         onPointerOver={(e) => {
           e.stopPropagation();
           setHovered(true);
+          timelineMotion.isCardHovered = e.pointerType === "mouse";
+          deferTimelineAutoplay();
           soundEngine.playHover();
           const isActive = Math.abs(
             getCircularOffset(index, timelineMotion.currentIndex, total)
@@ -904,6 +907,8 @@ function MemberCardMesh({
         }}
         onPointerOut={() => {
           setHovered(false);
+          timelineMotion.isCardHovered = false;
+          deferTimelineAutoplay();
           setCursor("default", "");
         }}
         onClick={(e) => {
@@ -943,9 +948,8 @@ function WorkCardMesh({
   const [mouseHovered, setMouseHovered] = useState(false);
   const setCursor = useAppStore((s) => s.setCursor);
 
-  const youtubeEmbedUrl = toYoutubeEmbedUrl(work.videoEmbedUrl || work.videoUrl || "");
-  const videoId = youtubeEmbedUrl?.split("/").pop();
-  const hasRealCover = !isGenericWorkCover(work.coverImage);
+  const youtubeVideoUrl = work.videoEmbedUrl || work.videoUrl || "";
+  const shouldPlayYoutubeCover = shouldUseYoutubeCoverPreview(youtubeVideoUrl, work.coverImage);
   const directVideoUrl = work.videoUrl && !toYoutubeEmbedUrl(work.videoUrl)
     ? work.videoUrl
     : null;
@@ -1078,6 +1082,8 @@ function WorkCardMesh({
           e.stopPropagation();
           setHovered(true);
           setMouseHovered(e.pointerType === "mouse");
+          timelineMotion.isCardHovered = e.pointerType === "mouse";
+          deferTimelineAutoplay();
           soundEngine.playHover();
           const isActive = Math.abs(
             getCircularOffset(index, timelineMotion.currentIndex, total)
@@ -1087,6 +1093,8 @@ function WorkCardMesh({
         onPointerOut={() => {
           setHovered(false);
           setMouseHovered(false);
+          timelineMotion.isCardHovered = false;
+          deferTimelineAutoplay();
           setCursor("default", "");
         }}
         onClick={(e) => {
@@ -1096,10 +1104,9 @@ function WorkCardMesh({
       />
 
       {/* A YouTube poster stays still until this card is hovered. */}
-      {youtubeEmbedUrl && videoId && !hasRealCover && (isActiveCenter || mouseHovered) && (
+      {shouldPlayYoutubeCover && (isActiveCenter || mouseHovered) && (
         <ActiveYoutubeCardPlayer
-          embedUrl={youtubeEmbedUrl}
-          videoId={videoId}
+          videoUrl={youtubeVideoUrl}
           autoPlay={mouseHovered}
         />
       )}
@@ -1123,15 +1130,44 @@ function CarouselRig({ active }: { active: boolean }) {
   const timelineMode = useAppStore((s) => s.timelineMode);
   const activeWorkIndex = useAppStore((s) => s.activeWorkIndex);
   const setActiveWorkIndex = useAppStore((s) => s.setActiveWorkIndex);
+  const settledAfterMotionRef = useRef(false);
 
   const total = timelineMode === "crew" ? crewMembers.length : workProjects.length;
 
   useEffect(() => {
-    if (!active || total <= 1) return;
+    if (!active || total <= 1) {
+      timelineMotion.isCardHovered = false;
+      return;
+    }
+    timelineMotion.isCardHovered = false;
+    settledAfterMotionRef.current = false;
+    deferTimelineAutoplay();
     const interval = window.setInterval(() => {
-      timelineMotion.targetIndex = Math.round(timelineMotion.targetIndex) + 1;
-    }, 3000);
-    return () => window.clearInterval(interval);
+      const isMoving = Math.abs(timelineMotion.targetIndex - timelineMotion.currentIndex) > 0.02;
+      if (isMoving) {
+        settledAfterMotionRef.current = true;
+        return;
+      }
+
+      if (settledAfterMotionRef.current) {
+        settledAfterMotionRef.current = false;
+        deferTimelineAutoplay();
+        return;
+      }
+
+      if (
+        Date.now() < timelineMotion.autoplayResumeAt ||
+        timelineMotion.isDragging ||
+        timelineMotion.isCardHovered
+      ) return;
+
+      timelineMotion.targetIndex = Math.round(timelineMotion.currentIndex) + 1;
+      settledAfterMotionRef.current = true;
+    }, 100);
+    return () => {
+      window.clearInterval(interval);
+      timelineMotion.isCardHovered = false;
+    };
   }, [active, timelineMode, total]);
 
   // Subdivided PlaneGeometry (20x24) for silky smooth GLSL velocity arch deformation

@@ -13,7 +13,15 @@ export const timelineMotion = {
   currentIndex: 0,
   velocity: 0,
   isDragging: false,
+  isCardHovered: false,
+  autoplayResumeAt: 0,
 };
+
+const TIMELINE_AUTOPLAY_DELAY_MS = 3000;
+
+export function deferTimelineAutoplay() {
+  timelineMotion.autoplayResumeAt = Date.now() + TIMELINE_AUTOPLAY_DELAY_MS;
+}
 
 export type CursorVariant = "default" | "project" | "crew" | "drag";
 export type TimelineMode = "crew" | "works";
@@ -129,6 +137,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     );
     timelineMotion.targetIndex = activeWorkIndex;
     timelineMotion.currentIndex = activeWorkIndex;
+    deferTimelineAutoplay();
     set({
       siteContent: {
         ...content,
@@ -149,6 +158,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     const clamped = Math.max(0, Math.min(Math.max(0, nextTotal - 1), initialIndex));
     timelineMotion.targetIndex = clamped;
     timelineMotion.currentIndex = clamped;
+    deferTimelineAutoplay();
     soundEngine.playShutter();
     set({
       timelineMode: mode,
@@ -162,6 +172,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     const total = state.totalWorks;
     const next = wrapIndex(index, total);
     if (snapMotion) {
+      deferTimelineAutoplay();
       timelineMotion.targetIndex = timelineMotion.currentIndex +
         getCircularOffset(next, timelineMotion.currentIndex, total);
     }
@@ -174,6 +185,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   stepWorkIndex: (delta) => {
     const state = get();
     const next = wrapIndex(state.activeWorkIndex + delta, state.totalWorks);
+    deferTimelineAutoplay();
     timelineMotion.targetIndex = timelineMotion.currentIndex + delta;
     if (next !== state.activeWorkIndex) {
       soundEngine.playTick(0.9);

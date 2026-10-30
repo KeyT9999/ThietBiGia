@@ -22,16 +22,12 @@ import type { WorkProject } from "@/data/works";
 import { getRoleMeta } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
 import { useSiteContent } from "@/lib/store";
-import { toYoutubeEmbedUrl } from "@/lib/youtube";
+import { shouldUseYoutubeCoverPreview } from "@/lib/youtube";
+import { YouTubePreview } from "./YouTubePreview";
 
 gsap.registerPlugin(Flip);
 
 type WorkSortOrder = "default" | "newest" | "oldest" | "title-asc" | "title-desc";
-
-function isGenericProjectCover(src: string) {
-  const path = src.trim().replace(/^https?:\/\/[^/]+/i, "").split(/[?#]/, 1)[0];
-  return !path || /^\/media\/works\/work-\d+\.(?:jpe?g|png|webp)$/i.test(path);
-}
 
 function WorkArchiveCard({
   work,
@@ -47,18 +43,9 @@ function WorkArchiveCard({
   const [isPortraitFrame, setIsPortraitFrame] = useState(false);
   const [isVideoHovered, setIsVideoHovered] = useState(false);
   const coverSrc = work.coverImage?.trim() ?? "";
-  const hasRealCover = Boolean(coverSrc) && !isGenericProjectCover(coverSrc);
-  const videoEmbedUrl = toYoutubeEmbedUrl(work.videoEmbedUrl || work.videoUrl || "");
-  const videoId = videoEmbedUrl?.split("/").pop();
-  const shouldPlayVideoCover = !hasRealCover && Boolean(videoEmbedUrl && videoId);
+  const videoUrl = work.videoEmbedUrl || work.videoUrl || "";
+  const shouldPlayVideoCover = shouldUseYoutubeCoverPreview(videoUrl, coverSrc);
   const fallbackCoverSrc = coverSrc || "/media/works/work-01.jpg";
-  const previewVideoUrl = videoEmbedUrl
-    ? `${videoEmbedUrl}?playsinline=1&rel=0`
-    : null;
-  const autoplayVideoUrl = videoEmbedUrl && videoId
-    ? `${videoEmbedUrl}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&playsinline=1&rel=0`
-    : null;
-  const activeVideoUrl = isVideoHovered ? autoplayVideoUrl : previewVideoUrl;
 
   const selectedCredit =
     selectedMemberSlug !== "ALL"
@@ -120,15 +107,11 @@ function WorkArchiveCard({
           }}
           className="relative aspect-[16/10] w-full bg-obsidian overflow-hidden flex items-center justify-center block"
         >
-          {shouldPlayVideoCover && activeVideoUrl ? (
-            <iframe
-              src={activeVideoUrl}
-              title={`Video xem trước ${work.title}`}
-              aria-hidden="true"
-              tabIndex={-1}
-              loading="lazy"
-              allow="autoplay; encrypted-media; picture-in-picture"
-              className="pointer-events-none absolute inset-0 h-full w-full scale-[1.02] border-0"
+          {shouldPlayVideoCover ? (
+            <YouTubePreview
+              videoUrl={videoUrl}
+              title={work.title}
+              isHovered={isVideoHovered}
             />
           ) : (
             <>

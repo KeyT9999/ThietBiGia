@@ -7,7 +7,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { Observer } from "gsap/Observer";
 import { Film, IdCard, MousePointerClick, Play, Users } from "lucide-react";
-import { timelineMotion, useAppStore, useSiteContent } from "@/lib/store";
+import { deferTimelineAutoplay, timelineMotion, useAppStore, useSiteContent } from "@/lib/store";
 import { getRoleMeta } from "@/lib/utils";
 import { CrewCreditPills } from "./CrewCreditPills";
 import { MemberContextPills } from "./MemberContextPills";
@@ -102,10 +102,12 @@ export function LivingTimelineStage() {
         carouselGestureChangedRef.current = true;
         const nextTarget = timelineMotion.targetIndex + step;
         timelineMotion.targetIndex = nextTarget;
+        deferTimelineAutoplay();
       },
       onRelease: () => {
         if (carouselGestureStartedInsideRef.current && carouselGestureChangedRef.current) {
           timelineMotion.targetIndex = Math.round(timelineMotion.targetIndex);
+          deferTimelineAutoplay();
         }
         carouselGestureStartedInsideRef.current = false;
         carouselGestureChangedRef.current = false;

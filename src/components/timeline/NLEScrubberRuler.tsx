@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
-import { timelineMotion, useAppStore, useSiteContent } from "@/lib/store";
+import { deferTimelineAutoplay, timelineMotion, useAppStore, useSiteContent } from "@/lib/store";
 import { formatTimecodeFromProgress } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
 
@@ -69,6 +69,7 @@ export function NLEScrubberRuler() {
 
   const scrubFromClientX = (clientX: number) => {
     if (!trackRef.current) return;
+    deferTimelineAutoplay();
     const rect = trackRef.current.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     const exactIndex = ratio * (totalItems - 1);
@@ -150,6 +151,7 @@ export function NLEScrubberRuler() {
             timelineMotion.isDragging = false;
             (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
             timelineMotion.targetIndex = Math.round(timelineMotion.targetIndex);
+            deferTimelineAutoplay();
           }}
           className="relative h-11 flex items-center cursor-ew-resize touch-none"
         >
