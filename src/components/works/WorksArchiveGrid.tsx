@@ -34,28 +34,12 @@ function WorkArchiveCard({
   selectedMemberSlug: string;
   onSelectMember: (slug: string) => void;
 }) {
-  const [activeFrame, setActiveFrame] = useState(0);
   const [isPortraitFrame, setIsPortraitFrame] = useState(false);
-
-  const frames =
-    work.galleryImages.length > 0 ? work.galleryImages : [work.coverImage];
-  const currentSrc = frames[activeFrame] ?? work.coverImage;
 
   const selectedCredit =
     selectedMemberSlug !== "ALL"
       ? work.credits.find((c) => c.memberSlug === selectedMemberSlug)
       : undefined;
-
-  const handleStageScrub = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (frames.length <= 1) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const relX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const idx = Math.min(frames.length - 1, Math.floor(relX * frames.length));
-    if (idx !== activeFrame) {
-      soundEngine.playTick(0.42);
-      setActiveFrame(idx);
-    }
-  };
 
   return (
     <article className="rounded-2xl border border-obsidian-border hover:border-rec/70 bg-obsidian-surface overflow-hidden flex flex-col justify-between transition-colors shadow-[0_12px_36px_rgba(0,0,0,0.35)] group h-full">
@@ -86,46 +70,31 @@ function WorkArchiveCard({
             <span className="inline-flex items-center gap-1 text-ivory-muted shrink-0">
               <Images className="w-3.5 h-3.5 text-rec" />
               <span>
-                {String(activeFrame + 1).padStart(2, "0")}/
-                {String(frames.length).padStart(2, "0")}
+                {work.galleryDriveFolderUrl
+                  ? "DRIVE ALBUM"
+                  : work.galleryImages.length
+                    ? `${work.galleryImages.length} ẢNH`
+                    : "ẢNH BÌA"}
               </span>
               <span className="text-ivory-subtle">• {work.year}</span>
             </span>
           </div>
-
-          {frames.length > 1 && (
-            <div className="flex items-center gap-1">
-              {frames.map((_, idx) => (
-                <div
-                  key={idx}
-                  className="h-1 flex-1 rounded-full transition-colors duration-200"
-                  style={{
-                    backgroundColor:
-                      idx === activeFrame
-                        ? work.accentColor
-                        : "rgba(255,255,255,0.12)",
-                  }}
-                />
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* Main Hover-Scrubbable Stage -> Opens Project Detail Modal */}
+        {/* One fixed project cover; the full album lives on the detail page. */}
         <Link
           href={`/works/${work.slug}`}
           scroll={false}
-          onMouseMove={handleStageScrub}
           onClick={() => soundEngine.playShutter()}
           className="relative aspect-[16/10] w-full bg-obsidian overflow-hidden flex items-center justify-center block"
         >
           <img
-            src={currentSrc}
+            src={work.coverImage}
             alt=""
             className="pointer-events-none absolute inset-0 w-full h-full object-cover blur-2xl opacity-35 scale-110"
           />
           <img
-            src={currentSrc}
+            src={work.coverImage}
             alt={work.title}
             onLoad={(e) => {
               const el = e.currentTarget;
@@ -141,9 +110,7 @@ function WorkArchiveCard({
 
           <div className="pointer-events-none absolute top-3 left-3 right-3 z-30 flex items-center justify-between gap-2">
             <span className="px-2.5 py-1 rounded-md bg-obsidian/80 backdrop-blur-md border border-white/15 text-xs font-mono text-ivory/90">
-              {frames.length > 1
-                ? `LƯỚT CHUỘT XEM ${frames.length} ẢNH`
-                : work.durationTimecode}
+              {work.galleryDriveFolderUrl ? "ALBUM DRIVE BÊN DƯỚI" : work.durationTimecode}
             </span>
             <span className="px-2.5 py-1 rounded-md bg-obsidian/85 backdrop-blur-md border border-white/15 group-hover:bg-rec group-hover:border-rec group-hover:text-obsidian text-xs font-mono font-bold text-ivory inline-flex items-center gap-1 transition-colors">
               <span>MỞ DỰ ÁN</span>
@@ -161,35 +128,6 @@ function WorkArchiveCard({
           </div>
         </Link>
 
-        {/* Mini Contact Filmstrip */}
-        {frames.length > 1 && (
-          <div className="px-3 py-2 bg-obsidian/85 border-t border-obsidian-border flex items-center gap-2 overflow-x-auto">
-            {frames.map((src, idx) => (
-              <button
-                key={src + idx}
-                type="button"
-                onMouseEnter={() => {
-                  if (idx !== activeFrame) {
-                    soundEngine.playTick(0.42);
-                    setActiveFrame(idx);
-                  }
-                }}
-                onClick={() => setActiveFrame(idx)}
-                className={`relative h-11 w-16 aspect-[16/10] rounded-md overflow-hidden border-2 shrink-0 transition-all ${
-                  idx === activeFrame
-                    ? "border-rec scale-[1.03] opacity-100"
-                    : "border-obsidian-border opacity-55 hover:opacity-100"
-                }`}
-              >
-                <img
-                  src={src}
-                  alt=""
-                  className="w-full h-full object-cover object-[50%_20%]"
-                />
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Footer: Summary, Camera Spec & Clickable Ekip Member Filter Chips */}

@@ -39,3 +39,11 @@ Mở trình duyệt tại `http://localhost:3000`.
 - **Danh sách dự án & chiến dịch:** `src/data/works.ts`
 - **Cuộn phim kỷ niệm tập thể 35mm (`/about`):** `src/data/moments.ts`
 - **Tài nguyên hình ảnh tối ưu WebGL:** `public/media/crew/`, `public/media/works/`, `public/media/keyt/`
+
+### Album dự án từ Google Drive
+
+- Ảnh bìa được tải riêng trong Admin và chỉ dùng làm ảnh chính của dự án.
+- Đưa ảnh album trực tiếp vào một thư mục Google Drive, bật **Bất kỳ ai có đường liên kết → Người xem**, rồi dán link thư mục vào trường **Link thư mục ảnh Google Drive** trong Admin. Tên file `01-...`, `02-...` giúp giữ thứ tự mong muốn.
+- Bật **Google Drive API** trong Google Cloud, tạo API key chỉ cho Drive API, rồi thêm biến môi trường server `GOOGLE_DRIVE_API_KEY` vào `.env.local` và Vercel. Không đặt key này thành biến `NEXT_PUBLIC_*`.
+- Album được đọc từ thư mục Drive và hiển thị theo kiểu masonry, giữ tỷ lệ ảnh ngang/dọc. Danh sách file được cache tối đa một giờ; trình duyệt tải từng ảnh khi cuộn tới.
+- Các album cũ đã tải lên vẫn được giữ làm phương án dự phòng. Khi có link Drive hợp lệ, album Drive sẽ được ưu tiên.

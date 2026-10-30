@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -10,8 +10,6 @@ import {
   Camera,
   CheckCircle2,
   Film,
-  Pause,
-  Play,
   SlidersHorizontal,
   Users,
 } from "lucide-react";
@@ -20,6 +18,7 @@ import { getRoleMeta } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
 import { useSiteContent } from "@/lib/store";
 import { BeforeAfterGradeSlider } from "./BeforeAfterGradeSlider";
+import { ProjectPhotoGallery } from "./ProjectPhotoGallery";
 
 export function ProjectDetailView({
   work,
@@ -30,25 +29,14 @@ export function ProjectDetailView({
 }) {
   const router = useRouter();
   const crewMembers = useSiteContent().crew;
-  const [playing, setPlaying] = useState(false);
   const [compareGrade, setCompareGrade] = useState(false);
-  const [activeGalleryIdx, setActiveGalleryIdx] = useState(0);
   const [isPortraitFrame, setIsPortraitFrame] = useState(false);
 
-  const currentFrameSrc =
-    work.galleryImages[activeGalleryIdx] ?? work.coverImage;
+  const currentFrameSrc = work.coverImage;
   const crewBookingParam = work.credits
     .slice(0, 4)
     .map((c) => c.memberSlug)
     .join(",");
-
-  useEffect(() => {
-    if (!playing || compareGrade || work.galleryImages.length <= 1) return;
-    const timer = setInterval(() => {
-      setActiveGalleryIdx((prev) => (prev + 1) % work.galleryImages.length);
-    }, 1250);
-    return () => clearInterval(timer);
-  }, [playing, compareGrade, work.galleryImages.length]);
 
   const handleClose = () => {
     soundEngine.playTick(0.7);
@@ -140,14 +128,13 @@ export function ProjectDetailView({
                     : "border border-obsidian-border bg-obsidian-surface text-ivory-muted hover:text-ivory"
                 }`}
               >
-                XEM BỘ ẢNH CHUẨN [{work.galleryImages.length}]
+                ẢNH BÌA DỰ ÁN
               </button>
 
               <button
                 type="button"
                 onClick={() => {
                   soundEngine.playShutter();
-                  setPlaying(false);
                   setCompareGrade((v) => !v);
                 }}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold transition-all ${
@@ -184,14 +171,7 @@ export function ProjectDetailView({
               className="hidden"
             />
 
-            {work.videoEmbedUrl && !compareGrade ? (
-              <iframe
-                src={work.videoEmbedUrl}
-                title={work.title}
-                className="w-full h-full border-0"
-                allow="autoplay; fullscreen; picture-in-picture"
-              />
-            ) : compareGrade ? (
+            {compareGrade ? (
               <BeforeAfterGradeSlider
                 afterSrc={currentFrameSrc}
                 beforeSrc={work.beforeImage}
@@ -200,12 +180,7 @@ export function ProjectDetailView({
               />
             ) : (
               <div
-                onClick={() => {
-                  if (work.galleryImages.length <= 1) return;
-                  soundEngine.playShutter();
-                  setPlaying((p) => !p);
-                }}
-                className="relative w-full h-full flex items-center justify-center cursor-pointer"
+                className="relative w-full h-full flex items-center justify-center"
               >
                 <img
                   src={currentFrameSrc}
@@ -215,70 +190,42 @@ export function ProjectDetailView({
                 <img
                   src={currentFrameSrc}
                   alt={work.title}
-                  className={`relative z-10 max-h-full max-w-full object-contain transition-transform duration-700 ${
-                    playing ? "scale-[1.03]" : "group-hover:scale-[1.02]"
-                  }`}
+                  className="relative z-10 max-h-full max-w-full object-contain transition-transform duration-700 group-hover:scale-[1.02]"
                 />
                 <div className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-t from-obsidian/75 via-transparent to-obsidian/30" />
 
                 <div className="absolute top-4 left-4 right-4 z-30 flex items-center justify-between text-xs font-mono text-ivory/90 pointer-events-none">
                   <span className="flex items-center gap-2 bg-obsidian/75 px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
                     <span className="w-2 h-2 rounded-full bg-rec animate-pulse" />
-                    {playing
-                      ? `PLAYING SLIDESHOW (${activeGalleryIdx + 1}/${work.galleryImages.length})`
-                      : `FRAME ${activeGalleryIdx + 1} / ${work.galleryImages.length}`}
+                    ẢNH BÌA DỰ ÁN
                   </span>
                   <span className="bg-obsidian/75 px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
                     {work.durationTimecode}
                   </span>
                 </div>
 
-                {work.galleryImages.length > 1 && (
-                  <div className="absolute bottom-4 right-4 z-30 pointer-events-none">
-                    <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-obsidian/80 border border-ivory/25 group-hover:bg-rec group-hover:border-rec group-hover:text-obsidian text-ivory text-xs font-mono font-bold backdrop-blur-md transition-all">
-                      {playing ? (
-                        <>
-                          <Pause className="w-3.5 h-3.5 fill-current" />
-                          <span>TẠM DỪNG</span>
-                        </>
-                      ) : (
-                        <>
-                          <Play className="w-3.5 h-3.5 fill-current" />
-                          <span>TRÌNH CHIẾU ({work.galleryImages.length} ẢNH)</span>
-                        </>
-                      )}
-                    </span>
-                  </div>
-                )}
               </div>
             )}
           </div>
 
-          {/* Frame Thumbnails */}
-          <div className="flex items-center gap-3 overflow-x-auto pb-1">
-            {work.galleryImages.map((img, i) => (
-              <button
-                key={img + i}
-                type="button"
-                onClick={() => {
-                  soundEngine.playTick(0.75);
-                  setActiveGalleryIdx(i);
-                }}
-                className={`relative w-32 aspect-video rounded-lg overflow-hidden border-2 transition-all shrink-0 ${
-                  activeGalleryIdx === i
-                    ? "border-rec scale-102"
-                    : "border-obsidian-border opacity-60 hover:opacity-100"
-                }`}
-              >
-                <img
-                  src={img}
-                  alt=""
-                  className="w-full h-full object-cover object-[50%_20%]"
-                />
-              </button>
-            ))}
-          </div>
         </div>
+
+        <ProjectPhotoGallery work={work} />
+
+        {work.videoEmbedUrl ? (
+          <section className="space-y-3">
+            <h2 className="font-display text-xl font-bold text-ivory">VIDEO DỰ ÁN</h2>
+            <div className="aspect-video w-full overflow-hidden rounded-2xl border border-obsidian-border bg-obsidian">
+              <iframe
+                src={work.videoEmbedUrl}
+                title={work.title}
+                className="h-full w-full border-0"
+                allow="autoplay; fullscreen; picture-in-picture"
+                loading="lazy"
+              />
+            </div>
+          </section>
+        ) : null}
 
         {/* Full Crew Credits & Behind The Scenes */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-2">

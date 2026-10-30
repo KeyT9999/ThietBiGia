@@ -48,12 +48,19 @@ export function ProjectEditor({
       </div>
 
       <AdminField label="Tóm tắt dự án" value={work.summary} multiline rows={5} onChange={(summary) => onChange({ summary })} />
-      <AdminImageField label="Ảnh bìa" value={work.coverImage} folder="thiet-bi-gia/projects" onChange={(coverImage) => onChange({ coverImage })} />
+      <AdminImageField label="Ảnh bìa dự án" value={work.coverImage} folder="thiet-bi-gia/projects" onChange={(coverImage) => onChange({ coverImage })} />
       <section className="space-y-3 rounded-2xl border border-white/10 p-4">
-        <div><h3 className="font-display text-lg font-bold">Album ảnh dự án ({work.galleryImages.length})</h3><p className="mt-1 text-xs text-ivory-muted">Tải nhiều ảnh cùng lúc, xóa ảnh không dùng hoặc đổi thứ tự hiển thị.</p></div>
-        <AdminMultiImageField label="Thêm ảnh vào album" folder="thiet-bi-gia/projects" onUploaded={(urls) => onChange({ galleryImages: [...work.galleryImages, ...urls] })} />
-        <AdminStringListField label="Ảnh trong album (URL)" value={work.galleryImages} onChange={(galleryImages) => onChange({ galleryImages })} placeholder="Dán URL ảnh" addLabel="THÊM URL ẢNH" reorderable />
+        <div><h3 className="font-display text-lg font-bold">Album ảnh hiển thị bên dưới</h3><p className="mt-1 text-xs text-ivory-muted">Dán link thư mục Google Drive đã bật quyền “Bất kỳ ai có đường liên kết”. Website sẽ tự lấy ảnh trong thư mục và xếp thành lưới sát nhau, giữ đúng tỷ lệ ảnh ngang/dọc. Ảnh bìa phía trên vẫn là một ảnh riêng.</p></div>
+        <AdminField label="Link thư mục ảnh Google Drive" value={work.galleryDriveFolderUrl ?? ""} onChange={(galleryDriveFolderUrl) => onChange({ galleryDriveFolderUrl: galleryDriveFolderUrl.trim() || undefined })} hint="Chỉ lấy ảnh nằm trực tiếp trong thư mục; không đưa ảnh bìa vào album nếu không muốn ảnh bị lặp. Đặt tên 01, 02, 03… để tự sắp thứ tự." />
       </section>
+      <details className="rounded-2xl border border-white/10 p-4">
+        <summary className="cursor-pointer select-none text-sm font-semibold text-ivory">Album cũ tải lên website ({work.galleryImages.length} ảnh)</summary>
+        <div className="mt-4 space-y-3">
+          <p className="text-xs text-ivory-muted">Dùng để giữ và chỉnh các album đã tải lên trước đây. Album Google Drive ở trên sẽ được ưu tiên khi có link hợp lệ.</p>
+          <AdminMultiImageField label="Thêm ảnh vào album cũ" folder="thiet-bi-gia/projects" onUploaded={(urls) => onChange({ galleryImages: [...work.galleryImages, ...urls] })} />
+          <AdminStringListField label="Ảnh album cũ (URL)" value={work.galleryImages} onChange={(galleryImages) => onChange({ galleryImages })} placeholder="Dán URL ảnh" addLabel="THÊM URL ẢNH" reorderable />
+        </div>
+      </details>
       <AdminField label="Ảnh trước hậu kỳ (tùy chọn)" value={work.beforeImage ?? ""} onChange={(beforeImage) => onChange({ beforeImage: beforeImage || undefined })} />
       <AdminField label="Link video YouTube" value={work.videoEmbedUrl ?? ""} onChange={(videoEmbedUrl) => onChange({ videoEmbedUrl: videoEmbedUrl || undefined })} hint="Dán link watch, Shorts hoặc youtu.be. Website sẽ nhúng player trong trang dự án." />
       {work.videoEmbedUrl && !toYoutubeEmbedUrl(work.videoEmbedUrl) ? <p className="text-xs text-amber-300">Link YouTube chưa hợp lệ; kiểm tra trước khi lưu.</p> : null}

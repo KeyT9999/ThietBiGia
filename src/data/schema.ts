@@ -69,6 +69,7 @@ export const WorkProjectSchema = z.object({
   summary: z.string(),
   videoEmbedUrl: z.string().optional(),
   galleryImages: z.array(z.string()),
+  galleryDriveFolderUrl: z.string().optional(),
   btsNotes: z.array(z.string()),
   gearUsed: z.array(z.string()),
   credits: z.array(ProjectCreditSchema),
