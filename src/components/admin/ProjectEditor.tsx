@@ -35,7 +35,7 @@ export function ProjectEditor({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <AdminField label="Tên dự án" value={work.title} onChange={(title) => onChange({ title })} />
+        <AdminField label="Tên dự án" value={work.title} multiline rows={2} onChange={(title) => onChange({ title })} hint="Không giới hạn ký tự; ô sẽ tự xuống dòng khi tiêu đề dài." />
         <AdminField label="Slug URL" value={work.slug} onChange={(slug) => onChange({ slug: slug.toLowerCase().trim().replace(/[^a-z0-9-]+/g, "-") })} />
         <AdminField label="Khách hàng / series" value={work.clientOrSeries} onChange={(clientOrSeries) => onChange({ clientOrSeries })} />
         <AdminField label="Danh mục" value={work.category} onChange={(category) => onChange({ category })} />
