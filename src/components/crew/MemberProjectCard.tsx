@@ -138,11 +138,6 @@ export function MemberProjectCard({
 
   return (
     <article
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        if (project.galleryDriveFolderUrl) setActiveFrame(0);
-      }}
       className={`${
         cardSpan
       } rounded-2xl border border-obsidian-border hover:border-rec/65 bg-obsidian-surface overflow-hidden flex flex-col justify-between transition-all shadow-[0_12px_36px_rgba(0,0,0,0.35)] group`}
@@ -205,6 +200,11 @@ export function MemberProjectCard({
 
         {/* Main Cinema / Gallery Stage */}
         <div
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => {
+            setIsHovered(false);
+            if (project.galleryDriveFolderUrl) setActiveFrame(0);
+          }}
           onClick={() => onOpenAlbum(project, toAlbumFrameIndex(activeFrame))}
           className={`relative ${
             stageAspect
