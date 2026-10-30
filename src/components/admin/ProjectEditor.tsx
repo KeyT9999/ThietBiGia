@@ -40,7 +40,7 @@ export function ProjectEditor({
         <AdminField label="Khách hàng / series" value={work.clientOrSeries} onChange={(clientOrSeries) => onChange({ clientOrSeries })} />
         <AdminField label="Danh mục" value={work.category} onChange={(category) => onChange({ category })} />
         <AdminField label="Năm" value={work.year} onChange={(year) => onChange({ year })} />
-        <AdminField label="Nhãn thứ tự" value={work.indexLabel} onChange={(indexLabel) => onChange({ indexLabel })} />
+        <AdminField label="Nhãn thứ tự" value={work.indexLabel} onChange={(indexLabel) => onChange({ indexLabel })} hint="Tự cập nhật theo vị trí khi sắp xếp bằng mũi tên trong danh sách." />
         <AdminField label="Timecode / thời lượng" value={work.durationTimecode} onChange={(durationTimecode) => onChange({ durationTimecode })} />
         <AdminField label="Màu nhấn" value={work.accentColor} onChange={(accentColor) => onChange({ accentColor })} />
         <AdminField label="Thông số máy" value={work.cameraSpec} onChange={(cameraSpec) => onChange({ cameraSpec })} />

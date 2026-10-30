@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, LogOut, Plus, Save, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, LogOut, Plus, Save, Search } from "lucide-react";
 import type { CrewMember, WorkProject } from "@/data/schema";
 import type { SiteContent } from "@/lib/content-schema";
 import { useSetSiteContent } from "@/lib/store";
@@ -178,6 +178,26 @@ export function AdminDashboard() {
     setNotice("");
   }
 
+  function moveWork(workId: string, direction: -1 | 1) {
+    setContent((current) => {
+      if (!current) return current;
+      const fromIndex = current.works.findIndex((item) => item.id === workId);
+      const toIndex = fromIndex + direction;
+      if (fromIndex < 0 || toIndex < 0 || toIndex >= current.works.length) return current;
+
+      const works = [...current.works];
+      [works[fromIndex], works[toIndex]] = [works[toIndex], works[fromIndex]];
+      return {
+        ...current,
+        works: works.map((item, index) => ({
+          ...item,
+          indexLabel: String(index + 1).padStart(2, "0"),
+        })),
+      };
+    });
+    setNotice("");
+  }
+
   function deleteWork() {
     if (!content || !work || content.works.length <= 1) return;
     if (!window.confirm("Xóa dự án " + work.title + "?")) return;
@@ -324,9 +344,27 @@ export function AdminDashboard() {
             {tab === "projects" ? (
               <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
                 <div className="space-y-3 rounded-3xl border border-white/10 bg-obsidian-surface p-4">
-                  <div className="flex items-center justify-between gap-2"><h2 className="font-display text-xl font-bold">Dự án ({content.works.length})</h2><button type="button" onClick={addWork} className="rounded-lg bg-rec p-2 text-obsidian" title="Thêm dự án"><Plus className="h-4 w-4" /></button></div>
+                  <div className="flex items-center justify-between gap-2"><h2 className="font-display text-xl font-bold">Dự án chung ({content.works.length})</h2><button type="button" onClick={addWork} className="rounded-lg bg-rec p-2 text-obsidian" title="Thêm dự án chung"><Plus className="h-4 w-4" /></button></div>
+                  <p className="text-xs leading-relaxed text-ivory-subtle">Dùng mũi tên để đổi thứ tự xuất hiện trên trang dự án và timeline.</p>
                   <label className="relative block"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ivory-subtle" /><input value={workSearch} onChange={(event) => setWorkSearch(event.target.value)} placeholder="Tìm tên, khách hàng, năm..." aria-label="Tìm dự án" className="w-full rounded-xl border border-white/10 bg-obsidian py-2.5 pl-9 pr-3 text-sm text-ivory outline-none placeholder:text-ivory-subtle focus:border-rec" /></label>
-                  <div className="max-h-[65vh] space-y-1 overflow-y-auto">{filteredWorks.map((item) => <button key={item.id} type="button" onClick={() => setWorkId(item.id)} className={"w-full rounded-lg px-3 py-2 text-left text-sm " + (item.id === workId ? "bg-white/10 text-ivory" : "text-ivory-muted hover:bg-white/5 hover:text-ivory")}><span className="font-mono text-[10px] text-rec">{item.indexLabel}</span><span className="ml-2">{item.title}</span></button>)}{filteredWorks.length === 0 ? <p className="rounded-lg px-3 py-4 text-sm text-ivory-subtle">Không tìm thấy dự án.</p> : null}</div>
+                  <div className="max-h-[65vh] space-y-1 overflow-y-auto">
+                    {filteredWorks.map((item) => {
+                      const orderIndex = content.works.findIndex((candidate) => candidate.id === item.id);
+                      return (
+                        <div key={item.id} className="flex items-center gap-1">
+                          <button type="button" onClick={() => setWorkId(item.id)} className={"min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm " + (item.id === workId ? "bg-white/10 text-ivory" : "text-ivory-muted hover:bg-white/5 hover:text-ivory")}>
+                            <span className="font-mono text-[10px] text-rec">{item.indexLabel}</span>
+                            <span className="ml-2">{item.title}</span>
+                          </button>
+                          <div className="flex shrink-0 flex-col gap-1">
+                            <button type="button" disabled={orderIndex === 0} onClick={() => moveWork(item.id, -1)} aria-label={`Đưa dự án ${item.title} lên`} title="Đưa lên trước" className="rounded border border-white/10 p-1.5 text-ivory-muted hover:border-rec hover:text-ivory disabled:cursor-not-allowed disabled:opacity-30"><ArrowUp className="h-3 w-3" /></button>
+                            <button type="button" disabled={orderIndex === content.works.length - 1} onClick={() => moveWork(item.id, 1)} aria-label={`Đưa dự án ${item.title} xuống`} title="Đưa xuống sau" className="rounded border border-white/10 p-1.5 text-ivory-muted hover:border-rec hover:text-ivory disabled:cursor-not-allowed disabled:opacity-30"><ArrowDown className="h-3 w-3" /></button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {filteredWorks.length === 0 ? <p className="rounded-lg px-3 py-4 text-sm text-ivory-subtle">Không tìm thấy dự án.</p> : null}
+                  </div>
                 </div>
                 {work ? <ProjectEditor work={work} crew={content.crew} canDelete={content.works.length > 1} onChange={(patch) => updateWork(work.id, patch)} onDelete={deleteWork} /> : null}
               </div>
