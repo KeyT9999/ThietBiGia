@@ -397,7 +397,7 @@ export function MemberSpotlightView({
               </Link>
             </div>
 
-            <p className="text-sm sm:text-base text-ivory/85 leading-relaxed max-w-3xl">
+            <p className="text-sm sm:text-base text-ivory/85 leading-relaxed max-w-3xl whitespace-pre-line break-words">
               {member.bio}
             </p>
 

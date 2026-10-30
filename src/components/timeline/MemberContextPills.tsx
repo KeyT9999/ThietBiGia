@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowUpRight, Film, IdCard, Images, RefreshCw } from "lucide-react";
+import { ArrowUpRight, Film, IdCard, Images, Play, RefreshCw } from "lucide-react";
 import type { CrewMember } from "@/data/schema";
 import {
   getTeammatesForMember,
@@ -11,6 +11,7 @@ import {
 import { getRoleMeta } from "@/lib/utils";
 import { useAppStore, useSiteContent } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
+import { getYoutubeThumbnailUrl, shouldUseYoutubeCoverPreview } from "@/lib/youtube";
 
 export function MemberContextPills({ member }: { member: CrewMember }) {
   const siteContent = useSiteContent();
@@ -52,6 +53,9 @@ export function MemberContextPills({ member }: { member: CrewMember }) {
           const targetHref = proj.workSlug
             ? `/works/${proj.workSlug}`
             : `/crew/${member.slug}`;
+          const youtubeThumbnail = shouldUseYoutubeCoverPreview(proj.videoUrl, proj.coverImage)
+            ? getYoutubeThumbnailUrl(proj.videoUrl ?? "")
+            : null;
           return (
             <motion.div
               key={`${member.slug}-proj-${proj.id}`}
@@ -84,13 +88,27 @@ export function MemberContextPills({ member }: { member: CrewMember }) {
                   style={{ borderColor: `${proj.accentColor}88` }}
                 >
                   <img
-                    src={proj.coverImage}
+                    src={youtubeThumbnail || proj.coverImage}
                     alt={proj.title}
+                    onError={(event) => {
+                      const image = event.currentTarget;
+                      if (youtubeThumbnail && image.dataset.fallback !== "true") {
+                        image.dataset.fallback = "true";
+                        image.src = proj.coverImage;
+                      }
+                    }}
                     className="w-full h-full object-cover object-[50%_20%] group-hover:scale-110 transition-transform duration-500"
                   />
+                  {youtubeThumbnail ? (
+                    <span className="pointer-events-none absolute inset-0 grid place-items-center">
+                      <span className="grid h-5 w-7 place-items-center rounded-md bg-[#FF0033] shadow-lg">
+                        <Play className="h-3 w-3 fill-white text-white" aria-hidden="true" />
+                      </span>
+                    </span>
+                  ) : null}
                   <span className="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-obsidian/85 text-[10px] font-mono font-bold text-ivory flex items-center gap-0.5 leading-none">
-                    <Images className="w-2.5 h-2.5 text-rec" />
-                    {proj.frames.length}
+                    {youtubeThumbnail ? <Film className="w-2.5 h-2.5 text-rec" /> : <Images className="w-2.5 h-2.5 text-rec" />}
+                    {youtubeThumbnail ? "VIDEO" : proj.frames.length}
                   </span>
                 </div>
 

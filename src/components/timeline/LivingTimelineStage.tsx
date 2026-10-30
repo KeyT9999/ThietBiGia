@@ -283,7 +283,7 @@ export function LivingTimelineStage() {
                   </p>
                 </div>
 
-                <p className="text-xs text-ivory/80 line-clamp-3 leading-relaxed">
+                <p className="text-xs text-ivory/80 line-clamp-3 leading-relaxed whitespace-pre-line break-words">
                   {activeMember.bio}
                 </p>
 
