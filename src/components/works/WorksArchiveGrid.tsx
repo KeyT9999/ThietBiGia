@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
 import { Flip } from "gsap/Flip";
 import {
   ArrowUpRight,
+  ArrowDownUp,
   Camera,
   Film,
   IdCard,
@@ -23,6 +24,8 @@ import { useSiteContent } from "@/lib/store";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
 
 gsap.registerPlugin(Flip);
+
+type WorkSortOrder = "default" | "newest" | "oldest" | "title-asc" | "title-desc";
 
 function isGenericProjectCover(src: string) {
   const path = src.trim().replace(/^https?:\/\/[^/]+/i, "").split(/[?#]/, 1)[0];
@@ -242,6 +245,7 @@ export function WorksArchiveGrid() {
   const workProjects = siteContent.works;
   const [selectedMemberSlug, setSelectedMemberSlug] = useState<string>("ALL");
   const [query, setQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<WorkSortOrder>("default");
   const gridRef = useRef<HTMLDivElement>(null);
   const flipStateRef = useRef<Flip.FlipState | null>(null);
 
@@ -279,7 +283,7 @@ export function WorksArchiveGrid() {
         gsap.to(elements, { opacity: 0, scale: 0.9, duration: 0.25 }),
     });
     flipStateRef.current = null;
-  }, [selectedMemberSlug, query]);
+  }, [selectedMemberSlug, query, sortOrder]);
 
   const handleMemberSelect = (slug: string) => {
     if (slug === selectedMemberSlug) return;
@@ -300,10 +304,11 @@ export function WorksArchiveGrid() {
   const normalizedQuery = query.trim().toLowerCase();
 
   // Prioritize the selected member's Lead Projects first, then Ekip shoots, then 16-member Collective Archive
-  const orderedWorks =
-    selectedMemberSlug === "ALL"
-      ? workProjects
-      : [...workProjects].sort((a, b) => {
+  const orderedWorks = useMemo(() => {
+    const memberOrderedWorks =
+      selectedMemberSlug === "ALL"
+        ? [...workProjects]
+        : [...workProjects].sort((a, b) => {
           const rank = (w: WorkProject) => {
             if (w.credits[0]?.memberSlug === selectedMemberSlug) return 0;
             if (w.slug === "hau-truong-thiet-bi-gia" || w.credits.length >= 12) return 2;
@@ -311,6 +316,24 @@ export function WorksArchiveGrid() {
           };
           return rank(a) - rank(b);
         });
+    if (sortOrder === "default") return memberOrderedWorks;
+
+    const collator = new Intl.Collator("vi", { sensitivity: "base", numeric: true });
+    return memberOrderedWorks
+      .map((work, originalIndex) => ({ work, originalIndex }))
+      .sort((a, b) => {
+        let comparison = 0;
+        if (sortOrder === "newest" || sortOrder === "oldest") {
+          const yearDifference = (Number(a.work.year) || 0) - (Number(b.work.year) || 0);
+          comparison = sortOrder === "newest" ? -yearDifference : yearDifference;
+        } else {
+          comparison = collator.compare(a.work.title, b.work.title);
+          if (sortOrder === "title-desc") comparison *= -1;
+        }
+        return comparison || a.originalIndex - b.originalIndex;
+      })
+      .map(({ work }) => work);
+  }, [workProjects, selectedMemberSlug, sortOrder]);
 
   return (
     <div className="max-w-[1520px] mx-auto px-4 sm:px-8 pt-28 pb-24 space-y-8">
@@ -330,19 +353,39 @@ export function WorksArchiveGrid() {
           </p>
         </div>
 
-        {/* Search Input */}
-        <div className="relative w-full lg:w-80">
-          <Search className="w-4 h-4 text-ivory-subtle absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => {
-              captureFlip();
-              setQuery(e.target.value);
-            }}
-            placeholder="Tìm tên project, DANAFF, MV, Áo dài..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-obsidian-border bg-obsidian-surface text-sm text-ivory placeholder:text-ivory-subtle focus:outline-none focus:border-rec transition-colors"
-          />
+        {/* Project search and sort tools */}
+        <div className="grid w-full gap-2 sm:grid-cols-[minmax(0,1fr)_auto] lg:w-auto lg:min-w-[34rem]">
+          <div className="relative min-w-0">
+            <Search className="w-4 h-4 text-ivory-subtle absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => {
+                captureFlip();
+                setQuery(e.target.value);
+              }}
+              placeholder="Tìm tên project, DANAFF, MV, Áo dài..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-obsidian-border bg-obsidian-surface text-sm text-ivory placeholder:text-ivory-subtle focus:outline-none focus:border-rec transition-colors"
+            />
+          </div>
+          <label className="relative block min-w-0 sm:w-52">
+            <ArrowDownUp className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-rec" />
+            <span className="sr-only">Sắp xếp dự án</span>
+            <select
+              value={sortOrder}
+              onChange={(event) => {
+                captureFlip();
+                setSortOrder(event.target.value as WorkSortOrder);
+              }}
+              className="w-full appearance-none rounded-xl border border-obsidian-border bg-obsidian-surface py-2.5 pl-10 pr-3 text-sm text-ivory outline-none transition-colors focus:border-rec"
+            >
+              <option value="default">Thứ tự mặc định</option>
+              <option value="newest">Năm mới nhất</option>
+              <option value="oldest">Năm cũ nhất</option>
+              <option value="title-asc">Tên: A → Z</option>
+              <option value="title-desc">Tên: Z → A</option>
+            </select>
+          </label>
         </div>
       </div>
 
