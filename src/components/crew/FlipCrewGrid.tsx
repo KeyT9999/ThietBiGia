@@ -4,14 +4,45 @@ import Link from "next/link";
 import { useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { Flip } from "gsap/Flip";
-import { ArrowUpRight, Film, Images, Search, Users } from "lucide-react";
+import { ArrowUpRight, Film, Images, Play, Search, Users } from "lucide-react";
 import { type CrewMember } from "@/data/schema";
-import { getUnifiedProjectsForMember } from "@/data/works";
+import { getUnifiedProjectsForMember, type UnifiedMemberProject } from "@/data/works";
 import { getRoleMeta, ROLE_STYLES, type RoleCategory } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
 import { useSiteContent } from "@/lib/store";
+import { getYoutubeThumbnailUrl, shouldUseYoutubeCoverPreview } from "@/lib/youtube";
 
 gsap.registerPlugin(Flip);
+
+function RosterProjectThumb({ project }: { project: UnifiedMemberProject }) {
+  const youtubeThumbnail = shouldUseYoutubeCoverPreview(project.videoUrl, project.coverImage)
+    ? getYoutubeThumbnailUrl(project.videoUrl ?? "")
+    : null;
+
+  return (
+    <>
+      <img
+        src={youtubeThumbnail || project.coverImage}
+        alt={project.title}
+        onError={(event) => {
+          const image = event.currentTarget;
+          if (youtubeThumbnail && image.dataset.fallback !== "true") {
+            image.dataset.fallback = "true";
+            image.src = project.coverImage;
+          }
+        }}
+        className="h-full w-full object-cover object-[50%_20%]"
+      />
+      {youtubeThumbnail ? (
+        <span className="pointer-events-none absolute inset-0 z-10 grid place-items-center">
+          <span className="grid h-5 w-7 place-items-center rounded-md bg-[#FF0033] shadow-lg">
+            <Play className="h-3 w-3 fill-white text-white" aria-hidden="true" />
+          </span>
+        </span>
+      ) : null}
+    </>
+  );
+}
 
 function CrewRosterCard({ member }: { member: CrewMember }) {
   const siteContent = useSiteContent();
@@ -107,6 +138,7 @@ function CrewRosterCard({ member }: { member: CrewMember }) {
               const href = proj.workSlug
                 ? `/works/${proj.workSlug}`
                 : `/crew/${member.slug}`;
+              const isYoutubeVideo = shouldUseYoutubeCoverPreview(proj.videoUrl, proj.coverImage);
               return (
                 <Link
                   key={proj.id}
@@ -120,15 +152,11 @@ function CrewRosterCard({ member }: { member: CrewMember }) {
                   title={proj.title}
                   className="relative aspect-[16/11] rounded-lg overflow-hidden border border-obsidian-border hover:border-rec bg-obsidian transition-all hover:scale-[1.03]"
                 >
-                  <img
-                    src={proj.coverImage}
-                    alt={proj.title}
-                    className="w-full h-full object-cover object-[50%_20%]"
-                  />
+                  <RosterProjectThumb project={proj} />
                   <div className="absolute inset-0 bg-gradient-to-t from-obsidian/85 via-transparent to-transparent" />
                   <span className="absolute bottom-1 right-1 px-1 rounded bg-obsidian/80 text-[10px] font-mono text-ivory flex items-center gap-0.5">
-                    <Images className="w-2.5 h-2.5 text-rec" />
-                    {proj.frames.length}
+                    {isYoutubeVideo ? <Film className="w-2.5 h-2.5 text-rec" /> : <Images className="w-2.5 h-2.5 text-rec" />}
+                    {isYoutubeVideo ? "VIDEO" : proj.frames.length}
                   </span>
                 </Link>
               );
