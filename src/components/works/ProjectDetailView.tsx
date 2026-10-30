@@ -48,7 +48,7 @@ export function ProjectDetailView({
     ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
     : currentFrameSrc;
   const expandedVideoUrl = videoEmbedUrl
-    ? `${videoEmbedUrl}?autoplay=1&rel=0`
+    ? `${videoEmbedUrl}?autoplay=1&mute=1&playsinline=1&rel=0`
     : null;
   const videoOverlayOpen = Boolean(isModal && expandedVideoUrl) || isVideoExpanded;
   const crewBookingParam = work.credits
@@ -439,6 +439,7 @@ export function ProjectDetailView({
                       className="absolute inset-0 h-full w-full border-0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                       referrerPolicy="strict-origin-when-cross-origin"
+                      loading="eager"
                       allowFullScreen
                     />
                   </div>

@@ -144,7 +144,7 @@ function WorkArchiveCard({
               {work.galleryDriveFolderUrl ? "ALBUM DRIVE BÊN DƯỚI" : work.durationTimecode}
             </span>
             <span className="px-2.5 py-1 rounded-md bg-obsidian/85 backdrop-blur-md border border-white/15 group-hover:bg-rec group-hover:border-rec group-hover:text-obsidian text-xs font-mono font-bold text-ivory inline-flex items-center gap-1 transition-colors">
-              <span>MỞ DỰ ÁN</span>
+              <span>{shouldPlayVideoCover ? "XEM VIDEO" : "MỞ DỰ ÁN"}</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </span>
           </div>
