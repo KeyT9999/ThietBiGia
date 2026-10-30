@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { getPublicSiteContent } from "@/lib/site-content";
+import { createSupabaseServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 const BookingPayloadSchema = z.object({
   name: z.string().trim().min(1, "Vui lòng nhập tên hoặc thương hiệu").max(120),
@@ -54,9 +56,8 @@ export async function POST(req: Request) {
     : undefined;
 
   const year = new Date().getFullYear();
-  const suffix = Math.floor(1000 + Math.random() * 9000);
-  const referenceCode = `TBG-${year}-${suffix}`;
-  const createdAt = new Date().toISOString();
+  const referenceCode = `TBG-${year}-${randomUUID().slice(0, 8).toUpperCase()}`;
+  let createdAt = new Date().toISOString();
 
   const squadSummary =
     selectedCrew.length > 0
@@ -84,6 +85,44 @@ export async function POST(req: Request) {
     projectRef: refWork ? refWork.title : data.projectRef || null,
     brief: data.brief,
   };
+
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json(
+      { ok: false, error: "Hệ thống đơn hàng chưa được cấu hình. Vui lòng liên hệ Thiết Bị Gia." },
+      { status: 503 }
+    );
+  }
+
+  try {
+    const { data: order, error } = await createSupabaseServiceClient()
+      .from("booking_orders")
+      .insert({
+        order_code: referenceCode,
+        customer_name: record.name,
+        contact_phone: record.phone,
+        contact_zalo: record.zalo,
+        contact_email: record.email,
+        date_info: record.dateInfo,
+        services: record.services,
+        selected_crew_slugs: record.crewSlugs,
+        project_ref: record.projectRef,
+        brief: record.brief,
+      })
+      .select("created_at")
+      .single();
+    if (error) throw error;
+    createdAt = order.created_at as string;
+    record.createdAt = createdAt;
+  } catch (error) {
+    console.error("Booking order persistence failed:", error);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Chưa lưu được đơn hàng. Vui lòng thử lại sau ít phút hoặc liên hệ trực tiếp với Thiết Bị Gia.",
+      },
+      { status: 503 }
+    );
+  }
 
   const channelsNotified: string[] = [];
 

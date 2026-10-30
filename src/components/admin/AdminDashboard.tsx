@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, Check, Clapperboard, Home, Images, LogOut, Plus, Save, Search, Settings2, Users } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Clapperboard, Home, Images, LogOut, Plus, Save, Search, Settings2, ShoppingBag, Users } from "lucide-react";
 import type { CrewMember, WorkProject } from "@/data/schema";
 import type { SiteContent } from "@/lib/content-schema";
 import { useSetSiteContent } from "@/lib/store";
@@ -12,14 +12,16 @@ import { AdminField, AdminImageField } from "./AdminFields";
 import { GearManager, GroupMomentsManager } from "./AboutToolsEditor";
 import { MemberEditor } from "./MemberEditor";
 import { ProjectEditor } from "./ProjectEditor";
+import { AdminOrdersTool } from "./AdminOrdersTool";
 import { moveCrewMemberToBadgeNumber, normalizeCrewOrder } from "@/lib/crew-order";
 
-type Tab = "home" | "members" | "projects" | "about" | "settings";
+type Tab = "home" | "members" | "projects" | "about" | "orders" | "settings";
 const tabs = [
   { id: "home", label: "Trang chủ", description: "Lời giới thiệu & media", icon: Home },
   { id: "members", label: "Thành viên", description: "Hồ sơ & tài khoản", icon: Users },
   { id: "projects", label: "Dự án", description: "Nội dung & thứ tự", icon: Clapperboard },
   { id: "about", label: "About & kho ảnh", description: "Câu chuyện & tư liệu", icon: Images },
+  { id: "orders", label: "Đơn hàng", description: "Phân công & theo dõi", icon: ShoppingBag },
   { id: "settings", label: "Cài đặt website", description: "Thương hiệu & liên hệ", icon: Settings2 },
 ];
 
@@ -497,6 +499,8 @@ export function AdminDashboard() {
                 </div></details>
               </div>
             ) : null}
+
+            {tab === "orders" ? <AdminOrdersTool /> : null}
 
             {isDirty ? (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rec/25 bg-rec/[0.06] p-4 sm:p-5">

@@ -3,18 +3,20 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Camera, Check, CircleUserRound, Images, KeyRound, LogOut, Save, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, Camera, Check, CircleUserRound, Images, KeyRound, LogOut, Save, ShieldCheck, ShoppingBag, UserRound } from "lucide-react";
 import type { CrewMember, WorkProject } from "@/data/schema";
 import { useSetSiteContent } from "@/lib/store";
 import type { SiteContent } from "@/lib/content-schema";
 import { AdminField, AdminImageField, AdminStringListField } from "@/components/admin/AdminFields";
 import { MemberProjectsEditor } from "@/components/admin/MemberProjectsEditor";
 import { BrandLogo } from "@/components/layout/BrandLogo";
+import { MemberOrdersTool } from "./MemberOrdersTool";
 
-type Section = "profile" | "projects" | "security";
+type Section = "profile" | "projects" | "orders" | "security";
 const sections: { id: Section; label: string; detail: string; icon: typeof CircleUserRound }[] = [
   { id: "profile", label: "Thông tin cá nhân", detail: "Ảnh, giới thiệu và liên hệ", icon: CircleUserRound },
   { id: "projects", label: "Dự án trưng bày", detail: "Dự án riêng và dự án chung", icon: Images },
+  { id: "orders", label: "Đơn hàng", detail: "Xác nhận & liên hệ khách", icon: ShoppingBag },
   { id: "security", label: "Bảo mật tài khoản", detail: "Đổi mật khẩu đăng nhập", icon: KeyRound },
 ];
 
@@ -143,7 +145,7 @@ export function MemberWorkspace() {
         </header>
 
         <div className="grid items-start gap-5">
-          <nav aria-label="Công cụ profile" className="grid min-w-0 grid-cols-1 gap-2 rounded-2xl border border-white/10 bg-obsidian-surface p-2 sm:grid-cols-3 lg:sticky lg:top-5">
+          <nav aria-label="Công cụ profile" className="grid min-w-0 grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-obsidian-surface p-2 sm:grid-cols-4 lg:sticky lg:top-5">
             {sections.map((item) => {
               const Icon = item.icon;
               const active = item.id === section;
@@ -163,7 +165,7 @@ export function MemberWorkspace() {
                 </button>
               );
             })}
-            <p className="hidden border-t border-white/10 px-3 pt-3 text-xs leading-relaxed text-ivory-subtle sm:col-span-3 lg:block">Chỉnh nội dung rồi bấm <b className="text-ivory">Lưu thay đổi</b> để cập nhật trang công khai.</p>
+            <p className="hidden border-t border-white/10 px-3 pt-3 text-xs leading-relaxed text-ivory-subtle sm:col-span-4 lg:block">Chỉnh nội dung rồi bấm <b className="text-ivory">Lưu thay đổi</b> để cập nhật trang công khai.</p>
           </nav>
 
           <section className="min-w-0 space-y-5">
@@ -222,6 +224,8 @@ export function MemberWorkspace() {
             </div> : null}
 
             {section === "projects" ? <MemberProjectsEditor member={profile} works={works} crew={crew} signatureEndpoint="/api/member/cloudinary-signature" onChange={update} /> : null}
+
+            {section === "orders" ? <MemberOrdersTool /> : null}
 
             {section === "security" ? <div className="rounded-2xl border border-white/10 bg-obsidian-surface p-4 sm:p-6"><PasswordSettings /></div> : null}
 
