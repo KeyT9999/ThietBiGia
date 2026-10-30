@@ -706,7 +706,7 @@ export function MemberSpotlightView({
                       {driveAlbumError ? <p role="status" className="text-xs leading-relaxed text-amber-200">{driveAlbumError}{legacyDriveFallback.length ? " Đang dùng ảnh album cũ." : ""}</p> : null}
                       {lightboxProject.galleryDriveFolderUrl && driveAlbumImages?.length === 0 && !driveAlbumLoading ? <p className="text-xs text-ivory-muted">Thư mục Drive chưa có ảnh.</p> : null}
                       {lightboxGallery.length > 1 && (
-                        <div className="columns-2 gap-2 pr-1 sm:columns-3 sm:gap-3 md:columns-4" aria-label="Lưới ảnh dự án">
+                        <div className="w-full columns-2 gap-2 pr-1 sm:columns-4 sm:gap-3" aria-label="Lưới ảnh dự án">
                           {lightboxGallery.map((src, idx) => (
                             <button
                               key={src + idx}
