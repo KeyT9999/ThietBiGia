@@ -95,6 +95,9 @@ export async function POST(req: Request) {
   const tgToken = process.env.TELEGRAM_BOT_TOKEN;
   const tgChatId = process.env.TELEGRAM_CHAT_ID;
   const webhookUrl = process.env.BOOKING_WEBHOOK_URL;
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const bookingFromEmail = process.env.BOOKING_FROM_EMAIL;
+  const bookingNotificationEmail = process.env.BOOKING_NOTIFICATION_EMAIL;
 
   const summaryText = [
     `🎬 CALL SHEET MỚI // ${referenceCode}`,
@@ -143,6 +146,39 @@ export async function POST(req: Request) {
           if (r.ok) channelsNotified.push("webhook");
         })
         .catch(() => {})
+    );
+  }
+
+  if (resendApiKey && bookingFromEmail && bookingNotificationEmail) {
+    dispatches.push(
+      fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: bookingFromEmail,
+          to: [bookingNotificationEmail],
+          subject: `Đặt lịch mới ${referenceCode} — ${record.name}`,
+          text: summaryText,
+        }),
+      })
+        .then(async (response) => {
+          if (response.ok) {
+            channelsNotified.push("email");
+            return;
+          }
+
+          const errorText = await response.text();
+          console.error(
+            `[booking] Resend notification failed (${response.status}):`,
+            errorText.slice(0, 1000)
+          );
+        })
+        .catch((error: unknown) => {
+          console.error("[booking] Resend notification request failed:", error);
+        })
     );
   }
 
