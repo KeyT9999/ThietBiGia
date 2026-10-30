@@ -5,13 +5,14 @@ import gsap from "gsap";
 import { deferTimelineAutoplay, timelineMotion, useAppStore, useSiteContent } from "@/lib/store";
 import { formatTimecodeFromProgress } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
+import { getHome3DWorks } from "@/lib/home-3d-works";
 
 const TOTAL_TICKS = 84;
 
 export function NLEScrubberRuler() {
   const siteContent = useSiteContent();
   const crewMembers = siteContent.crew;
-  const workProjects = siteContent.works;
+  const workProjects = getHome3DWorks(siteContent.works);
   const timelineMode = useAppStore((s) => s.timelineMode);
   const activeWorkIndex = useAppStore((s) => s.activeWorkIndex);
   const setActiveWorkIndex = useAppStore((s) => s.setActiveWorkIndex);

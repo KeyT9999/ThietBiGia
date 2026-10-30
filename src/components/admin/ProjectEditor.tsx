@@ -1,6 +1,7 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Images, Info, ListChecks, Trash2, Users } from "lucide-react";
 import type { CrewMember, ProjectCredit, WorkProject } from "@/data/schema";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
 import { AdminDriveFolderField, AdminField, AdminImageField, AdminMultiImageField, AdminStringListField } from "./AdminFields";
@@ -18,6 +19,8 @@ export function ProjectEditor({
   onChange: (patch: Partial<WorkProject>) => void;
   onDelete: () => void;
 }) {
+  const [section, setSection] = useState<"basic" | "media" | "details" | "crew">("basic");
+
   function updateCredit(index: number, patch: Partial<ProjectCredit>) {
     onChange({ credits: work.credits.map((credit, i) => i === index ? { ...credit, ...patch } : credit) });
   }
@@ -34,6 +37,35 @@ export function ProjectEditor({
         </button>
       </div>
 
+      <label className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl border border-rec/25 bg-rec/[0.06] px-4 py-3">
+        <span className="space-y-1">
+          <span className="block text-sm font-semibold text-ivory">Hiển thị thẻ 3D ở trang chủ</span>
+          <span className="block text-xs text-ivory-muted">Bật để dự án tham gia vòng thẻ 3D. Dự án vẫn xuất hiện ở trang Dự án và hồ sơ thành viên khi tắt.</span>
+        </span>
+        <input
+          type="checkbox"
+          checked={work.showOnHome3D !== false}
+          onChange={(event) => onChange({ showOnHome3D: event.target.checked })}
+          className="h-5 w-5 shrink-0 accent-[#FF4D00]"
+        />
+      </label>
+
+      <nav aria-label="Công cụ dự án" className="grid grid-cols-2 gap-2">
+        {([
+          { id: "basic", label: "Thông tin", detail: "Tên, thứ tự, tóm tắt", icon: Info },
+          { id: "media", label: "Ảnh & video", detail: "Ảnh bìa, album, YouTube", icon: Images },
+          { id: "details", label: "Hậu trường", detail: "Ghi chú và thiết bị", icon: ListChecks },
+          { id: "crew", label: "Ekip", detail: `${work.credits.length} thành viên tham gia`, icon: Users },
+        ] as const).map((item) => {
+          const Icon = item.icon;
+          return <button key={item.id} type="button" onClick={() => setSection(item.id)} aria-current={section === item.id ? "page" : undefined} className={"flex min-w-0 items-start gap-3 rounded-xl border px-3 py-3 text-left transition sm:px-4 " + (section === item.id ? "border-rec/60 bg-rec/10" : "border-white/10 bg-obsidian/50 hover:border-white/25")}>
+            <Icon className={"mt-0.5 h-4 w-4 shrink-0 " + (section === item.id ? "text-rec" : "text-ivory-subtle")} aria-hidden="true" />
+            <span className="min-w-0"><span className="block text-sm font-semibold text-ivory">{item.label}</span><span className="mt-1 hidden text-xs text-ivory-subtle sm:block">{item.detail}</span></span>
+          </button>;
+        })}
+      </nav>
+
+      {section === "basic" ? <section className="space-y-5" aria-label="Thông tin dự án">
       <div className="grid gap-4 sm:grid-cols-2">
         <AdminField label="Tên dự án" value={work.title} multiline rows={2} onChange={(title) => onChange({ title })} hint="Không giới hạn ký tự; ô sẽ tự xuống dòng khi tiêu đề dài." />
         <AdminField label="Slug URL" value={work.slug} onChange={(slug) => onChange({ slug: slug.toLowerCase().trim().replace(/[^a-z0-9-]+/g, "-") })} />
@@ -48,6 +80,9 @@ export function ProjectEditor({
       </div>
 
       <AdminField label="Tóm tắt dự án" value={work.summary} multiline rows={5} onChange={(summary) => onChange({ summary })} />
+      </section> : null}
+
+      {section === "media" ? <section className="space-y-5" aria-label="Ảnh và video dự án">
       <AdminImageField label="Ảnh bìa dự án" value={work.coverImage} folder="thiet-bi-gia/projects" onChange={(coverImage) => onChange({ coverImage })} />
       <section className="space-y-3 rounded-2xl border border-white/10 p-4">
         <div><h3 className="font-display text-lg font-bold">Album ảnh hiển thị bên dưới</h3><p className="mt-1 text-xs text-ivory-muted">Thêm một link thư mục để website tự lấy ảnh và xếp thành lưới sát nhau, giữ đúng tỷ lệ ảnh ngang/dọc. Ảnh bìa phía trên vẫn là một ảnh riêng.</p></div>
@@ -64,9 +99,14 @@ export function ProjectEditor({
       <AdminField label="Ảnh trước hậu kỳ (tùy chọn)" value={work.beforeImage ?? ""} onChange={(beforeImage) => onChange({ beforeImage: beforeImage || undefined })} />
       <AdminField label="Link video YouTube" value={work.videoEmbedUrl ?? ""} onChange={(videoEmbedUrl) => onChange({ videoEmbedUrl: videoEmbedUrl || undefined })} hint="Dán link watch, Shorts hoặc youtu.be. Website sẽ nhúng player trong trang dự án." />
       {work.videoEmbedUrl && !toYoutubeEmbedUrl(work.videoEmbedUrl) ? <p className="text-xs text-amber-300">Link YouTube chưa hợp lệ; kiểm tra trước khi lưu.</p> : null}
+      </section> : null}
+
+      {section === "details" ? <section className="space-y-5" aria-label="Ghi chú hậu trường">
       <AdminStringListField label="Ghi chú hậu trường" value={work.btsNotes} onChange={(btsNotes) => onChange({ btsNotes })} placeholder="Nhập ghi chú hậu trường" addLabel="THÊM GHI CHÚ" reorderable />
       <AdminStringListField label="Thiết bị sử dụng" value={work.gearUsed} onChange={(gearUsed) => onChange({ gearUsed })} placeholder="Nhập thiết bị sử dụng" addLabel="THÊM THIẾT BỊ" reorderable />
+      </section> : null}
 
+      {section === "crew" ? (
       <section className="space-y-3 rounded-2xl border border-white/10 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -96,6 +136,7 @@ export function ProjectEditor({
           </div>
         ))}
       </section>
+      ) : null}
     </div>
   );
 }

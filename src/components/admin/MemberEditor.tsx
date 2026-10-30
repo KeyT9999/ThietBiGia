@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { FolderKanban, IdCard, Image as ImageIcon, KeyRound, Trash2 } from "lucide-react";
 import type { CrewMember, WorkProject } from "@/data/schema";
 import { AdminField, AdminImageField, AdminStringListField } from "./AdminFields";
 import { MemberProjectsEditor } from "./MemberProjectsEditor";
@@ -34,6 +34,7 @@ export function MemberEditor({
   onDelete: () => void;
 }) {
   const [badgeNumberDraft, setBadgeNumberDraft] = useState(member.badgeNumber);
+  const [section, setSection] = useState<"profile" | "media" | "projects" | "account">("profile");
 
   useEffect(() => {
     setBadgeNumberDraft(member.badgeNumber);
@@ -61,8 +62,22 @@ export function MemberEditor({
         </button>
       </div>
 
-      <MemberAccountTools memberId={member.id} slug={member.slug} canManage={accountCanManage} />
+      <nav aria-label="Công cụ thành viên" className="grid grid-cols-2 gap-2">
+        {([
+          { id: "profile", label: "Hồ sơ", detail: "Tên, vai trò, giới thiệu", icon: IdCard },
+          { id: "media", label: "Ảnh & liên hệ", detail: "Ảnh thẻ, mạng xã hội", icon: ImageIcon },
+          { id: "projects", label: "Dự án", detail: "Bài cá nhân và dự án chung", icon: FolderKanban },
+          { id: "account", label: "Tài khoản", detail: "Đăng nhập và mật khẩu", icon: KeyRound },
+        ] as const).map((item) => {
+          const Icon = item.icon;
+          return <button key={item.id} type="button" onClick={() => setSection(item.id)} aria-current={section === item.id ? "page" : undefined} className={"flex min-w-0 items-start gap-3 rounded-xl border px-3 py-3 text-left transition sm:px-4 " + (section === item.id ? "border-rec/60 bg-rec/10" : "border-white/10 bg-obsidian/50 hover:border-white/25")}>
+            <Icon className={"mt-0.5 h-4 w-4 shrink-0 " + (section === item.id ? "text-rec" : "text-ivory-subtle")} aria-hidden="true" />
+            <span className="min-w-0"><span className="block text-sm font-semibold text-ivory">{item.label}</span><span className="mt-1 hidden text-xs text-ivory-subtle sm:block">{item.detail}</span></span>
+          </button>;
+        })}
+      </nav>
 
+      {section === "profile" ? <section className="space-y-5" aria-label="Thông tin hồ sơ">
       <div className="grid gap-4 sm:grid-cols-2">
         <AdminField label="Tên hiển thị" value={member.name} onChange={(name) => onChange({ name })} />
         <AdminField label="Nickname" value={member.nickname ?? ""} onChange={(nickname) => onChange({ nickname: nickname || undefined })} />
@@ -111,6 +126,9 @@ export function MemberEditor({
       <AdminStringListField label="Vai trò phụ" value={member.secondaryRoles} onChange={(secondaryRoles) => onChange({ secondaryRoles })} placeholder="Ví dụ: Camera Operator" addLabel="THÊM VAI TRÒ" reorderable />
       <AdminField label="Giới thiệu cá nhân" value={member.bio} multiline rows={6} onChange={(bio) => onChange({ bio })} />
       <AdminStringListField label="Gear yêu thích" value={member.favoriteGear} onChange={(favoriteGear) => onChange({ favoriteGear })} placeholder="Ví dụ: Sony FX6" addLabel="THÊM THIẾT BỊ" reorderable />
+      </section> : null}
+
+      {section === "media" ? <section className="space-y-5" aria-label="Ảnh và liên hệ">
       <AdminImageField label="Ảnh đại diện" value={member.avatar} folder="thiet-bi-gia/members" onChange={(avatar) => onChange({ avatar })} />
       <AdminImageField label="Ảnh khi rê chuột vào thẻ" value={member.avatarAlt ?? ""} folder="thiet-bi-gia/members" onChange={(avatarAlt) => onChange({ avatarAlt: avatarAlt || undefined })} />
       <p className="-mt-3 text-xs text-ivory-subtle">Ảnh này thay ảnh đại diện khi khách rê chuột lên thẻ thành viên ở trang Đội ngũ. Để trống nếu không cần hiệu ứng đổi ảnh.</p>
@@ -121,8 +139,10 @@ export function MemberEditor({
         <AdminField label="Facebook URL" value={member.socials.facebook ?? ""} onChange={(value) => onChange({ socials: { ...member.socials, facebook: value || undefined } })} />
         <AdminField label="Email" type="email" value={member.socials.email ?? ""} onChange={(value) => onChange({ socials: { ...member.socials, email: value || undefined } })} />
       </div>
+      </section> : null}
 
-      <MemberProjectsEditor member={member} works={works} crew={crew} onChange={onChange} />
+      {section === "projects" ? <MemberProjectsEditor member={member} works={works} crew={crew} onChange={onChange} /> : null}
+      {section === "account" ? <MemberAccountTools memberId={member.id} slug={member.slug} canManage={accountCanManage} /> : null}
     </div>
   );
 }

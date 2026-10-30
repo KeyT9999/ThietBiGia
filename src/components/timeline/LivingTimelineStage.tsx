@@ -14,6 +14,7 @@ import { MemberContextPills } from "./MemberContextPills";
 import { NLEScrubberRuler } from "./NLEScrubberRuler";
 import { DecoderText } from "@/components/layout/DecoderText";
 import { soundEngine } from "@/lib/sound";
+import { getHome3DWorks } from "@/lib/home-3d-works";
 
 gsap.registerPlugin(Observer);
 
@@ -28,7 +29,7 @@ const TimelineCarousel3DView = dynamic(
 export function LivingTimelineStage() {
   const siteContent = useSiteContent();
   const crewMembers = siteContent.crew;
-  const workProjects = siteContent.works;
+  const workProjects = getHome3DWorks(siteContent.works);
   const stageRef = useRef<HTMLDivElement>(null);
   const carouselGestureAreaRef = useRef<HTMLDivElement>(null);
   const carouselGestureStartedInsideRef = useRef(false);
@@ -64,7 +65,7 @@ export function LivingTimelineStage() {
         timelineMotion.currentIndex = idx;
         timelineMotion.targetIndex = idx;
       }
-    } else if (reqMode === "works") {
+    } else if (reqMode === "works" && workProjects.length > 0) {
       useAppStore.getState().setTimelineMode("works", 0);
       timelineMotion.currentIndex = 0;
       timelineMotion.targetIndex = 0;
@@ -200,10 +201,12 @@ export function LivingTimelineStage() {
 
           <button
             type="button"
+            disabled={workProjects.length === 0}
+            title={workProjects.length === 0 ? "Chưa có dự án nào bật thẻ 3D" : undefined}
             onClick={() => {
               if (isCrewMode) setTimelineMode("works", 0);
             }}
-            className={`inline-flex items-center gap-1 px-2.5 sm:px-3.5 py-1.5 rounded-full text-[10px] sm:text-xs font-mono transition-all ${
+            className={`inline-flex items-center gap-1 px-2.5 sm:px-3.5 py-1.5 rounded-full text-[10px] sm:text-xs font-mono transition-all disabled:cursor-not-allowed disabled:opacity-45 ${
               !isCrewMode
                 ? "bg-rec text-obsidian font-bold shadow-[0_0_18px_rgba(255,77,0,0.4)]"
                 : "text-ivory-muted hover:text-ivory"

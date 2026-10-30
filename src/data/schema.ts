@@ -61,6 +61,7 @@ export const WorkProjectSchema = z.object({
   category: z.string(),
   year: z.string(),
   durationTimecode: z.string(),
+  showOnHome3D: z.boolean().optional(),
   coverImage: z.string(),
   accentColor: z.string(),
   cameraSpec: z.string(),

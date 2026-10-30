@@ -6,6 +6,7 @@ import { GEAR_ARSENAL } from "@/data/gear";
 import { FILM_STRIP_MOMENTS, GROUP_MOMENTS } from "@/data/moments";
 import type { SiteContent } from "@/lib/content-schema";
 import { normalizeCrewOrder } from "@/lib/crew-order";
+import { getHome3DWorks } from "@/lib/home-3d-works";
 import { soundEngine } from "./sound";
 
 export const timelineMotion = {
@@ -129,8 +130,11 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     );
 
     const current = get();
-    const totalWorks =
-      current.timelineMode === "crew" ? content.crew.length : content.works.length;
+    const home3DWorks = getHome3DWorks(content.works);
+    const timelineMode = current.timelineMode === "works" && home3DWorks.length === 0
+      ? "crew"
+      : current.timelineMode;
+    const totalWorks = timelineMode === "crew" ? content.crew.length : home3DWorks.length;
     const activeWorkIndex = Math.min(
       Math.max(0, current.activeWorkIndex),
       Math.max(0, totalWorks - 1)
@@ -146,6 +150,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         gear: GEAR_ARSENAL,
         moments: GROUP_MOMENTS,
       },
+      timelineMode,
       totalWorks,
       activeWorkIndex,
     });
@@ -153,15 +158,16 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
   setTimelineMode: (mode, initialIndex = 0) => {
     const content = get().siteContent;
-    const nextTotal =
-      mode === "crew" ? content.crew.length : content.works.length;
+    const home3DCount = getHome3DWorks(content.works).length;
+    const nextMode = mode === "works" && home3DCount === 0 ? "crew" : mode;
+    const nextTotal = nextMode === "crew" ? content.crew.length : home3DCount;
     const clamped = Math.max(0, Math.min(Math.max(0, nextTotal - 1), initialIndex));
     timelineMotion.targetIndex = clamped;
     timelineMotion.currentIndex = clamped;
     deferTimelineAutoplay();
     soundEngine.playShutter();
     set({
-      timelineMode: mode,
+      timelineMode: nextMode,
       totalWorks: nextTotal,
       activeWorkIndex: clamped,
     });

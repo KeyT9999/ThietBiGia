@@ -16,6 +16,7 @@ import {
 } from "@/lib/store";
 import { getRoleMeta } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
+import { getHome3DWorks } from "@/lib/home-3d-works";
 import {
   getYoutubePreviewUrl,
   getYoutubeThumbnailUrl,
@@ -1150,7 +1151,7 @@ function WorkCardMesh({
 function CarouselRig({ active }: { active: boolean }) {
   const siteContent = useSiteContent();
   const crewMembers = siteContent.crew;
-  const workProjects = siteContent.works;
+  const workProjects = getHome3DWorks(siteContent.works);
   const router = useRouter();
   const rigRef = useRef<THREE.Group>(null!);
   const timelineMode = useAppStore((s) => s.timelineMode);

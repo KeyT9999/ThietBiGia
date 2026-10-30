@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, Check, LogOut, Plus, Save, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Clapperboard, Home, Images, LogOut, Plus, Save, Search, Settings2, Users } from "lucide-react";
 import type { CrewMember, WorkProject } from "@/data/schema";
 import type { SiteContent } from "@/lib/content-schema";
 import { useSetSiteContent } from "@/lib/store";
@@ -15,12 +15,12 @@ import { ProjectEditor } from "./ProjectEditor";
 import { moveCrewMemberToBadgeNumber, normalizeCrewOrder } from "@/lib/crew-order";
 
 type Tab = "home" | "members" | "projects" | "about" | "settings";
-const tabs: { id: Tab; label: string }[] = [
-  { id: "home", label: "Trang chủ" },
-  { id: "members", label: "Thành viên" },
-  { id: "projects", label: "Dự án" },
-  { id: "about", label: "About & kho ảnh" },
-  { id: "settings", label: "Cài đặt website" },
+const tabs = [
+  { id: "home", label: "Trang chủ", description: "Lời giới thiệu & media", icon: Home },
+  { id: "members", label: "Thành viên", description: "Hồ sơ & tài khoản", icon: Users },
+  { id: "projects", label: "Dự án", description: "Nội dung & thứ tự", icon: Clapperboard },
+  { id: "about", label: "About & kho ảnh", description: "Câu chuyện & tư liệu", icon: Images },
+  { id: "settings", label: "Cài đặt website", description: "Thương hiệu & liên hệ", icon: Settings2 },
 ];
 
 export function AdminDashboard() {
@@ -28,6 +28,7 @@ export function AdminDashboard() {
   const updateSiteContent = useSetSiteContent();
   const [content, setContent] = useState<SiteContent | null>(null);
   const [tab, setTab] = useState<Tab>("home");
+  const [aboutPanel, setAboutPanel] = useState<"story" | "gear" | "moments">("story");
   const [memberId, setMemberId] = useState("");
   const [workId, setWorkId] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
@@ -170,6 +171,7 @@ export function AdminDashboard() {
       id: "work-" + Date.now(), indexLabel: number, slug: "du-an-moi-" + number,
       title: "Dự án mới", clientOrSeries: "Thiết Bị Gia", category: "Quay phim & Nhiếp ảnh",
       year: String(new Date().getFullYear()), durationTimecode: "00:00:00:00",
+      showOnHome3D: false,
       coverImage: "/media/works/work-01.jpg", accentColor: "#FF4D00", cameraSpec: "",
       summary: "", galleryImages: [], btsNotes: [], gearUsed: [], credits: [],
     };
@@ -310,22 +312,47 @@ export function AdminDashboard() {
         {notice ? <div className="mb-5 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200"><Check className="h-4 w-4" />{notice}</div> : null}
 
         <div className="grid gap-6 lg:grid-cols-[230px_minmax(0,1fr)]">
-          <nav className="flex gap-2 overflow-x-auto lg:flex-col lg:overflow-visible">
-            {tabs.map((item) => <button key={item.id} type="button" onClick={() => setTab(item.id)} className={"shrink-0 rounded-xl px-4 py-3 text-left text-sm transition " + (tab === item.id ? "bg-rec font-bold text-obsidian" : "border border-white/10 bg-white/[0.025] text-ivory-muted hover:text-ivory")}>{item.label}</button>)}
+          <nav aria-label="Khu vực quản trị" className="grid grid-cols-2 gap-2 self-start sm:grid-cols-3 lg:sticky lg:top-24 lg:flex lg:flex-col">
+            {tabs.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setTab(item.id as Tab)}
+                  aria-current={tab === item.id ? "page" : undefined}
+                  className={"flex min-w-0 items-center gap-2 rounded-xl border px-3 py-3 text-left transition sm:gap-3 lg:px-4 " + (tab === item.id ? "border-rec/60 bg-rec/10 text-ivory shadow-[inset_3px_0_0_#ff4d00]" : "border-white/10 bg-obsidian-surface text-ivory-muted hover:border-white/25 hover:text-ivory")}
+                >
+                  <Icon className={"h-4 w-4 shrink-0 " + (tab === item.id ? "text-rec" : "text-ivory-subtle")} aria-hidden="true" />
+                  <span className="min-w-0">
+                    <span className="block text-xs font-semibold sm:text-sm">{item.label}</span>
+                    <span className="mt-0.5 hidden text-[11px] text-ivory-subtle lg:block">{item.description}</span>
+                  </span>
+                </button>
+              );
+            })}
           </nav>
 
           <section className="min-w-0 space-y-5">
             {tab === "home" ? (
-              <div className="grid gap-5 rounded-3xl border border-white/10 bg-obsidian-surface p-5 sm:p-7">
-                <div><h2 className="font-display text-2xl font-bold">Giới thiệu trang chủ</h2><p className="mt-1 text-sm text-ivory-muted">Phần mở đầu mà khách truy cập nhìn thấy đầu tiên.</p></div>
-                <AdminField label="Eyebrow" value={home.eyebrow} onChange={(eyebrow) => update("homepage", { ...home, eyebrow })} />
-                <AdminField label="Tiêu đề" value={home.title} onChange={(title) => update("homepage", { ...home, title })} />
-                <AdminField label="Lời giới thiệu" value={home.description} multiline rows={5} onChange={(description) => update("homepage", { ...home, description })} />
-                <AdminField label="Nhãn nút xem đội ngũ" value={home.ctaLabel} onChange={(ctaLabel) => update("homepage", { ...home, ctaLabel })} />
-                <label className="block space-y-1.5"><span className="text-xs font-mono font-semibold uppercase tracking-wide text-ivory-muted">Media giới thiệu</span><select value={home.heroMediaType} onChange={(event) => update("homepage", { ...home, heroMediaType: event.target.value as "image" | "youtube" })} className="w-full rounded-xl border border-white/10 bg-obsidian px-3.5 py-3 text-sm text-ivory"><option value="image">Ảnh Cloudinary</option><option value="youtube">Video YouTube</option></select></label>
-                {home.heroMediaType === "image" ? <AdminImageField label="Ảnh nhóm" value={home.heroMediaUrl} folder="thiet-bi-gia/home" onChange={(heroMediaUrl) => update("homepage", { ...home, heroMediaUrl })} /> : <AdminField label="Link video YouTube" value={home.heroMediaUrl} onChange={(heroMediaUrl) => update("homepage", { ...home, heroMediaUrl })} hint="Dán link watch, Shorts hoặc youtu.be." />}
-                {home.heroMediaType === "youtube" && home.heroMediaUrl && !toYoutubeEmbedUrl(home.heroMediaUrl) ? <p className="text-xs text-amber-300">Link chưa đúng định dạng YouTube.</p> : null}
-                <AdminField label="Mô tả ảnh/video" value={home.heroMediaAlt} onChange={(heroMediaAlt) => update("homepage", { ...home, heroMediaAlt })} />
+              <div className="rounded-3xl border border-white/10 bg-obsidian-surface p-5 sm:p-7">
+                <div className="mb-6"><h2 className="font-display text-2xl font-bold">Giới thiệu trang chủ</h2><p className="mt-1 text-sm text-ivory-muted">Phần mở đầu mà khách truy cập nhìn thấy đầu tiên.</p></div>
+                <div className="grid gap-7 2xl:grid-cols-2">
+                  <section className="space-y-4" aria-label="Chữ giới thiệu">
+                    <h3 className="border-b border-white/10 pb-2 text-sm font-semibold text-ivory">Chữ giới thiệu</h3>
+                    <AdminField label="Dòng nhãn" value={home.eyebrow} onChange={(eyebrow) => update("homepage", { ...home, eyebrow })} />
+                    <AdminField label="Tiêu đề" value={home.title} onChange={(title) => update("homepage", { ...home, title })} />
+                    <AdminField label="Lời giới thiệu" value={home.description} multiline rows={5} onChange={(description) => update("homepage", { ...home, description })} />
+                    <AdminField label="Nhãn nút xem đội ngũ" value={home.ctaLabel} onChange={(ctaLabel) => update("homepage", { ...home, ctaLabel })} />
+                  </section>
+                  <section className="space-y-4" aria-label="Ảnh và video giới thiệu">
+                    <h3 className="border-b border-white/10 pb-2 text-sm font-semibold text-ivory">Ảnh hoặc video giới thiệu</h3>
+                    <label className="block space-y-1.5"><span className="text-xs font-mono font-semibold uppercase tracking-wide text-ivory-muted">Loại media</span><select value={home.heroMediaType} onChange={(event) => update("homepage", { ...home, heroMediaType: event.target.value as "image" | "youtube" })} className="w-full rounded-xl border border-white/10 bg-obsidian px-3.5 py-3 text-sm text-ivory"><option value="image">Ảnh Cloudinary</option><option value="youtube">Video YouTube</option></select></label>
+                    {home.heroMediaType === "image" ? <AdminImageField label="Ảnh nhóm" value={home.heroMediaUrl} folder="thiet-bi-gia/home" onChange={(heroMediaUrl) => update("homepage", { ...home, heroMediaUrl })} /> : <AdminField label="Link video YouTube" value={home.heroMediaUrl} onChange={(heroMediaUrl) => update("homepage", { ...home, heroMediaUrl })} hint="Dán link watch, Shorts hoặc youtu.be." />}
+                    {home.heroMediaType === "youtube" && home.heroMediaUrl && !toYoutubeEmbedUrl(home.heroMediaUrl) ? <p className="text-xs text-amber-300">Link chưa đúng định dạng YouTube.</p> : null}
+                    <AdminField label="Mô tả ảnh/video" value={home.heroMediaAlt} onChange={(heroMediaAlt) => update("homepage", { ...home, heroMediaAlt })} />
+                  </section>
+                </div>
               </div>
             ) : null}
 
@@ -334,8 +361,11 @@ export function AdminDashboard() {
                 <div className="space-y-3 rounded-3xl border border-white/10 bg-obsidian-surface p-4">
                   <div className="flex items-center justify-between gap-2"><h2 className="font-display text-xl font-bold">Thành viên ({content.crew.length})</h2><button type="button" onClick={addMember} className="rounded-lg bg-rec p-2 text-obsidian" title="Thêm thành viên"><Plus className="h-4 w-4" /></button></div>
                   <p className="text-xs text-ivory-subtle">Danh sách được sắp theo số thẻ.</p>
-                  <label className="relative block"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ivory-subtle" /><input value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="Tìm tên, số thẻ, vai trò..." aria-label="Tìm thành viên" className="w-full rounded-xl border border-white/10 bg-obsidian py-2.5 pl-9 pr-3 text-sm text-ivory outline-none placeholder:text-ivory-subtle focus:border-rec" /></label>
-                  <div className="max-h-[65vh] space-y-1 overflow-y-auto">{filteredMembers.map((item) => <button key={item.id} type="button" onClick={() => setMemberId(item.id)} className={"w-full rounded-lg px-3 py-2 text-left text-sm " + (item.id === memberId ? "bg-white/10 text-ivory" : "text-ivory-muted hover:bg-white/5 hover:text-ivory")}><span className="font-mono text-[10px] text-rec">#{item.badgeNumber}</span><span className="ml-2">{item.name}</span></button>)}{filteredMembers.length === 0 ? <p className="rounded-lg px-3 py-4 text-sm text-ivory-subtle">Không tìm thấy thành viên.</p> : null}</div>
+                  <select aria-label="Chọn thành viên để chỉnh sửa" value={memberId} onChange={(event) => setMemberId(event.target.value)} className="w-full rounded-xl border border-white/10 bg-obsidian px-3 py-3 text-sm text-ivory xl:hidden">
+                    {content.crew.map((item) => <option key={item.id} value={item.id}>#{item.badgeNumber} · {item.name}</option>)}
+                  </select>
+                  <label className="relative hidden xl:block"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ivory-subtle" /><input value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="Tìm tên, số thẻ, vai trò..." aria-label="Tìm thành viên" className="w-full rounded-xl border border-white/10 bg-obsidian py-2.5 pl-9 pr-3 text-sm text-ivory outline-none placeholder:text-ivory-subtle focus:border-rec" /></label>
+                  <div className="hidden max-h-[65vh] space-y-1 overflow-y-auto xl:block">{filteredMembers.map((item) => <button key={item.id} type="button" onClick={() => setMemberId(item.id)} className={"w-full rounded-lg px-3 py-2 text-left text-sm " + (item.id === memberId ? "bg-white/10 text-ivory" : "text-ivory-muted hover:bg-white/5 hover:text-ivory")}><span className="font-mono text-[10px] text-rec">#{item.badgeNumber}</span><span className="ml-2">{item.name}</span></button>)}{filteredMembers.length === 0 ? <p className="rounded-lg px-3 py-4 text-sm text-ivory-subtle">Không tìm thấy thành viên.</p> : null}</div>
                 </div>
                 {member ? <MemberEditor member={member} memberCount={content.crew.length} works={content.works} crew={content.crew} canDelete={content.crew.length > 1} accountCanManage={savedMemberIds.includes(member.id)} onChange={(patch) => updateMember(member.id, patch)} onDelete={deleteMember} /> : null}
               </div>
@@ -346,15 +376,23 @@ export function AdminDashboard() {
                 <div className="space-y-3 rounded-3xl border border-white/10 bg-obsidian-surface p-4">
                   <div className="flex items-center justify-between gap-2"><h2 className="font-display text-xl font-bold">Dự án chung ({content.works.length})</h2><button type="button" onClick={addWork} className="rounded-lg bg-rec p-2 text-obsidian" title="Thêm dự án chung"><Plus className="h-4 w-4" /></button></div>
                   <p className="text-xs leading-relaxed text-ivory-subtle">Dùng mũi tên để đổi thứ tự xuất hiện trên trang dự án và timeline.</p>
-                  <label className="relative block"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ivory-subtle" /><input value={workSearch} onChange={(event) => setWorkSearch(event.target.value)} placeholder="Tìm tên, khách hàng, năm..." aria-label="Tìm dự án" className="w-full rounded-xl border border-white/10 bg-obsidian py-2.5 pl-9 pr-3 text-sm text-ivory outline-none placeholder:text-ivory-subtle focus:border-rec" /></label>
-                  <div className="max-h-[65vh] space-y-1 overflow-y-auto">
+                  <div className="flex gap-2 xl:hidden">
+                    <select aria-label="Chọn dự án để chỉnh sửa" value={workId} onChange={(event) => setWorkId(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-white/10 bg-obsidian px-3 py-3 text-sm text-ivory">
+                      {content.works.map((item) => <option key={item.id} value={item.id}>{item.indexLabel} · {item.title}{item.showOnHome3D === false ? " · Ẩn 3D" : " · Hiện 3D"}</option>)}
+                    </select>
+                    <button type="button" disabled={!work || content.works[0]?.id === workId} onClick={() => moveWork(workId, -1)} aria-label="Đưa dự án đang chọn lên" className="rounded-xl border border-white/10 px-2 text-ivory-muted disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
+                    <button type="button" disabled={!work || content.works[content.works.length - 1]?.id === workId} onClick={() => moveWork(workId, 1)} aria-label="Đưa dự án đang chọn xuống" className="rounded-xl border border-white/10 px-2 text-ivory-muted disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
+                  </div>
+                  <label className="relative hidden xl:block"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ivory-subtle" /><input value={workSearch} onChange={(event) => setWorkSearch(event.target.value)} placeholder="Tìm tên, khách hàng, năm..." aria-label="Tìm dự án" className="w-full rounded-xl border border-white/10 bg-obsidian py-2.5 pl-9 pr-3 text-sm text-ivory outline-none placeholder:text-ivory-subtle focus:border-rec" /></label>
+                  <div className="hidden max-h-[65vh] space-y-1 overflow-y-auto xl:block">
                     {filteredWorks.map((item) => {
                       const orderIndex = content.works.findIndex((candidate) => candidate.id === item.id);
                       return (
                         <div key={item.id} className="flex items-center gap-1">
                           <button type="button" onClick={() => setWorkId(item.id)} className={"min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm " + (item.id === workId ? "bg-white/10 text-ivory" : "text-ivory-muted hover:bg-white/5 hover:text-ivory")}>
                             <span className="font-mono text-[10px] text-rec">{item.indexLabel}</span>
-                            <span className="ml-2">{item.title}</span>
+                            <span className="mt-1 line-clamp-2 leading-snug">{item.title}</span>
+                            <span className={"mt-1 block w-fit rounded px-1.5 py-0.5 text-[10px] font-mono " + (item.showOnHome3D === false ? "bg-white/5 text-ivory-subtle" : "bg-rec/15 text-rec")}>{item.showOnHome3D === false ? "ẨN KHỎI 3D" : "HIỆN 3D"}</span>
                           </button>
                           <div className="flex shrink-0 flex-col gap-1">
                             <button type="button" disabled={orderIndex === 0} onClick={() => moveWork(item.id, -1)} aria-label={`Đưa dự án ${item.title} lên`} title="Đưa lên trước" className="rounded border border-white/10 p-1.5 text-ivory-muted hover:border-rec hover:text-ivory disabled:cursor-not-allowed disabled:opacity-30"><ArrowUp className="h-3 w-3" /></button>
@@ -372,31 +410,51 @@ export function AdminDashboard() {
 
             {tab === "about" ? (
               <div className="space-y-5">
-                <div className="grid gap-4 rounded-3xl border border-white/10 bg-obsidian-surface p-5 sm:p-7">
+                <div className="grid gap-2 sm:grid-cols-3" role="tablist" aria-label="Nội dung About">
+                  {([
+                    { id: "story", title: "Câu chuyện", detail: "Giới thiệu nhóm" },
+                    { id: "gear", title: "Kho thiết bị", detail: `${content.gear.length} nhóm thiết bị` },
+                    { id: "moments", title: "Album kỷ niệm", detail: `${content.moments.length} ảnh` },
+                  ] as const).map((item) => (
+                    <button key={item.id} type="button" role="tab" aria-selected={aboutPanel === item.id} onClick={() => setAboutPanel(item.id)} className={"rounded-xl border px-4 py-3 text-left transition " + (aboutPanel === item.id ? "border-rec/60 bg-rec/10" : "border-white/10 bg-obsidian-surface hover:border-white/25")}>
+                      <span className="block text-sm font-semibold text-ivory">{item.title}</span>
+                      <span className="mt-1 block text-xs text-ivory-subtle">{item.detail}</span>
+                    </button>
+                  ))}
+                </div>
+                {aboutPanel === "story" ? <div className="grid gap-4 rounded-3xl border border-white/10 bg-obsidian-surface p-5 sm:p-7">
                   <h2 className="font-display text-2xl font-bold">Nội dung About</h2>
                   <AdminField label="Tiêu đề" value={content.about.title} onChange={(title) => update("about", { ...content.about, title })} />
                   <AdminField label="Giới thiệu" value={content.about.introduction} multiline rows={4} onChange={(introduction) => update("about", { ...content.about, introduction })} />
                   <AdminField label="Tiêu đề câu chuyện" value={content.about.storyTitle} onChange={(storyTitle) => update("about", { ...content.about, storyTitle })} />
                   <AdminField label="Câu chuyện" value={content.about.storyBody} multiline rows={4} onChange={(storyBody) => update("about", { ...content.about, storyBody })} />
-                </div>
-                <GearManager categories={content.gear} onChange={(gear) => update("gear", gear)} />
-                <GroupMomentsManager moments={content.moments} crew={content.crew} onChange={(moments) => update("moments", moments)} />
+                </div> : null}
+                {aboutPanel === "gear" ? <GearManager categories={content.gear} onChange={(gear) => update("gear", gear)} /> : null}
+                {aboutPanel === "moments" ? <GroupMomentsManager moments={content.moments} crew={content.crew} onChange={(moments) => update("moments", moments)} /> : null}
               </div>
             ) : null}
 
             {tab === "settings" ? (
-              <div className="grid gap-4 rounded-3xl border border-white/10 bg-obsidian-surface p-5 sm:p-7">
+              <div className="space-y-6 rounded-3xl border border-white/10 bg-obsidian-surface p-5 sm:p-7">
                 <h2 className="font-display text-2xl font-bold">Cài đặt website</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <AdminField label="Tên thương hiệu" value={content.settings.brandName} onChange={(brandName) => update("settings", { ...content.settings, brandName })} />
-                  <AdminField label="Dòng mô tả thương hiệu" value={content.settings.brandSubtitle} onChange={(brandSubtitle) => update("settings", { ...content.settings, brandSubtitle })} />
-                  <AdminField label="Email liên hệ" type="email" value={content.settings.contactEmail} onChange={(contactEmail) => update("settings", { ...content.settings, contactEmail })} />
-                  <AdminField label="Điện thoại" value={content.settings.phone} onChange={(phone) => update("settings", { ...content.settings, phone })} />
-                  <AdminField label="Địa điểm" value={content.settings.location} onChange={(location) => update("settings", { ...content.settings, location })} />
-                  <AdminField label="Instagram" value={content.settings.instagramUrl} onChange={(instagramUrl) => update("settings", { ...content.settings, instagramUrl })} />
-                  <AdminField label="Facebook" value={content.settings.facebookUrl} onChange={(facebookUrl) => update("settings", { ...content.settings, facebookUrl })} />
+                <div className="grid gap-7 2xl:grid-cols-2">
+                  <section className="space-y-4" aria-label="Thương hiệu và mô tả tìm kiếm">
+                    <h3 className="border-b border-white/10 pb-2 text-sm font-semibold">Thương hiệu</h3>
+                    <AdminField label="Tên thương hiệu" value={content.settings.brandName} onChange={(brandName) => update("settings", { ...content.settings, brandName })} />
+                    <AdminField label="Dòng mô tả thương hiệu" value={content.settings.brandSubtitle} onChange={(brandSubtitle) => update("settings", { ...content.settings, brandSubtitle })} />
+                    <AdminField label="Mô tả SEO" value={content.settings.siteDescription} multiline rows={3} onChange={(siteDescription) => update("settings", { ...content.settings, siteDescription })} />
+                  </section>
+                  <section className="space-y-4" aria-label="Thông tin liên hệ">
+                    <h3 className="border-b border-white/10 pb-2 text-sm font-semibold">Liên hệ và mạng xã hội</h3>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <AdminField label="Email liên hệ" type="email" value={content.settings.contactEmail} onChange={(contactEmail) => update("settings", { ...content.settings, contactEmail })} />
+                      <AdminField label="Điện thoại" value={content.settings.phone} onChange={(phone) => update("settings", { ...content.settings, phone })} />
+                      <AdminField label="Địa điểm" value={content.settings.location} onChange={(location) => update("settings", { ...content.settings, location })} />
+                      <AdminField label="Instagram" value={content.settings.instagramUrl} onChange={(instagramUrl) => update("settings", { ...content.settings, instagramUrl })} />
+                      <AdminField label="Facebook" value={content.settings.facebookUrl} onChange={(facebookUrl) => update("settings", { ...content.settings, facebookUrl })} />
+                    </div>
+                  </section>
                 </div>
-                <AdminField label="Mô tả SEO" value={content.settings.siteDescription} multiline rows={3} onChange={(siteDescription) => update("settings", { ...content.settings, siteDescription })} />
                 <details className="rounded-xl border border-white/10 p-4"><summary className="cursor-pointer text-sm font-semibold">Nhãn điều hướng</summary><div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <AdminField label="Trang chủ" value={content.settings.navTimelineLabel} onChange={(navTimelineLabel) => update("settings", { ...content.settings, navTimelineLabel })} />
                   <AdminField label="Dự án" value={content.settings.navProjectsLabel} onChange={(navProjectsLabel) => update("settings", { ...content.settings, navProjectsLabel })} />
