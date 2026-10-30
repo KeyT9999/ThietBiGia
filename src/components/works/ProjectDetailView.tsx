@@ -444,7 +444,12 @@ export function ProjectDetailView({
                     />
                   </div>
 
-                  <aside className="min-h-0 overflow-y-auto overscroll-contain border-t border-obsidian-border p-4 sm:p-6 lg:border-l lg:border-t-0">
+                  <aside
+                    data-lenis-prevent
+                    className="min-h-0 overflow-y-auto overscroll-contain touch-pan-y border-t border-obsidian-border p-4 sm:p-6 lg:border-l lg:border-t-0"
+                    style={{ WebkitOverflowScrolling: "touch" }}
+                    aria-label="Thông tin dự án có thể cuộn"
+                  >
                     <div className="space-y-6">
                       <section className="space-y-2">
                         <p className="font-mono text-[10px] font-bold tracking-[0.2em] text-rec">TÓM TẮT DỰ ÁN</p>
