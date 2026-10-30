@@ -640,12 +640,7 @@ export function MemberSpotlightView({
 
                     {/* Uncropped Full-Frame Viewer with 2x Loupe Inspection */}
                     <div
-                      onClick={() => setLightboxZoomed((z) => !z)}
-                      className={`relative bg-obsidian flex-1 min-h-0 flex items-center justify-center p-3 ${
-                        lightboxZoomed
-                          ? "overflow-auto cursor-zoom-out"
-                          : "overflow-hidden cursor-zoom-in"
-                      }`}
+                      className={`relative bg-obsidian flex-1 min-h-0 flex items-center justify-center p-3 ${lightboxZoomed ? "overflow-auto" : "overflow-hidden"}`}
                     >
                       <img
                         src={lightboxGallery[lightboxPhotoIdx]}
@@ -655,10 +650,11 @@ export function MemberSpotlightView({
                       <img
                         src={lightboxGallery[lightboxPhotoIdx]}
                         alt={lightboxProject.title}
+                        onClick={() => setLightboxZoomed((z) => !z)}
                         className={`relative z-10 rounded-lg shadow-2xl transition-transform duration-300 ${
                           lightboxZoomed
-                            ? "max-h-none w-auto scale-150 sm:scale-[1.85]"
-                            : "max-h-[64dvh] w-auto max-w-full object-contain"
+                            ? "max-h-none w-auto scale-150 cursor-zoom-out sm:scale-[1.85]"
+                            : "max-h-[64dvh] w-auto max-w-full cursor-zoom-in object-contain"
                         }`}
                       />
 
@@ -666,7 +662,9 @@ export function MemberSpotlightView({
                         <>
                           <button
                             type="button"
-                            onClick={() => {
+                            aria-label="Ảnh trước"
+                            onClick={(event) => {
+                              event.stopPropagation();
                               soundEngine.playTick(0.85);
                               setLightboxPhotoIdx(
                                 (lightboxPhotoIdx - 1 + lightboxGallery.length) %
@@ -679,7 +677,9 @@ export function MemberSpotlightView({
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
+                            aria-label="Ảnh tiếp theo"
+                            onClick={(event) => {
+                              event.stopPropagation();
                               soundEngine.playTick(0.85);
                               setLightboxPhotoIdx(
                                 (lightboxPhotoIdx + 1) % lightboxGallery.length
@@ -694,31 +694,36 @@ export function MemberSpotlightView({
                     </div>
 
                     {/* Thumbnails & Description Footer */}
-                    <div className="p-4 border-t border-obsidian-border space-y-3 shrink-0">
+                    <div className="min-h-0 max-h-[42dvh] shrink-0 space-y-3 overflow-y-auto border-t border-obsidian-border p-4">
                       {driveAlbumLoading ? <p className="text-xs text-ivory-muted">Đang tải ảnh từ Google Drive…</p> : null}
                       {driveAlbumError ? <p role="status" className="text-xs leading-relaxed text-amber-200">{driveAlbumError}{legacyDriveFallback.length ? " Đang dùng ảnh album cũ." : ""}</p> : null}
                       {lightboxProject.galleryDriveFolderUrl && driveAlbumImages?.length === 0 && !driveAlbumLoading ? <p className="text-xs text-ivory-muted">Thư mục Drive chưa có ảnh.</p> : null}
                       {lightboxGallery.length > 1 && (
-                        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                        <div className="columns-2 gap-2 pr-1 sm:columns-3 sm:gap-3 lg:columns-4" aria-label="Lưới ảnh dự án">
                           {lightboxGallery.map((src, idx) => (
                             <button
                               key={src + idx}
                               type="button"
-                              onClick={() => {
+                              aria-label={`Mở ảnh ${idx + 1}`}
+                              onClick={(event) => {
+                                event.stopPropagation();
                                 soundEngine.playTick(0.75);
                                 setLightboxPhotoIdx(idx);
                               }}
-                              className={`w-16 h-12 rounded-md overflow-hidden border-2 shrink-0 transition-all ${
+                              className={`group relative mb-2 block w-full break-inside-avoid overflow-hidden rounded-lg border-2 transition-all sm:mb-3 ${
                                 idx === lightboxPhotoIdx
-                                  ? "border-rec scale-105"
-                                  : "border-obsidian-border opacity-55 hover:opacity-100"
+                                  ? "border-rec opacity-100"
+                                  : "border-obsidian-border opacity-70 hover:opacity-100"
                               }`}
                             >
                               <img
                                 src={src}
                                 alt=""
-                                className="w-full h-full object-cover object-[50%_20%]"
+                                loading="lazy"
+                                decoding="async"
+                                className="block h-auto w-full transition-transform duration-300 group-hover:scale-[1.02]"
                               />
+                              <span className="absolute bottom-1.5 right-1.5 rounded bg-obsidian/85 px-1.5 py-0.5 text-[10px] font-mono text-ivory">{String(idx + 1).padStart(2, "0")}</span>
                             </button>
                           ))}
                         </div>

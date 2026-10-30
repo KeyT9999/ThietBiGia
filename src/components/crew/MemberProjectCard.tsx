@@ -169,15 +169,11 @@ export function MemberProjectCard({
 
           {/* Floating Action Badges */}
           <div className="absolute top-3 left-3 right-3 z-30 flex items-center justify-between gap-2 pointer-events-none">
-            {project.galleryDriveFolderUrl ? (
-              <span className="px-2.5 py-1 rounded-md bg-obsidian/80 backdrop-blur-md border border-white/15 text-xs font-mono text-ivory/90">
-                ALBUM GOOGLE DRIVE
-              </span>
-            ) : frames.length > 1 ? (
+            {!project.galleryDriveFolderUrl && frames.length > 1 ? (
               <span className="px-2.5 py-1 rounded-md bg-obsidian/80 backdrop-blur-md border border-white/15 text-xs font-mono text-ivory/90">
                 RÊ CHUỘT ĐỂ LƯỚT {frames.length} ẢNH
               </span>
-            ) : (
+            ) : !project.galleryDriveFolderUrl ? (
               <span className="px-2.5 py-1 rounded-md bg-obsidian/80 backdrop-blur-md border border-white/15 text-xs font-mono text-ivory/90 inline-flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-rec" />
                 <span>SINGLE PRINT</span>
