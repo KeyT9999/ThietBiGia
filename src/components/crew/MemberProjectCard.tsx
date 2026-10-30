@@ -91,7 +91,9 @@ export function MemberProjectCard({
   const frames = project.galleryDriveFolderUrl
     ? drivePreviewFrames.length > 0 ? drivePreviewFrames : [project.coverImage]
     : project.frames.length > 0 ? project.frames : [project.coverImage];
-  const currentSrc = frames[activeFrame] ?? project.coverImage;
+  const currentSrc = project.galleryDriveFolderUrl && !isHovered
+    ? project.coverImage
+    : frames[activeFrame] ?? project.coverImage;
   const previewFrames = project.galleryDriveFolderUrl ? drivePreviewFrames : frames;
   const showFrameStrip = project.galleryDriveFolderUrl
     ? driveLoading || Boolean(driveError) || drivePreviewFrames.length > 0
@@ -137,7 +139,10 @@ export function MemberProjectCard({
   return (
     <article
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        if (project.galleryDriveFolderUrl) setActiveFrame(0);
+      }}
       className={`${
         cardSpan
       } rounded-2xl border border-obsidian-border hover:border-rec/65 bg-obsidian-surface overflow-hidden flex flex-col justify-between transition-all shadow-[0_12px_36px_rgba(0,0,0,0.35)] group`}
@@ -168,7 +173,9 @@ export function MemberProjectCard({
                 <span>
                   {project.galleryDriveFolderUrl
                     ? drivePreviewFrames.length > 0
-                      ? `${String(activeFrame + 1).padStart(2, "0")}/${String(drivePreviewFrames.length).padStart(2, "0")}${driveHasMore ? "+" : ""}`
+                      ? isHovered
+                        ? `${String(activeFrame + 1).padStart(2, "0")}/${String(drivePreviewFrames.length).padStart(2, "0")}${driveHasMore ? "+" : ""}`
+                        : "BÌA"
                       : "DRIVE"
                     : `${String(activeFrame + 1).padStart(2, "0")}/${String(frames.length).padStart(2, "0")}`}
                 </span>
@@ -186,7 +193,7 @@ export function MemberProjectCard({
                   className="h-1 flex-1 rounded-full transition-colors duration-200"
                   style={{
                     backgroundColor:
-                      idx === activeFrame
+                      idx === activeFrame && (!project.galleryDriveFolderUrl || isHovered)
                         ? project.accentColor
                         : "rgba(255,255,255,0.12)",
                   }}
@@ -265,7 +272,7 @@ export function MemberProjectCard({
               </span>
             )}
             {previewFrames.map((frameSrc, idx) => {
-              const isSelected = idx === activeFrame;
+              const isSelected = idx === activeFrame && (!project.galleryDriveFolderUrl || isHovered);
               return (
                 <button
                   key={frameSrc + idx}
