@@ -44,6 +44,7 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(
       process.env.NEXT_PUBLIC_SITE_URL ?? "https://thietbigia.vn"
     ),
+    icons: { icon: "/brand-logo.png", shortcut: "/brand-logo.png" },
     title: {
       default: brandName + " — " + (settings.brandSubtitle || "Creative Media Collective"),
       template: "%s | " + brandName,

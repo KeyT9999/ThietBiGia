@@ -9,6 +9,7 @@ import { useSetSiteContent } from "@/lib/store";
 import type { SiteContent } from "@/lib/content-schema";
 import { AdminField, AdminImageField, AdminStringListField } from "@/components/admin/AdminFields";
 import { MemberProjectsEditor } from "@/components/admin/MemberProjectsEditor";
+import { BrandLogo } from "@/components/layout/BrandLogo";
 
 type Section = "profile" | "projects" | "security";
 const sections: { id: Section; label: string; detail: string; icon: typeof CircleUserRound }[] = [
@@ -118,7 +119,7 @@ export function MemberWorkspace() {
       <div className="mx-auto max-w-7xl">
         <header className="mb-7 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-5">
           <div className="flex min-w-0 items-center gap-3">
-            <Link href="/" aria-label="Về trang chủ" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rec font-display text-xs font-extrabold text-obsidian">TBG</Link>
+            <Link href="/" aria-label="Về trang chủ Thiết Bị Gia" className="shrink-0 rounded-md"><BrandLogo /></Link>
             <div className="min-w-0"><p className="font-mono text-[10px] tracking-[0.2em] text-rec">THIẾT BỊ GIA / MEMBER STUDIO</p><h1 className="mt-1 truncate font-display text-lg font-bold sm:text-xl">Xin chào, {profile.name}</h1></div>
           </div>
           <div className="flex items-center gap-2"><Link href={`/crew/${profile.slug}`} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-xs text-ivory-muted hover:text-ivory"><ArrowLeft className="h-3.5 w-3.5" /><span className="hidden sm:inline">XEM PROFILE CÔNG KHAI</span><span className="sm:hidden">XEM PROFILE</span></Link><button type="button" onClick={() => void logout()} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-xs text-ivory-muted hover:text-ivory"><LogOut className="h-3.5 w-3.5" />THOÁT</button></div>

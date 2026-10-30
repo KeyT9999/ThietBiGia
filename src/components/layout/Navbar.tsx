@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Volume2, VolumeX, Menu, X, Search, UserRound } from "lucide-react";
 import { useAppStore, useSiteContent } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
+import { BrandLogo } from "./BrandLogo";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -77,12 +78,11 @@ export function Navbar() {
         <div className="flex items-center gap-3 min-w-0 shrink-0">
           <Link
             href="/"
+            aria-label="Về trang chủ Thiết Bị Gia"
             onClick={() => soundEngine.playHover()}
             className="flex items-center gap-2.5 group"
           >
-            <span className="w-7 h-7 rounded-md bg-rec text-obsidian font-display font-extrabold text-xs flex items-center justify-center tracking-tighter group-hover:scale-105 transition-transform">
-              TBG
-            </span>
+            <BrandLogo />
             <span className="hidden lg:inline-block text-xs font-mono tracking-[0.18em] text-ivory-muted uppercase truncate">
               {settings.brandSubtitle || "Creative Media & Design Collective"}
             </span>
