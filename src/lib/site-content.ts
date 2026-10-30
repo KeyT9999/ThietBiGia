@@ -35,9 +35,9 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
     brandSubtitle: "Creative Media & Design Collective",
     siteDescription:
       "Portfolio tập thể Thiết Bị Gia: nhiếp ảnh, quay phim, hậu kỳ và thiết kế sáng tạo.",
-    contactEmail: "",
-    phone: "",
-    location: "VIỆT NAM",
+    contactEmail: "booking@thietbigia.vn",
+    phone: "(+84) 909 • TBG • CREW",
+    location: "Đà Nẵng & TP. Hồ Chí Minh • Sẵn sàng di chuyển toàn quốc",
     instagramUrl: "",
     facebookUrl: "",
     navTimelineLabel: "TIMELINE 3D",

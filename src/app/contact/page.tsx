@@ -6,6 +6,8 @@ import {
   Check,
   Copy,
   Film,
+  Facebook,
+  Instagram,
   Loader2,
   Mail,
   MapPin,
@@ -32,8 +34,28 @@ const SERVICE_OPTIONS = [
 
 type RoleFilter = "all" | RoleCategory;
 
+function getSocialHref(value: string, platform: "instagram" | "facebook") {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+
+  const usernameOrPath = trimmed
+    .replace(/^(?:www\.)?(?:instagram|facebook)\.com\//i, "")
+    .replace(/^@/, "")
+    .replace(/^\/+/, "");
+  return usernameOrPath ? `https://${platform}.com/${usernameOrPath}` : "";
+}
+
 export default function ContactBookingPage() {
   const siteContent = useSiteContent();
+  const { settings } = siteContent;
+  const contactEmail = settings.contactEmail.trim();
+  const contactPhone = settings.phone.trim();
+  const contactLocation = settings.location.trim();
+  const socialLinks = [
+    { label: "Instagram", href: getSocialHref(settings.instagramUrl, "instagram"), icon: Instagram },
+    { label: "Facebook", href: getSocialHref(settings.facebookUrl, "facebook"), icon: Facebook },
+  ].filter((item) => item.href);
   const crewMembers = siteContent.crew;
   const workProjects = siteContent.works;
   const [selectedServices, setSelectedServices] = useState<string[]>([
@@ -158,7 +180,8 @@ export default function ContactBookingPage() {
   };
 
   const copyEmail = () => {
-    navigator.clipboard?.writeText("booking@thietbigia.vn");
+    if (!contactEmail) return;
+    navigator.clipboard?.writeText(contactEmail);
     soundEngine.playTick(0.9);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -284,8 +307,8 @@ export default function ContactBookingPage() {
           </div>
 
           {/* Direct Contact Card */}
-          <div className="rounded-2xl border border-obsidian-border bg-obsidian-surface p-6 space-y-5">
-            <div className="flex items-center justify-between gap-3">
+          {contactEmail || contactPhone || contactLocation || socialLinks.length > 0 ? <div className="rounded-2xl border border-obsidian-border bg-obsidian-surface p-6 space-y-5">
+            {contactEmail ? <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-rec/15 text-rec flex items-center justify-center">
                   <Mail className="w-4 h-4" />
@@ -293,7 +316,7 @@ export default function ContactBookingPage() {
                 <div>
                   <div className="text-xs font-mono text-ivory-subtle">EMAIL CHÍNH THỨC</div>
                   <div className="text-sm font-mono font-semibold text-ivory">
-                    booking@thietbigia.vn
+                    {contactEmail}
                   </div>
                 </div>
               </div>
@@ -309,32 +332,36 @@ export default function ContactBookingPage() {
                 )}
                 <span>{copied ? "ĐÃ CHÉP" : "COPY"}</span>
               </button>
-            </div>
+            </div> : null}
 
-            <div className="flex items-center gap-3">
+            {contactPhone ? <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-rec/15 text-rec flex items-center justify-center">
                 <Phone className="w-4 h-4" />
               </div>
               <div>
                 <div className="text-xs font-mono text-ivory-subtle">HOTLINE SẢN XUẤT</div>
                 <div className="text-sm font-mono font-semibold text-ivory">
-                  (+84) 909 • TBG • CREW
+                  {contactPhone}
                 </div>
               </div>
-            </div>
+            </div> : null}
 
-            <div className="flex items-center gap-3">
+            {contactLocation ? <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-rec/15 text-rec flex items-center justify-center">
                 <MapPin className="w-4 h-4" />
               </div>
               <div>
                 <div className="text-xs font-mono text-ivory-subtle">TRẠM TẬP KẾT THIẾT BỊ</div>
                 <div className="text-sm font-semibold text-ivory">
-                  Đà Nẵng &amp; TP. Hồ Chí Minh • Sẵn sàng di chuyển toàn quốc
+                  {contactLocation}
                 </div>
               </div>
-            </div>
-          </div>
+            </div> : null}
+
+            {socialLinks.length > 0 ? <div className="flex flex-wrap gap-2 border-t border-obsidian-border pt-4">
+              {socialLinks.map(({ label, href, icon: Icon }) => <a key={label} href={href} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-obsidian-border px-3 py-2 text-xs font-mono text-ivory-muted transition hover:border-rec/60 hover:text-ivory"><Icon className="h-4 w-4 text-rec" />{label}</a>)}
+            </div> : null}
+          </div> : null}
         </div>
 
         {/* Right Interactive Call-Sheet & Squad Builder Form */}

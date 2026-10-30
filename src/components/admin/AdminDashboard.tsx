@@ -478,6 +478,7 @@ export function AdminDashboard() {
                   </section>
                   <section className="space-y-4" aria-label="Thông tin liên hệ">
                     <h3 className="border-b border-white/10 pb-2 text-sm font-semibold">Liên hệ và mạng xã hội</h3>
+                    <p className="-mt-2 text-xs leading-relaxed text-ivory-subtle">Email, điện thoại, địa điểm và mạng xã hội tại đây sẽ hiển thị trên Contact. Trường để trống sẽ ẩn mục tương ứng.</p>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <AdminField label="Email liên hệ" type="email" value={content.settings.contactEmail} onChange={(contactEmail) => update("settings", { ...content.settings, contactEmail })} />
                       <AdminField label="Điện thoại" value={content.settings.phone} onChange={(phone) => update("settings", { ...content.settings, phone })} />
