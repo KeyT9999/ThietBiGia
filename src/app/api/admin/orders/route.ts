@@ -72,19 +72,46 @@ export async function PATCH(request: Request) {
   const authError = await requireAdmin();
   if (authError) return authError;
 
-  let body: { orderId?: unknown; assignedMemberId?: unknown };
+  let body: { orderId?: unknown; assignedMemberId?: unknown; progressStatus?: unknown; progressNote?: unknown };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ ok: false, error: "Dữ liệu yêu cầu không hợp lệ." }, { status: 400 });
   }
-  if (typeof body.orderId !== "string" || !body.orderId ||
-      !(body.assignedMemberId === null || typeof body.assignedMemberId === "string")) {
+  if (typeof body.orderId !== "string" || !body.orderId) {
+    return NextResponse.json({ ok: false, error: "Thiếu mã đơn hàng." }, { status: 400 });
+  }
+
+  const updatesProgress = body.progressStatus !== undefined || body.progressNote !== undefined;
+  if (updatesProgress && (!(body.progressStatus === "new" || body.progressStatus === "in_progress" || body.progressStatus === "completed") || typeof body.progressNote !== "string" || body.progressNote.length > 3000)) {
+    return NextResponse.json({ ok: false, error: "Thông tin tiến độ không hợp lệ." }, { status: 400 });
+  }
+  if (!updatesProgress && (!Object.prototype.hasOwnProperty.call(body, "assignedMemberId") || !(body.assignedMemberId === null || typeof body.assignedMemberId === "string"))) {
     return NextResponse.json({ ok: false, error: "Thiếu đơn hàng hoặc người nhận." }, { status: 400 });
   }
 
   try {
     const client = createSupabaseServiceClient();
+    if (updatesProgress) {
+      const now = new Date().toISOString();
+      const { data, error } = await client
+        .from("booking_orders")
+        .update({
+          progress_status: body.progressStatus,
+          progress_note: (body.progressNote as string).trim(),
+          progress_updated_at: now,
+          progress_updated_by_member_id: null,
+          admin_progress_updated_at: now,
+          updated_at: now,
+        })
+        .eq("id", body.orderId)
+        .select("id")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return NextResponse.json({ ok: false, error: "Không tìm thấy đơn hàng." }, { status: 404 });
+      return NextResponse.json({ ok: true });
+    }
+
     const [{ data: current, error: readError }, { data: siteRow, error: siteError }] = await Promise.all([
       client.from("booking_orders").select("id, assigned_member_id").eq("id", body.orderId).maybeSingle(),
       client.from("site_content").select("content").eq("id", "primary").maybeSingle(),

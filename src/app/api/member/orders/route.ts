@@ -11,17 +11,25 @@ export async function GET() {
 
   try {
     const client = createSupabaseServiceClient();
-    const [ordersResult, siteResult] = await Promise.all([
-      client.from("booking_orders").select("*").eq("assigned_member_id", session.memberId).order("created_at", { ascending: false }),
-      client.from("site_content").select("content").eq("id", "primary").maybeSingle(),
-    ]);
-    if (ordersResult.error) throw ordersResult.error;
+    const siteResult = await client.from("site_content").select("content").eq("id", "primary").maybeSingle();
     if (siteResult.error) throw siteResult.error;
     const parsed = parseSiteContent(siteResult.data?.content ?? DEFAULT_SITE_CONTENT);
     if (!parsed.success) throw new Error("Site content is invalid.");
+    const currentMember = parsed.data.crew.find((member) => member.id === session.memberId);
+    if (!currentMember) return NextResponse.json({ ok: false, error: "Không tìm thấy hồ sơ thành viên." }, { status: 404 });
+
+    const [assignedResult, selectedResult] = await Promise.all([
+      client.from("booking_orders").select("*").eq("assigned_member_id", session.memberId),
+      client.from("booking_orders").select("*").contains("selected_crew_slugs", [currentMember.slug]),
+    ]);
+    if (assignedResult.error) throw assignedResult.error;
+    if (selectedResult.error) throw selectedResult.error;
     const memberBySlug = new Map(parsed.data.crew.map((member) => [member.slug, member]));
-    const orders = (ordersResult.data ?? []).map((order) => ({
+    const orderById = new Map([...(assignedResult.data ?? []), ...(selectedResult.data ?? [])].map((order) => [order.id, order]));
+    const orders = Array.from(orderById.values()).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).map((order) => ({
       ...order,
+      is_assigned_to_me: order.assigned_member_id === session.memberId,
+      is_selected_member: (order.selected_crew_slugs ?? []).includes(currentMember.slug),
       selected_crew: (order.selected_crew_slugs ?? [])
         .flatMap((slug: string) => {
           const member = memberBySlug.get(slug);
@@ -44,7 +52,7 @@ export async function PATCH(request: Request) {
   const session = await getMemberSession();
   if (!session) return NextResponse.json({ ok: false, error: "Phiên đăng nhập đã hết hạn." }, { status: 401 });
 
-  let body: { orderId?: unknown; acceptanceStatus?: unknown; contactStatus?: unknown };
+  let body: { orderId?: unknown; acceptanceStatus?: unknown; contactStatus?: unknown; progressStatus?: unknown; progressNote?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -55,44 +63,71 @@ export async function PATCH(request: Request) {
   }
   const updatesAcceptance = body.acceptanceStatus === "accepted" || body.acceptanceStatus === "declined";
   const updatesContact = body.contactStatus === "contacted";
-  if (updatesAcceptance === updatesContact) {
+  const updatesProgress = body.progressStatus !== undefined || body.progressNote !== undefined;
+  if (Number(updatesAcceptance) + Number(updatesContact) + Number(updatesProgress) !== 1) {
     return NextResponse.json({ ok: false, error: "Trạng thái cập nhật không hợp lệ." }, { status: 400 });
+  }
+  if (updatesProgress && (!(body.progressStatus === "new" || body.progressStatus === "in_progress" || body.progressStatus === "completed") || typeof body.progressNote !== "string" || body.progressNote.length > 3000)) {
+    return NextResponse.json({ ok: false, error: "Thông tin tiến độ không hợp lệ." }, { status: 400 });
   }
 
   try {
     const client = createSupabaseServiceClient();
-    const { data: current, error: readError } = await client
-      .from("booking_orders")
-      .select("id, acceptance_status")
-      .eq("id", body.orderId)
-      .eq("assigned_member_id", session.memberId)
-      .maybeSingle();
+    const [orderResult, siteResult] = await Promise.all([
+      client.from("booking_orders").select("id, assigned_member_id, selected_crew_slugs, acceptance_status, admin_progress_updated_at").eq("id", body.orderId).maybeSingle(),
+      client.from("site_content").select("content").eq("id", "primary").maybeSingle(),
+    ]);
+    const { data: current, error: readError } = orderResult;
     if (readError) throw readError;
-    if (!current) return NextResponse.json({ ok: false, error: "Đơn này không được phân công cho bạn." }, { status: 404 });
+    if (siteResult.error) throw siteResult.error;
+    if (!current) return NextResponse.json({ ok: false, error: "Không tìm thấy đơn hàng." }, { status: 404 });
+    const parsed = parseSiteContent(siteResult.data?.content ?? DEFAULT_SITE_CONTENT);
+    if (!parsed.success) throw new Error("Site content is invalid.");
+    const currentMember = parsed.data.crew.find((member) => member.id === session.memberId);
+    if (!currentMember) return NextResponse.json({ ok: false, error: "Không tìm thấy hồ sơ thành viên." }, { status: 404 });
+    const isAssigned = current.assigned_member_id === session.memberId;
+    const isCustomerSelected = (current.selected_crew_slugs ?? []).includes(currentMember.slug);
+    if (!isAssigned && !isCustomerSelected) {
+      return NextResponse.json({ ok: false, error: "Đơn này không được phân công hoặc khách không chọn bạn." }, { status: 404 });
+    }
 
     const values: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (updatesAcceptance) {
+      if (!isAssigned) return NextResponse.json({ ok: false, error: "Chỉ người nhận đơn do admin phân công mới xác nhận hoặc từ chối nhận đơn." }, { status: 403 });
       if (current.acceptance_status !== "pending" && current.acceptance_status !== body.acceptanceStatus) {
         return NextResponse.json({ ok: false, error: "Trạng thái nhận đơn đã được xác nhận. Hãy liên hệ admin nếu cần đổi." }, { status: 409 });
       }
       values.acceptance_status = body.acceptanceStatus;
-    } else {
-      if (current.acceptance_status !== "accepted") {
-        return NextResponse.json({ ok: false, error: "Bạn cần đồng ý nhận đơn trước khi đánh dấu đã liên hệ khách." }, { status: 409 });
-      }
+    } else if (updatesContact) {
       values.contact_status = "contacted";
       values.contacted_at = new Date().toISOString();
       values.contacted_by_member_id = session.memberId;
+    } else {
+      if (current.admin_progress_updated_at) {
+        return NextResponse.json({ ok: false, error: "Admin đã cập nhật tiến độ đơn này. Liên hệ admin nếu cần thay đổi." }, { status: 409 });
+      }
+      values.progress_status = body.progressStatus;
+      values.progress_note = (body.progressNote as string).trim();
+      values.progress_updated_at = new Date().toISOString();
+      values.progress_updated_by_member_id = session.memberId;
     }
 
-    const { data, error } = await client
-      .from("booking_orders")
-      .update(values)
-      .eq("id", body.orderId)
-      .eq("assigned_member_id", session.memberId)
-      .select("*")
-      .single();
+    const updateQuery = client.from("booking_orders").update(values).eq("id", body.orderId);
+    const updateResult = isAssigned
+      ? await (updatesProgress
+        ? updateQuery.eq("assigned_member_id", session.memberId).is("admin_progress_updated_at", null).select("*").maybeSingle()
+        : updateQuery.eq("assigned_member_id", session.memberId).select("*").maybeSingle())
+      : await (updatesProgress
+        ? updateQuery.contains("selected_crew_slugs", [currentMember.slug]).is("admin_progress_updated_at", null).select("*").maybeSingle()
+        : updateQuery.contains("selected_crew_slugs", [currentMember.slug]).select("*").maybeSingle());
+    const { data, error } = updateResult;
     if (error) throw error;
+    if (!data) {
+      return NextResponse.json(
+        { ok: false, error: updatesProgress ? "Admin vừa cập nhật tiến độ hoặc quyền truy cập đơn đã thay đổi. Hãy tải lại đơn." : "Đơn vừa được cập nhật. Hãy tải lại trước khi thay đổi tiếp." },
+        { status: 409 }
+      );
+    }
     return NextResponse.json({ ok: true, order: data });
   } catch (error) {
     console.error("Member order update failed:", error);
