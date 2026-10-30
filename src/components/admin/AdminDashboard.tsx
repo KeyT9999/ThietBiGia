@@ -385,7 +385,7 @@ export function AdminDashboard() {
                     <button type="button" disabled={memberOrderIndex < 0 || memberOrderIndex >= content.crew.length - 1} onClick={() => moveMember(memberId, 1)} aria-label="Đưa thành viên đang chọn xuống" title="Đưa xuống sau" className="rounded-xl border border-white/10 px-2.5 text-ivory-muted hover:border-rec hover:text-ivory disabled:cursor-not-allowed disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
                   </div>
                   <label className="relative hidden xl:block"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ivory-subtle" /><input value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="Tìm tên, số thẻ, vai trò..." aria-label="Tìm thành viên" className="w-full rounded-xl border border-white/10 bg-obsidian py-2.5 pl-9 pr-3 text-sm text-ivory outline-none placeholder:text-ivory-subtle focus:border-rec" /></label>
-                  <div className="hidden max-h-[65vh] space-y-1 overflow-y-auto xl:block">
+                  <div className="hidden space-y-1 xl:block">
                     {filteredMembers.map((item) => {
                       const orderIndex = content.crew.findIndex((candidate) => candidate.id === item.id);
                       return <div key={item.id} className="flex items-center gap-1">
