@@ -37,6 +37,7 @@ export function ProjectDetailView({
   const [compareGrade, setCompareGrade] = useState(false);
   const [isPortraitFrame, setIsPortraitFrame] = useState(false);
   const [isVideoExpanded, setIsVideoExpanded] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   const currentFrameSrc = work.coverImage;
   const videoEmbedUrl = work.videoEmbedUrl
@@ -49,6 +50,7 @@ export function ProjectDetailView({
   const expandedVideoUrl = videoEmbedUrl
     ? `${videoEmbedUrl}?autoplay=1&rel=0`
     : null;
+  const videoOverlayOpen = Boolean(isModal && expandedVideoUrl) || isVideoExpanded;
   const crewBookingParam = work.credits
     .slice(0, 4)
     .map((c) => c.memberSlug)
@@ -64,7 +66,19 @@ export function ProjectDetailView({
   };
 
   useEffect(() => {
-    if (!isVideoExpanded) return;
+    setIsMounted(true);
+  }, []);
+
+  const closeVideoOverlay = () => {
+    if (isModal) {
+      handleClose();
+    } else {
+      setIsVideoExpanded(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!videoOverlayOpen) return;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -72,7 +86,12 @@ export function ProjectDetailView({
       if (event.key !== "Escape") return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      setIsVideoExpanded(false);
+      if (isModal) {
+        soundEngine.playTick(0.7);
+        router.back();
+      } else {
+        setIsVideoExpanded(false);
+      }
     };
     window.addEventListener("keydown", handleKeyDown, true);
 
@@ -80,7 +99,7 @@ export function ProjectDetailView({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown, true);
     };
-  }, [isVideoExpanded]);
+  }, [videoOverlayOpen, isModal, router]);
 
   return (
     <div className="relative z-50 min-h-[100dvh] w-full bg-obsidian pt-[72px] pb-24">
@@ -379,18 +398,18 @@ export function ProjectDetailView({
           </div>
         </div>
       </div>
-      {isVideoExpanded && expandedVideoUrl && typeof document !== "undefined"
+      {videoOverlayOpen && expandedVideoUrl && isMounted && typeof document !== "undefined"
         ? createPortal(
             <div
-              className="fixed inset-0 z-[100] flex items-stretch justify-center bg-black/90 backdrop-blur-sm"
-              onClick={() => setIsVideoExpanded(false)}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-1.5 backdrop-blur-sm sm:p-4"
+              onClick={closeVideoOverlay}
             >
               <section
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="expanded-project-video-title"
                 onClick={(event) => event.stopPropagation()}
-                className="flex h-full w-full max-w-[1500px] flex-col overflow-hidden border-x border-white/10 bg-obsidian shadow-[0_30px_120px_rgba(0,0,0,0.8)] sm:border-x-0 sm:border-y sm:border-white/15"
+                className="flex max-h-[97dvh] w-full max-w-[1600px] flex-col overflow-hidden rounded-xl border border-white/15 bg-obsidian shadow-[0_30px_120px_rgba(0,0,0,0.8)] sm:rounded-2xl"
               >
                 <header className="flex shrink-0 items-center justify-between gap-3 border-b border-obsidian-border px-3 py-2.5 sm:px-5 sm:py-3">
                   <div className="min-w-0">
@@ -404,65 +423,93 @@ export function ProjectDetailView({
                   <button
                     type="button"
                     autoFocus
-                    onClick={() => setIsVideoExpanded(false)}
-                    aria-label="Đóng video"
+                    onClick={closeVideoOverlay}
+                    aria-label="Đóng dự án"
                     className="shrink-0 rounded-lg border border-white/15 p-2 text-ivory-muted transition hover:border-rec hover:text-rec"
                   >
                     <X className="h-5 w-5" />
                   </button>
                 </header>
 
-                <div className="mx-auto flex h-[min(62dvh,56.25vw)] w-full max-w-[1500px] shrink-0 items-center justify-center border-b border-obsidian-border bg-black">
-                  <iframe
-                    src={expandedVideoUrl}
-                    title={work.title}
-                    className="aspect-video h-full w-auto max-w-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                    referrerPolicy="strict-origin-when-cross-origin"
-                    allowFullScreen
-                  />
-                </div>
+                <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[minmax(0,2.1fr)_minmax(320px,0.9fr)] lg:grid-rows-1">
+                  <div className="relative aspect-video max-h-[46dvh] w-full min-h-[180px] overflow-hidden bg-black lg:aspect-auto lg:h-full lg:max-h-none lg:min-h-0">
+                    <iframe
+                      src={expandedVideoUrl}
+                      title={work.title}
+                      className="absolute inset-0 h-full w-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                    />
+                  </div>
 
-                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" tabIndex={0} aria-label="Ghi chú dự án, cuộn để xem">
-                  <div className="mx-auto max-w-5xl space-y-5 px-4 py-5 sm:space-y-7 sm:px-8 sm:py-7">
-                    <div className="space-y-2">
-                      <p className="font-mono text-[10px] font-bold tracking-[0.2em] text-rec">TÓM TẮT DỰ ÁN</p>
-                      <h3 className="font-display text-lg font-bold text-ivory sm:text-xl">{work.title}</h3>
-                      <p className="whitespace-pre-line text-sm leading-relaxed text-ivory/85 sm:text-base">{work.summary}</p>
-                    </div>
-
-                    {work.btsNotes.length > 0 ? (
-                      <div className="space-y-3 border-t border-obsidian-border pt-4 sm:pt-5">
-                        <h4 className="flex items-center gap-2 font-display font-bold text-ivory">
-                          <Film className="h-4 w-4 text-rec" /> GHI CHÚ DỰ ÁN
-                        </h4>
-                        <ul className="grid gap-3 sm:grid-cols-2">
-                          {work.btsNotes.map((note, index) => (
-                            <li key={`${index}-${note}`} className="flex items-start gap-2.5 text-sm leading-relaxed text-ivory/85">
-                              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-rec" />
-                              <span>{note}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : null}
-
-                    <div className="space-y-3 border-t border-obsidian-border pt-4 sm:pt-5">
-                      <div>
-                        <h4 className="font-mono text-[10px] font-bold tracking-wider text-ivory-muted">THÔNG TIN GHI HÌNH</h4>
-                        <p className="mt-1 text-sm leading-relaxed text-ivory">{work.exifSpec ?? work.cameraSpec}</p>
-                      </div>
-                      {work.gearUsed.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {work.gearUsed.map((gear) => (
-                            <span key={gear} className="rounded-lg border border-obsidian-border bg-obsidian-surface px-2.5 py-1.5 font-mono text-[10px] text-ivory-muted">
-                              {gear}
-                            </span>
-                          ))}
+                  <aside className="min-h-0 overflow-y-auto overscroll-contain border-t border-obsidian-border p-4 sm:p-6 lg:border-l lg:border-t-0">
+                    <div className="space-y-6">
+                      <section className="space-y-2">
+                        <p className="font-mono text-[10px] font-bold tracking-[0.2em] text-rec">TÓM TẮT DỰ ÁN</p>
+                        <h3 className="font-display text-lg font-bold text-ivory sm:text-xl">{work.title}</h3>
+                        <p className="whitespace-pre-line text-sm leading-relaxed text-ivory/90">{work.summary}</p>
+                        <div className="flex flex-wrap gap-2 pt-1 text-[10px] font-mono text-ivory-muted sm:text-xs">
+                          <span className="rounded-md border border-obsidian-border px-2 py-1">SCENE {work.indexLabel}</span>
+                          <span className="rounded-md border border-obsidian-border px-2 py-1">{work.durationTimecode}</span>
+                          <span className="rounded-md border border-obsidian-border px-2 py-1">{work.clientOrSeries} • {work.year}</span>
                         </div>
+                      </section>
+
+                      <section className="space-y-2 border-t border-obsidian-border pt-4">
+                        <h4 className="font-mono text-[10px] font-bold tracking-wider text-rec">THÔNG TIN GHI HÌNH</h4>
+                        <p className="text-sm leading-relaxed text-ivory">{work.exifSpec ?? work.cameraSpec}</p>
+                        {work.gearUsed.length > 0 ? (
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {work.gearUsed.map((gear) => (
+                              <span key={gear} className="rounded-lg border border-obsidian-border bg-obsidian-surface px-2.5 py-1.5 font-mono text-[10px] text-ivory-muted">
+                                {gear}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                      </section>
+
+                      {work.btsNotes.length > 0 ? (
+                        <section className="space-y-3 border-t border-obsidian-border pt-4">
+                          <h4 className="flex items-center gap-2 font-display font-bold text-ivory">
+                            <Film className="h-4 w-4 text-rec" /> GHI CHÚ DỰ ÁN
+                          </h4>
+                          <ul className="space-y-3">
+                            {work.btsNotes.map((note, index) => (
+                              <li key={`${index}-${note}`} className="flex items-start gap-2.5 text-sm leading-relaxed text-ivory/85">
+                                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-rec" />
+                                <span>{note}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </section>
+                      ) : null}
+
+                      {work.credits.length > 0 ? (
+                        <section className="space-y-3 border-t border-obsidian-border pt-4">
+                          <h4 className="flex items-center gap-2 font-display font-bold text-ivory">
+                            <Users className="h-4 w-4 text-rec" /> EKIP THỰC HIỆN ({work.credits.length})
+                          </h4>
+                          <ul className="space-y-2">
+                            {work.credits.map((credit) => {
+                              const member = crewMembers.find((item) => item.slug === credit.memberSlug);
+                              if (!member) return null;
+                              return (
+                                <li key={credit.memberSlug} className="flex items-center gap-2.5 rounded-lg border border-obsidian-border bg-obsidian-surface/70 p-2">
+                                  <img src={member.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                                  <div className="min-w-0">
+                                    <p className="truncate text-xs font-semibold text-ivory">{member.name}</p>
+                                    <p className="truncate font-mono text-[10px] text-ivory-muted">{credit.roleOnProject}</p>
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </section>
                       ) : null}
                     </div>
-                  </div>
+                  </aside>
                 </div>
               </section>
             </div>,
