@@ -23,9 +23,12 @@ export async function GET() {
     const orders = (ordersResult.data ?? []).map((order) => ({
       ...order,
       selected_crew: (order.selected_crew_slugs ?? [])
-        .map((slug: string) => memberBySlug.get(slug))
-        .filter(Boolean)
-        .map((member) => ({ slug: member!.slug, name: member!.name, nickname: member!.nickname ?? "", badgeNumber: member!.badgeNumber, avatar: member!.avatar })),
+        .flatMap((slug: string) => {
+          const member = memberBySlug.get(slug);
+          return member
+            ? [{ slug: member.slug, name: member.name, nickname: member.nickname ?? "", badgeNumber: member.badgeNumber, avatar: member.avatar }]
+            : [];
+        }),
     }));
     return NextResponse.json({ ok: true, orders });
   } catch (error) {
