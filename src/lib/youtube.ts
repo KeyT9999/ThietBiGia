@@ -37,6 +37,12 @@ export function shouldUseYoutubeCoverPreview(videoUrl: string | undefined, cover
   return Boolean(videoUrl && toYoutubeEmbedUrl(videoUrl) && isGenericWorkCover(coverImage));
 }
 
+export function getYoutubeThumbnailUrl(input: string) {
+  const embedUrl = toYoutubeEmbedUrl(input);
+  const videoId = embedUrl?.split("/").pop();
+  return videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
+}
+
 export function getYoutubePreviewUrl(input: string, autoPlay: boolean) {
   const embedUrl = toYoutubeEmbedUrl(input);
   if (!embedUrl) return null;

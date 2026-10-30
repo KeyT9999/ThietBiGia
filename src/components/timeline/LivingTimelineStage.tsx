@@ -220,8 +220,8 @@ export function LivingTimelineStage() {
         ref={carouselGestureAreaRef}
         className="relative flex-1 w-full min-h-0 flex items-center justify-center"
       >
-        {/* Drei View Tracking Container (z-10 -> renders on PersistentCanvas z-40) */}
-        <div className="absolute inset-0 z-10">
+        {/* Keep Drei Html video previews above the fixed 3D canvas and below the HUD. */}
+        <div className="absolute inset-0 z-[41]">
           <TimelineCarousel3DView />
         </div>
 

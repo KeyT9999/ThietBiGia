@@ -18,6 +18,7 @@ import { getRoleMeta } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
 import {
   getYoutubePreviewUrl,
+  getYoutubeThumbnailUrl,
   shouldUseYoutubeCoverPreview,
   toYoutubeEmbedUrl,
 } from "@/lib/youtube";
@@ -445,6 +446,11 @@ function useWorkCardTexture(work: WorkProject, crewMembers: CrewMember[]) {
     const W = canvas.width;
     const H = canvas.height;
     let loadedCover: HTMLImageElement | undefined;
+    const youtubeVideoUrl = work.videoEmbedUrl || work.videoUrl || "";
+    const youtubeThumbnailUrl = shouldUseYoutubeCoverPreview(youtubeVideoUrl, work.coverImage)
+      ? getYoutubeThumbnailUrl(youtubeVideoUrl)
+      : null;
+    const coverUrl = youtubeThumbnailUrl || work.coverImage;
     const creditedMembers = work.credits
       .map((credit) => crewMembers.find((member) => member.slug === credit.memberSlug))
       .filter((member): member is CrewMember => Boolean(member));
@@ -527,6 +533,23 @@ function useWorkCardTexture(work: WorkProject, crewMembers: CrewMember[]) {
       vig.addColorStop(1, "rgba(7,9,14,0.88)");
       ctx.fillStyle = vig;
       ctx.fillRect(px, py, pw, ph);
+
+      if (youtubeThumbnailUrl) {
+        const buttonW = 92;
+        const buttonH = 62;
+        const buttonX = px + (pw - buttonW) / 2;
+        const buttonY = py + (ph - buttonH) / 2;
+        drawRoundedRectPath(ctx, buttonX, buttonY, buttonW, buttonH, 17);
+        ctx.fillStyle = "#FF0033";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(buttonX + 37, buttonY + 17);
+        ctx.lineTo(buttonX + 37, buttonY + 45);
+        ctx.lineTo(buttonX + 62, buttonY + 31);
+        ctx.closePath();
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fill();
+      }
 
       // Viewfinder REC & Frame Count inside Cover Window
       ctx.fillStyle = "#FF4D00";
@@ -669,7 +692,13 @@ function useWorkCardTexture(work: WorkProject, crewMembers: CrewMember[]) {
       loadedCover = img;
       paintSlate(img);
     };
-    img.src = work.coverImage;
+    img.onerror = () => {
+      if (coverUrl !== work.coverImage) {
+        img.onerror = null;
+        img.src = work.coverImage;
+      }
+    };
+    img.src = coverUrl;
 
     return () => {
       cancelled = true;
@@ -705,12 +734,10 @@ function ActiveWorkVideoPlane({ url }: { url: string }) {
 
 function ActiveYoutubeCardPlayer({
   videoUrl,
-  autoPlay,
 }: {
   videoUrl: string;
-  autoPlay: boolean;
 }) {
-  const src = getYoutubePreviewUrl(videoUrl, autoPlay);
+  const src = getYoutubePreviewUrl(videoUrl, true);
   if (!src) return null;
 
   return (
@@ -1103,11 +1130,10 @@ function WorkCardMesh({
         }}
       />
 
-      {/* A YouTube poster stays still until this card is hovered. */}
-      {shouldPlayYoutubeCover && (isActiveCenter || mouseHovered) && (
+      {/* The poster is part of the WebGL texture; hover adds playback above it. */}
+      {shouldPlayYoutubeCover && mouseHovered && (
         <ActiveYoutubeCardPlayer
           videoUrl={youtubeVideoUrl}
-          autoPlay={mouseHovered}
         />
       )}
 
