@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -10,13 +11,17 @@ import {
   Camera,
   CheckCircle2,
   Film,
+  Maximize2,
+  Play,
   SlidersHorizontal,
   Users,
+  X,
 } from "lucide-react";
 import { type WorkProject } from "@/data/schema";
 import { getRoleMeta } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
 import { useSiteContent } from "@/lib/store";
+import { toYoutubeEmbedUrl } from "@/lib/youtube";
 import { BeforeAfterGradeSlider } from "./BeforeAfterGradeSlider";
 import { ProjectPhotoGallery } from "./ProjectPhotoGallery";
 
@@ -31,8 +36,19 @@ export function ProjectDetailView({
   const crewMembers = useSiteContent().crew;
   const [compareGrade, setCompareGrade] = useState(false);
   const [isPortraitFrame, setIsPortraitFrame] = useState(false);
+  const [isVideoExpanded, setIsVideoExpanded] = useState(false);
 
   const currentFrameSrc = work.coverImage;
+  const videoEmbedUrl = work.videoEmbedUrl
+    ? toYoutubeEmbedUrl(work.videoEmbedUrl)
+    : null;
+  const videoId = videoEmbedUrl?.split("/").pop();
+  const videoThumbnailUrl = videoId
+    ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+    : currentFrameSrc;
+  const expandedVideoUrl = videoEmbedUrl
+    ? `${videoEmbedUrl}?autoplay=1&rel=0`
+    : null;
   const crewBookingParam = work.credits
     .slice(0, 4)
     .map((c) => c.memberSlug)
@@ -46,6 +62,25 @@ export function ProjectDetailView({
       router.push("/works");
     }
   };
+
+  useEffect(() => {
+    if (!isVideoExpanded) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setIsVideoExpanded(false);
+    };
+    window.addEventListener("keydown", handleKeyDown, true);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [isVideoExpanded]);
 
   return (
     <div className="relative z-50 min-h-[100dvh] w-full bg-obsidian pt-[72px] pb-24">
@@ -214,16 +249,47 @@ export function ProjectDetailView({
 
         {work.videoEmbedUrl ? (
           <section className="space-y-3">
-            <h2 className="font-display text-xl font-bold text-ivory">VIDEO DỰ ÁN</h2>
-            <div className="aspect-video w-full overflow-hidden rounded-2xl border border-obsidian-border bg-obsidian">
-              <iframe
-                src={work.videoEmbedUrl}
-                title={work.title}
-                className="h-full w-full border-0"
-                allow="autoplay; fullscreen; picture-in-picture"
-                loading="lazy"
-              />
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <p className="font-mono text-[10px] tracking-[0.2em] text-rec">PROJECT FILM</p>
+                <h2 className="mt-1 font-display text-xl font-bold text-ivory">VIDEO DỰ ÁN</h2>
+              </div>
+              <span className="font-mono text-xs text-ivory-muted">Chạm vào khung để xem lớn và đọc ghi chú</span>
             </div>
+            {videoEmbedUrl ? (
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playTick(0.85);
+                  setIsVideoExpanded(true);
+                }}
+                aria-label={`Mở video và ghi chú dự án ${work.title}`}
+                aria-haspopup="dialog"
+                className="group relative block aspect-video w-full overflow-hidden rounded-2xl border border-obsidian-border bg-obsidian text-left"
+              >
+                <img
+                  src={videoThumbnailUrl}
+                  alt={`Ảnh xem trước video ${work.title}`}
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                />
+                <span className="absolute inset-0 bg-obsidian/20 transition-colors group-hover:bg-obsidian/40" />
+                <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-obsidian/80 px-2.5 py-1.5 font-mono text-[10px] text-ivory backdrop-blur sm:left-5 sm:top-5 sm:px-3 sm:text-xs">
+                  <Maximize2 className="h-3.5 w-3.5 text-rec" /> MỞ VIDEO &amp; GHI CHÚ
+                </span>
+                <span className="absolute left-1/2 top-1/2 flex h-14 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl bg-rec text-obsidian shadow-[0_12px_40px_rgba(0,0,0,0.4)] transition-transform group-hover:scale-110 sm:h-16 sm:w-24">
+                  <Play className="h-7 w-7 fill-current sm:h-8 sm:w-8" />
+                </span>
+                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-obsidian/95 via-obsidian/50 to-transparent px-4 pb-4 pt-12 sm:px-6 sm:pb-6">
+                  <span className="block font-display text-lg font-bold text-white sm:text-2xl">{work.title}</span>
+                  <span className="mt-1 block text-xs text-white/75 sm:text-sm">{work.category} • {work.year}</span>
+                </span>
+              </button>
+            ) : (
+              <p role="status" className="rounded-xl border border-amber-300/20 bg-amber-300/5 px-4 py-3 text-sm text-amber-100">
+                Link video chưa đúng định dạng YouTube. Hãy kiểm tra lại trong phần chỉnh sửa dự án.
+              </p>
+            )}
           </section>
         ) : null}
 
@@ -313,6 +379,94 @@ export function ProjectDetailView({
           </div>
         </div>
       </div>
+      {isVideoExpanded && expandedVideoUrl && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-2 backdrop-blur-sm sm:p-5"
+              onClick={() => setIsVideoExpanded(false)}
+            >
+              <section
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="expanded-project-video-title"
+                onClick={(event) => event.stopPropagation()}
+                className="flex max-h-[96dvh] w-full max-w-[1500px] flex-col overflow-hidden rounded-xl border border-white/15 bg-obsidian shadow-[0_30px_120px_rgba(0,0,0,0.8)] sm:rounded-2xl"
+              >
+                <header className="flex shrink-0 items-center justify-between gap-3 border-b border-obsidian-border px-3 py-3 sm:px-5 sm:py-4">
+                  <div className="min-w-0">
+                    <p className="truncate font-mono text-[10px] font-bold tracking-wider text-rec sm:text-xs">
+                      {work.category.toUpperCase()} • {work.clientOrSeries} • {work.year}
+                    </p>
+                    <h2 id="expanded-project-video-title" className="mt-1 truncate font-display text-base font-bold text-ivory sm:text-xl">
+                      {work.title}
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    autoFocus
+                    onClick={() => setIsVideoExpanded(false)}
+                    aria-label="Đóng video"
+                    className="shrink-0 rounded-lg border border-white/15 p-2 text-ivory-muted transition hover:border-rec hover:text-rec"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </header>
+
+                <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.75fr)] lg:overflow-hidden">
+                  <div className="aspect-video w-full shrink-0 self-start bg-black lg:aspect-auto lg:h-full">
+                    <iframe
+                      src={expandedVideoUrl}
+                      title={work.title}
+                      className="h-full w-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                    />
+                  </div>
+
+                  <aside className="space-y-5 border-t border-obsidian-border p-4 sm:p-5 lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0">
+                    <div className="space-y-2">
+                      <p className="font-mono text-[10px] font-bold tracking-[0.2em] text-rec">PROJECT NOTES</p>
+                      <h3 className="font-display text-lg font-bold text-ivory">{work.title}</h3>
+                      <p className="whitespace-pre-line text-sm leading-relaxed text-ivory/85">{work.summary}</p>
+                    </div>
+
+                    {work.btsNotes.length > 0 ? (
+                      <div className="space-y-3 border-t border-obsidian-border pt-4">
+                        <h4 className="flex items-center gap-2 font-display font-bold text-ivory">
+                          <Film className="h-4 w-4 text-rec" /> GHI CHÚ DỰ ÁN
+                        </h4>
+                        <ul className="space-y-3">
+                          {work.btsNotes.map((note, index) => (
+                            <li key={`${index}-${note}`} className="flex items-start gap-2.5 text-sm leading-relaxed text-ivory/85">
+                              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-rec" />
+                              <span>{note}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    <div className="space-y-2 border-t border-obsidian-border pt-4">
+                      <h4 className="font-mono text-[10px] font-bold tracking-wider text-ivory-muted">THÔNG TIN GHI HÌNH</h4>
+                      <p className="text-sm leading-relaxed text-ivory">{work.exifSpec ?? work.cameraSpec}</p>
+                      {work.gearUsed.length > 0 ? (
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {work.gearUsed.map((gear) => (
+                            <span key={gear} className="rounded-lg border border-obsidian-border bg-obsidian-surface px-2.5 py-1.5 font-mono text-[10px] text-ivory-muted">
+                              {gear}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  </aside>
+                </div>
+              </section>
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }
