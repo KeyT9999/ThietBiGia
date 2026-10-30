@@ -143,7 +143,7 @@ export function MemberWorkspace() {
         </header>
 
         <div className="grid items-start gap-5 lg:grid-cols-[250px_minmax(0,1fr)]">
-          <nav aria-label="Công cụ profile" className="grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-obsidian-surface p-2 lg:sticky lg:top-5 lg:grid-cols-1">
+          <nav aria-label="Công cụ profile" className="grid min-w-0 grid-cols-1 gap-2 rounded-2xl border border-white/10 bg-obsidian-surface p-2 lg:sticky lg:top-5">
             {sections.map((item) => {
               const Icon = item.icon;
               const active = item.id === section;
@@ -153,7 +153,7 @@ export function MemberWorkspace() {
                   type="button"
                   aria-pressed={active}
                   onClick={() => setSection(item.id)}
-                  className={`flex min-w-0 items-center gap-2.5 rounded-xl px-3 py-3 text-left transition sm:gap-3 ${item.id === "security" ? "col-span-2 lg:col-span-1" : ""} ${active ? "bg-rec text-obsidian" : "border border-white/5 text-ivory-muted hover:bg-white/5 hover:text-ivory"}`}
+                  className={`flex w-full min-w-0 items-center gap-2.5 rounded-xl px-3 py-3 text-left transition sm:gap-3 ${active ? "bg-rec text-obsidian" : "border border-white/5 text-ivory-muted hover:bg-white/5 hover:text-ivory"}`}
                 >
                   <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${active ? "bg-black/10" : "bg-white/5"}`}><Icon className="h-4 w-4" /></span>
                   <span className="min-w-0">
