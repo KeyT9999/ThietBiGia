@@ -41,15 +41,20 @@ function WorkArchiveCard({
   onSelectMember: (slug: string) => void;
 }) {
   const [isPortraitFrame, setIsPortraitFrame] = useState(false);
+  const [isVideoHovered, setIsVideoHovered] = useState(false);
   const coverSrc = work.coverImage?.trim() ?? "";
   const hasRealCover = Boolean(coverSrc) && !isGenericProjectCover(coverSrc);
   const videoEmbedUrl = toYoutubeEmbedUrl(work.videoEmbedUrl || work.videoUrl || "");
   const videoId = videoEmbedUrl?.split("/").pop();
   const shouldPlayVideoCover = !hasRealCover && Boolean(videoEmbedUrl && videoId);
   const fallbackCoverSrc = coverSrc || "/media/works/work-01.jpg";
+  const previewVideoUrl = videoEmbedUrl
+    ? `${videoEmbedUrl}?playsinline=1&rel=0`
+    : null;
   const autoplayVideoUrl = videoEmbedUrl && videoId
     ? `${videoEmbedUrl}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&playsinline=1&rel=0`
     : null;
+  const activeVideoUrl = isVideoHovered ? autoplayVideoUrl : previewVideoUrl;
 
   const selectedCredit =
     selectedMemberSlug !== "ALL"
@@ -103,11 +108,17 @@ function WorkArchiveCard({
           href={`/works/${work.slug}`}
           scroll={false}
           onClick={() => soundEngine.playShutter()}
+          onPointerEnter={(event) => {
+            if (event.pointerType === "mouse") setIsVideoHovered(true);
+          }}
+          onPointerLeave={(event) => {
+            if (event.pointerType === "mouse") setIsVideoHovered(false);
+          }}
           className="relative aspect-[16/10] w-full bg-obsidian overflow-hidden flex items-center justify-center block"
         >
-          {shouldPlayVideoCover && autoplayVideoUrl ? (
+          {shouldPlayVideoCover && activeVideoUrl ? (
             <iframe
-              src={autoplayVideoUrl}
+              src={activeVideoUrl}
               title={`Video xem trước ${work.title}`}
               aria-hidden="true"
               tabIndex={-1}
