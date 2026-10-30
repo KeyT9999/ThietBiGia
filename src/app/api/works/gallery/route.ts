@@ -16,6 +16,10 @@ export async function GET(request: NextRequest) {
   const slug = request.nextUrl.searchParams.get("slug")?.trim();
   const memberSlug = request.nextUrl.searchParams.get("memberSlug")?.trim();
   const showcaseId = request.nextUrl.searchParams.get("showcaseId")?.trim();
+  const requestedLimit = Number.parseInt(request.nextUrl.searchParams.get("limit") ?? "", 10);
+  const previewLimit = Number.isInteger(requestedLimit) && requestedLimit > 0
+    ? Math.min(requestedLimit, 11)
+    : null;
   const isPersonalProject = Boolean(memberSlug && showcaseId);
   if (!slug && !isPersonalProject) return NextResponse.json({ ok: false, error: "Thiếu dự án cần tải album." }, { status: 400 });
 
@@ -48,7 +52,8 @@ export async function GET(request: NextRequest) {
       const apiUrl = new URL("https://www.googleapis.com/drive/v3/files");
       apiUrl.searchParams.set("q", `'${folderId}' in parents and trashed = false`);
       apiUrl.searchParams.set("key", apiKey);
-      apiUrl.searchParams.set("pageSize", "1000");
+      apiUrl.searchParams.set("pageSize", previewLimit ? "100" : "1000");
+      if (previewLimit) apiUrl.searchParams.set("orderBy", "name_natural");
       apiUrl.searchParams.set("supportsAllDrives", "true");
       apiUrl.searchParams.set("includeItemsFromAllDrives", "true");
       apiUrl.searchParams.set("fields", "nextPageToken,files(id,name,mimeType,resourceKey,imageMediaMetadata(width,height))");
@@ -67,10 +72,14 @@ export async function GET(request: NextRequest) {
       const result = await response.json() as { files?: DriveFile[]; nextPageToken?: string };
       files.push(...(result.files ?? []));
       pageToken = result.nextPageToken;
-    } while (pageToken && files.length < 5000);
+    } while (
+      pageToken &&
+      files.length < 5000 &&
+      (!previewLimit || files.filter((file) => file.mimeType.startsWith("image/")).length < previewLimit)
+    );
 
     const collator = new Intl.Collator("vi", { numeric: true, sensitivity: "base" });
-    const images = files
+    const allImages = files
       .filter((file) => file.mimeType.startsWith("image/"))
       .sort((a, b) => collator.compare(a.name, b.name))
       .map((file) => {
@@ -84,8 +93,16 @@ export async function GET(request: NextRequest) {
           viewUrl: `https://drive.google.com/file/d/${encodeURIComponent(file.id)}/view${file.resourceKey ? `?resourcekey=${encodeURIComponent(file.resourceKey)}` : ""}`,
         };
       });
+    const images = previewLimit ? allImages.slice(0, previewLimit) : allImages;
 
-    return NextResponse.json({ ok: true, images }, { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" } });
+    return NextResponse.json(
+      {
+        ok: true,
+        images,
+        ...(previewLimit ? { hasMore: allImages.length > 10 || Boolean(pageToken) } : {}),
+      },
+      { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" } }
+    );
   } catch (error) {
     console.error("Google Drive gallery load failed:", error);
     return NextResponse.json({ ok: false, error: "Chưa tải được album Google Drive. Vui lòng thử lại sau." }, { status: 502 });

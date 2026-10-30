@@ -141,6 +141,10 @@ export function MemberSpotlightView({
         ...(driveAlbumImages ?? (driveAlbumError ? legacyDriveFallback : [])),
       ]
     : lightboxProject?.frames ?? [];
+  const activeLightboxPhotoIdx = Math.min(
+    lightboxPhotoIdx,
+    Math.max(0, lightboxGallery.length - 1)
+  );
 
   useEffect(() => {
     if (!lightboxProject?.galleryDriveFolderUrl) {
@@ -169,7 +173,9 @@ export function MemberSpotlightView({
       .then(async (response) => {
         const result = await response.json() as { ok: boolean; images?: { src: string }[]; error?: string };
         if (!response.ok || !result.ok) throw new Error(result.error || "Không tải được album Drive.");
-        setDriveAlbumImages((result.images ?? []).map((image) => image.src));
+        const images = result.images ?? [];
+        setDriveAlbumImages(images.map((image) => image.src));
+        setLightboxPhotoIdx((current) => Math.min(current, images.length));
       })
       .catch((cause) => {
         if (cause instanceof DOMException && cause.name === "AbortError") return;
@@ -502,6 +508,7 @@ export function MemberSpotlightView({
                 <MemberProjectCard
                   key={proj.id}
                   project={proj}
+                  memberSlug={member.slug}
                   featured={idx === 0}
                   isModal={isModal}
                   onOpenAlbum={openProjectLightbox}
@@ -586,7 +593,7 @@ export function MemberSpotlightView({
                       <div className="min-w-0">
                         <div className="text-xs font-mono text-rec font-bold truncate">
                           {member.name.toUpperCase()} • {lightboxProject.roleBadge.toUpperCase()} • FRAME{" "}
-                          {lightboxPhotoIdx + 1} / {lightboxGallery.length}
+                          {activeLightboxPhotoIdx + 1} / {lightboxGallery.length}
                         </div>
                         <h3 className="font-display text-lg font-bold text-ivory truncate">
                           {lightboxProject.title}
@@ -643,12 +650,12 @@ export function MemberSpotlightView({
                       className={`relative bg-obsidian flex-1 min-h-0 flex items-center justify-center p-3 ${lightboxZoomed ? "overflow-auto" : "overflow-hidden"}`}
                     >
                       <img
-                        src={lightboxGallery[lightboxPhotoIdx]}
+                        src={lightboxGallery[activeLightboxPhotoIdx]}
                         alt=""
                         className="pointer-events-none absolute inset-0 w-full h-full object-cover blur-2xl opacity-25 scale-110"
                       />
                       <img
-                        src={lightboxGallery[lightboxPhotoIdx]}
+                        src={lightboxGallery[activeLightboxPhotoIdx]}
                         alt={lightboxProject.title}
                         onClick={() => setLightboxZoomed((z) => !z)}
                         className={`relative z-10 rounded-lg shadow-2xl transition-transform duration-300 ${

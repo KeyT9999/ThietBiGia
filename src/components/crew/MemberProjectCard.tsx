@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
   Camera,
   Film,
   Images,
   Maximize2,
-  Sparkles,
   Users,
 } from "lucide-react";
 import { type UnifiedMemberProject } from "@/data/works";
@@ -17,20 +16,86 @@ import { soundEngine } from "@/lib/sound";
 
 export function MemberProjectCard({
   project,
+  memberSlug,
   featured = false,
   isModal = false,
   onOpenAlbum,
 }: {
   project: UnifiedMemberProject;
+  memberSlug: string;
   featured?: boolean;
   isModal?: boolean;
   onOpenAlbum: (project: UnifiedMemberProject, frameIdx: number) => void;
 }) {
   const [activeFrame, setActiveFrame] = useState(0);
   const [isPortraitFrame, setIsPortraitFrame] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [driveFrames, setDriveFrames] = useState<string[]>([]);
+  const [driveHasMore, setDriveHasMore] = useState(false);
+  const [driveLoading, setDriveLoading] = useState(false);
+  const [driveError, setDriveError] = useState("");
 
-  const frames = project.galleryDriveFolderUrl ? [project.coverImage] : project.frames;
+  const driveGalleryUrl = (() => {
+    if (!project.galleryDriveFolderUrl) return "";
+    const params = new URLSearchParams();
+    if (project.scope === "personal" && project.showcaseItemId) {
+      params.set("memberSlug", memberSlug);
+      params.set("showcaseId", project.showcaseItemId);
+    } else if (project.workSlug) {
+      params.set("slug", project.workSlug);
+    } else {
+      return "";
+    }
+    params.set("limit", "11");
+    return `/api/works/gallery?${params.toString()}`;
+  })();
+
+  useEffect(() => {
+    if (!driveGalleryUrl) return;
+    const controller = new AbortController();
+    setDriveFrames([]);
+    setDriveHasMore(false);
+    setDriveLoading(true);
+    setDriveError("");
+
+    fetch(driveGalleryUrl, { signal: controller.signal, cache: "no-store" })
+      .then(async (response) => {
+        const result = await response.json() as {
+          ok: boolean;
+          images?: { src: string }[];
+          hasMore?: boolean;
+          error?: string;
+        };
+        if (!response.ok || !result.ok) {
+          throw new Error(result.error || "Không tải được album Drive.");
+        }
+        const images = result.images ?? [];
+        setDriveFrames(images.slice(0, 10).map((image) => image.src));
+        setDriveHasMore(Boolean(result.hasMore) || images.length > 10);
+      })
+      .catch((cause) => {
+        if (cause instanceof DOMException && cause.name === "AbortError") return;
+        setDriveError(cause instanceof Error ? cause.message : "Không tải được album Drive.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setDriveLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [driveGalleryUrl]);
+
+  const legacyDriveFrames = project.frames.filter((src) => src !== project.coverImage);
+  const drivePreviewFrames = driveFrames.length > 0
+    ? driveFrames
+    : driveError ? legacyDriveFrames : [];
+  const frames = project.galleryDriveFolderUrl
+    ? drivePreviewFrames.length > 0 ? drivePreviewFrames : [project.coverImage]
+    : project.frames.length > 0 ? project.frames : [project.coverImage];
   const currentSrc = frames[activeFrame] ?? project.coverImage;
+  const previewFrames = project.galleryDriveFolderUrl ? drivePreviewFrames : frames;
+  const showFrameStrip = project.galleryDriveFolderUrl
+    ? driveLoading || Boolean(driveError) || drivePreviewFrames.length > 0
+    : frames.length > 1;
   const isWide = project.span ? project.span === "wide" : featured;
   const cardSpan = project.span === "tall"
     ? "col-span-12 xl:col-span-5"
@@ -56,29 +121,23 @@ export function MemberProjectCard({
       ? { label: "CÁ NHÂN", bg: "#FF4D00", text: "#08090C" }
       : { label: "CÙNG EKIP", bg: "#1E2433", text: "#F4F1EA" };
 
-  const scrubAtClientX = (clientX: number, el: HTMLElement) => {
-    if (frames.length <= 1) return;
-    const rect = el.getBoundingClientRect();
-    const relX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    const idx = Math.min(frames.length - 1, Math.floor(relX * frames.length));
-    if (idx !== activeFrame) {
-      soundEngine.playTick(0.42);
-      setActiveFrame(idx);
-    }
-  };
+  useEffect(() => {
+    if (!isHovered || frames.length <= 1) return;
+    const timer = window.setInterval(() => {
+      setActiveFrame((current) => (current + 1) % frames.length);
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, [isHovered, frames.length]);
 
-  const handleStageScrub = (e: React.MouseEvent<HTMLDivElement>) => {
-    scrubAtClientX(e.clientX, e.currentTarget);
-  };
-
-  const handleTouchScrub = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (e.touches.length > 0) {
-      scrubAtClientX(e.touches[0].clientX, e.currentTarget);
-    }
-  };
+  const toAlbumFrameIndex = (frameIndex: number) =>
+    project.galleryDriveFolderUrl && drivePreviewFrames.length > 0
+      ? frameIndex + 1
+      : frameIndex;
 
   return (
     <article
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className={`${
         cardSpan
       } rounded-2xl border border-obsidian-border hover:border-rec/65 bg-obsidian-surface overflow-hidden flex flex-col justify-between transition-all shadow-[0_12px_36px_rgba(0,0,0,0.35)] group`}
@@ -108,7 +167,9 @@ export function MemberProjectCard({
                 <Images className="w-3.5 h-3.5 text-rec" />
                 <span>
                   {project.galleryDriveFolderUrl
-                    ? "DRIVE"
+                    ? drivePreviewFrames.length > 0
+                      ? `${String(activeFrame + 1).padStart(2, "0")}/${String(drivePreviewFrames.length).padStart(2, "0")}${driveHasMore ? "+" : ""}`
+                      : "DRIVE"
                     : `${String(activeFrame + 1).padStart(2, "0")}/${String(frames.length).padStart(2, "0")}`}
                 </span>
               </span>
@@ -135,11 +196,9 @@ export function MemberProjectCard({
           )}
         </div>
 
-        {/* Main Hover-Scrubbable & Touch-Swipeable Cinema / Gallery Stage */}
+        {/* Main Cinema / Gallery Stage */}
         <div
-          onMouseMove={handleStageScrub}
-          onTouchMove={handleTouchScrub}
-          onClick={() => onOpenAlbum(project, project.galleryDriveFolderUrl ? 0 : activeFrame)}
+          onClick={() => onOpenAlbum(project, toAlbumFrameIndex(activeFrame))}
           className={`relative ${
             stageAspect
           } w-full bg-obsidian overflow-hidden cursor-pointer flex items-center justify-center`}
@@ -168,18 +227,7 @@ export function MemberProjectCard({
           <div className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-t from-obsidian/90 via-transparent to-obsidian/25" />
 
           {/* Floating Action Badges */}
-          <div className="absolute top-3 left-3 right-3 z-30 flex items-center justify-between gap-2 pointer-events-none">
-            {!project.galleryDriveFolderUrl && frames.length > 1 ? (
-              <span className="px-2.5 py-1 rounded-md bg-obsidian/80 backdrop-blur-md border border-white/15 text-xs font-mono text-ivory/90">
-                RÊ CHUỘT ĐỂ LƯỚT {frames.length} ẢNH
-              </span>
-            ) : !project.galleryDriveFolderUrl ? (
-              <span className="px-2.5 py-1 rounded-md bg-obsidian/80 backdrop-blur-md border border-white/15 text-xs font-mono text-ivory/90 inline-flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-rec" />
-                <span>SINGLE PRINT</span>
-              </span>
-            ) : null}
-
+          <div className="absolute top-3 left-3 right-3 z-30 flex items-center justify-end gap-2 pointer-events-none">
             <span className="px-2.5 py-1 rounded-md bg-obsidian/85 backdrop-blur-md border border-white/15 group-hover:border-rec group-hover:bg-rec group-hover:text-obsidian text-xs font-mono font-semibold text-ivory inline-flex items-center gap-1.5 transition-colors">
               <Maximize2 className="w-3 h-3" />
               <span>PHÓNG LỚN ALBUM</span>
@@ -204,21 +252,25 @@ export function MemberProjectCard({
         </div>
 
         {/* Contact Sheet Filmstrip Bar (Direct Visual Preview of Every Frame!) */}
-        {frames.length > 1 && (
+        {showFrameStrip && (
           <div className="px-3 py-2.5 bg-obsidian/85 border-t border-obsidian-border flex items-center gap-2 overflow-x-auto">
-            {frames.map((frameSrc, idx) => {
+            {driveLoading && (
+              <span className="shrink-0 px-2 py-1 text-xs font-mono text-ivory-muted">
+                ĐANG TẢI ẢNH DRIVE…
+              </span>
+            )}
+            {driveError && (
+              <span className="shrink-0 px-2 py-1 text-xs font-mono text-amber-200">
+                KHÔNG TẢI ĐƯỢC ALBUM DRIVE
+              </span>
+            )}
+            {previewFrames.map((frameSrc, idx) => {
               const isSelected = idx === activeFrame;
               return (
                 <button
                   key={frameSrc + idx}
                   type="button"
-                  onMouseEnter={() => {
-                    if (idx !== activeFrame) {
-                      soundEngine.playTick(0.45);
-                      setActiveFrame(idx);
-                    }
-                  }}
-                  onClick={() => onOpenAlbum(project, idx)}
+                  onClick={() => onOpenAlbum(project, toAlbumFrameIndex(idx))}
                   className={`relative h-12 w-18 sm:w-20 aspect-[16/10] rounded-lg overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${
                     isSelected
                       ? "border-rec scale-[1.03] opacity-100 shadow-[0_0_12px_rgba(255,77,0,0.35)]"
@@ -236,6 +288,17 @@ export function MemberProjectCard({
                 </button>
               );
             })}
+            {project.galleryDriveFolderUrl && driveHasMore && (
+              <button
+                type="button"
+                onClick={() => onOpenAlbum(project, 11)}
+                className="inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-rec/60 bg-rec/10 px-3 text-xs font-mono font-bold text-rec transition-colors hover:bg-rec hover:text-obsidian"
+                aria-label="Xem thêm ảnh trong album Google Drive"
+              >
+                <Images className="h-3.5 w-3.5" />
+                + XEM THÊM
+              </button>
+            )}
           </div>
         )}
       </div>
