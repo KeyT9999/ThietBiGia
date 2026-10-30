@@ -7,6 +7,8 @@ import { toYoutubeEmbedUrl } from "@/lib/youtube";
 
 export function HomeIntroduction() {
   const homepage = useSiteContent().homepage;
+  const brandName = homepage.title.match(/Thiết Bị Gia/i);
+  const brandStart = brandName?.index ?? -1;
   const embedUrl =
     homepage.heroMediaType === "youtube"
       ? toYoutubeEmbedUrl(homepage.heroMediaUrl)
@@ -21,7 +23,13 @@ export function HomeIntroduction() {
             {homepage.eyebrow}
           </p>
           <h1 className="max-w-3xl font-display text-[clamp(1.1rem,4.2vw,2.25rem)] font-bold leading-[1.05] tracking-tight text-ivory min-[640px]:text-3xl md:text-4xl lg:text-6xl xl:text-7xl">
-            {homepage.title}
+            {brandName ? (
+              <>
+                {homepage.title.slice(0, brandStart)}
+                <span className="lg:whitespace-nowrap">{brandName[0]}</span>
+                {homepage.title.slice(brandStart + brandName[0].length)}
+              </>
+            ) : homepage.title}
           </h1>
           <p className="max-w-2xl whitespace-pre-line text-[11px] leading-[1.4] text-ivory-muted min-[480px]:text-xs min-[640px]:text-base lg:text-lg">
             {homepage.description}
