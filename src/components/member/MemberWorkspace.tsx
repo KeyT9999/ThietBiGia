@@ -175,8 +175,8 @@ export function MemberWorkspace() {
               </div>
             </div>
 
-            {section === "profile" ? <div className="grid items-start gap-4 xl:grid-cols-2">
-              <section className="space-y-4 rounded-2xl border border-white/10 bg-obsidian-surface p-4 sm:p-5">
+            {section === "profile" ? <div className="columns-1 gap-4 xl:columns-2">
+              <section className="mb-4 break-inside-avoid space-y-4 rounded-2xl border border-white/10 bg-obsidian-surface p-4 sm:p-5">
                 <div className="border-b border-white/10 pb-3">
                   <p className="font-mono text-[10px] text-rec">01 / HIỂN THỊ</p>
                   <h3 className="mt-1 font-display text-lg font-bold">Thông tin cơ bản</h3>
@@ -191,7 +191,7 @@ export function MemberWorkspace() {
                 </div>
               </section>
 
-              <section className="space-y-5 rounded-2xl border border-white/10 bg-obsidian-surface p-4 sm:p-5">
+              <section className="mb-4 break-inside-avoid space-y-5 rounded-2xl border border-white/10 bg-obsidian-surface p-4 sm:p-5">
                 <div className="border-b border-white/10 pb-3">
                   <p className="font-mono text-[10px] text-rec">02 / GIỚI THIỆU</p>
                   <h3 className="mt-1 font-display text-lg font-bold">Vai trò & câu chuyện</h3>
@@ -201,7 +201,7 @@ export function MemberWorkspace() {
                 <AdminField label="Giới thiệu cá nhân" value={profile.bio} multiline rows={6} onChange={(bio) => update({ bio })} />
               </section>
 
-              <section className="space-y-5 rounded-2xl border border-white/10 bg-obsidian-surface p-4 sm:p-5">
+              <section className="mb-4 break-inside-avoid space-y-5 rounded-2xl border border-white/10 bg-obsidian-surface p-4 sm:p-5">
                 <div className="flex items-center gap-2 border-b border-white/10 pb-3">
                   <Camera className="h-4 w-4 text-rec" />
                   <div><p className="font-mono text-[10px] text-rec">03 / HÌNH ẢNH</p><h3 className="mt-1 font-display text-lg font-bold">Ảnh & thiết bị</h3></div>
@@ -211,11 +211,12 @@ export function MemberWorkspace() {
                 <AdminStringListField label="Gear yêu thích" value={profile.favoriteGear} onChange={(favoriteGear) => update({ favoriteGear })} placeholder="Ví dụ: Sony FX6" addLabel="THÊM THIẾT BỊ" reorderable />
               </section>
 
-              <section className="space-y-4 rounded-2xl border border-white/10 bg-obsidian-surface p-4 sm:p-5">
+              <section className="mb-4 break-inside-avoid space-y-4 rounded-2xl border border-white/10 bg-obsidian-surface p-4 sm:p-5">
                 <div className="border-b border-white/10 pb-3">
                   <p className="font-mono text-[10px] text-rec">04 / LIÊN HỆ</p>
                   <h3 className="mt-1 font-display text-lg font-bold">Liên kết công khai</h3>
                 </div>
+                <p className="text-xs leading-relaxed text-ivory-subtle">Các thông tin này sẽ thành liên kết trên profile công khai. Trường để trống sẽ không hiển thị.</p>
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2"><AdminField label="Instagram URL" value={profile.socials.instagram ?? ""} onChange={(value) => update({ socials: { ...profile.socials, instagram: value || undefined } })} /><AdminField label="Behance URL" value={profile.socials.behance ?? ""} onChange={(value) => update({ socials: { ...profile.socials, behance: value || undefined } })} /><AdminField label="Facebook URL" value={profile.socials.facebook ?? ""} onChange={(value) => update({ socials: { ...profile.socials, facebook: value || undefined } })} /><AdminField label="Email công khai" type="email" value={profile.socials.email ?? ""} onChange={(value) => update({ socials: { ...profile.socials, email: value || undefined } })} /></div>
               </section>
             </div> : null}

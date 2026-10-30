@@ -16,6 +16,7 @@ import {
   Film,
   Hand,
   Images,
+  Mail,
   QrCode,
   Sparkles,
   X,
@@ -42,6 +43,21 @@ const LanyardPressPass3DView = dynamic(
     ),
   { ssr: false }
 );
+
+type MemberSocialNetwork = "instagram" | "behance" | "facebook";
+
+function getMemberSocialHref(value: string, network: MemberSocialNetwork) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+
+  const domain = network === "behance" ? "behance.net" : `${network}.com`;
+  const path = trimmed
+    .replace(/^(?:www\.)?(?:instagram\.com|behance\.net|facebook\.com)\//i, "")
+    .replace(/^@/, "")
+    .replace(/^\/+/, "");
+  return path ? `https://${domain}/${path}` : "";
+}
 
 export function MemberSpotlightView({
   member,
@@ -80,6 +96,20 @@ export function MemberSpotlightView({
       ? sharedProjects
       : unifiedProjects;
   const teammates = getTeammatesForMember(member.slug, siteContent.works, crewMembers);
+  const profileContacts = [
+    {
+      label: "EMAIL",
+      value: member.socials.email?.trim() ?? "",
+      href: member.socials.email?.trim() ? `mailto:${member.socials.email.trim()}` : "",
+      isEmail: true,
+    },
+    ...(["instagram", "behance", "facebook"] as const).map((network) => ({
+      label: network.toUpperCase(),
+      value: member.socials[network]?.trim() ?? "",
+      href: getMemberSocialHref(member.socials[network] ?? "", network),
+      isEmail: false,
+    })),
+  ].filter((contact) => contact.value && contact.href);
 
   const currentIdx = crewMembers.findIndex((m) => m.slug === member.slug);
   const prevMember =
@@ -412,6 +442,21 @@ export function MemberSpotlightView({
                 className="text-xs font-mono text-ivory"
               />
             </div>
+
+            {profileContacts.length > 0 ? <div aria-label="Thông tin liên hệ cá nhân" className="flex flex-wrap gap-2">
+              {profileContacts.map(({ label, value, href, isEmail }) => <a
+                key={label}
+                href={href}
+                target={isEmail ? undefined : "_blank"}
+                rel={isEmail ? undefined : "noreferrer"}
+                title={`${label}: ${value}`}
+                className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-lg border border-obsidian-border bg-obsidian-surface/70 px-3 py-2 text-ivory-muted transition hover:border-rec/60 hover:text-ivory"
+              >
+                {isEmail ? <Mail className="h-3.5 w-3.5 shrink-0 text-rec" /> : <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-rec" />}
+                <span className="shrink-0 font-mono text-[10px] text-rec">{label}</span>
+                <span className="max-w-[220px] truncate text-xs sm:max-w-[320px]">{value}</span>
+              </a>)}
+            </div> : null}
           </div>
 
           {/* UNIFIED VISUAL PROJECT SHOWCASE (Idea 1: Hover-Scrub Case-Study Cards + Scope Tabs) */}
