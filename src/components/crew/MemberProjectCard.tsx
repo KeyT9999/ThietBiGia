@@ -29,6 +29,7 @@ export function MemberProjectCard({
 }) {
   const [activeFrame, setActiveFrame] = useState(0);
   const [isPortraitFrame, setIsPortraitFrame] = useState(false);
+  const [isCoverPortraitFrame, setIsCoverPortraitFrame] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [driveFrames, setDriveFrames] = useState<string[]>([]);
   const [driveHasMore, setDriveHasMore] = useState(false);
@@ -91,9 +92,7 @@ export function MemberProjectCard({
   const frames = project.galleryDriveFolderUrl
     ? drivePreviewFrames.length > 0 ? drivePreviewFrames : [project.coverImage]
     : project.frames.length > 0 ? project.frames : [project.coverImage];
-  const currentSrc = project.galleryDriveFolderUrl && !isHovered
-    ? project.coverImage
-    : frames[activeFrame] ?? project.coverImage;
+  const currentSrc = frames[activeFrame] ?? project.coverImage;
   const previewFrames = project.galleryDriveFolderUrl ? drivePreviewFrames : frames;
   const showFrameStrip = project.galleryDriveFolderUrl
     ? driveLoading || Boolean(driveError) || drivePreviewFrames.length > 0
@@ -200,36 +199,80 @@ export function MemberProjectCard({
 
         {/* Main Cinema / Gallery Stage */}
         <div
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => {
+          onPointerEnter={() => setIsHovered(true)}
+          onPointerLeave={() => {
             setIsHovered(false);
             if (project.galleryDriveFolderUrl) setActiveFrame(0);
           }}
           onClick={() => onOpenAlbum(project, toAlbumFrameIndex(activeFrame))}
           className={`relative ${
             stageAspect
-          } w-full bg-obsidian overflow-hidden cursor-pointer flex items-center justify-center`}
+          } group/stage w-full bg-obsidian overflow-hidden cursor-pointer flex items-center justify-center`}
         >
-          {/* Ambient Blurred Studio Backdrop (essential for vertical 2:3 DSLR shots) */}
-          <img
-            src={currentSrc}
-            alt=""
-            className="pointer-events-none absolute inset-0 w-full h-full object-cover blur-2xl opacity-35 scale-110"
-          />
+          {project.galleryDriveFolderUrl ? (
+            <>
+              {/* Keep the project cover as the non-hover image, independent of React state. */}
+              <img
+                src={project.coverImage}
+                alt=""
+                className="pointer-events-none absolute inset-0 z-0 h-full w-full scale-110 object-cover blur-2xl opacity-35 transition-opacity duration-300 group-hover/stage:opacity-0"
+              />
+              <img
+                src={currentSrc}
+                alt=""
+                className="pointer-events-none absolute inset-0 z-0 h-full w-full scale-110 object-cover blur-2xl opacity-0 transition-opacity duration-300 group-hover/stage:opacity-35"
+              />
+              <img
+                src={project.coverImage}
+                alt={`${project.title} — Ảnh bìa`}
+                onLoad={(e) => {
+                  const el = e.currentTarget;
+                  setIsCoverPortraitFrame(el.naturalHeight > el.naturalWidth * 1.05);
+                }}
+                className={`z-10 rounded-lg shadow-2xl transition-opacity duration-300 group-hover/stage:opacity-0 ${
+                  isCoverPortraitFrame
+                    ? "relative h-full w-auto max-w-full object-contain"
+                    : "relative h-full w-full object-cover object-[50%_20%]"
+                }`}
+              />
+              <img
+                src={currentSrc}
+                alt={`${project.title} — Frame ${activeFrame + 1}`}
+                onLoad={(e) => {
+                  const el = e.currentTarget;
+                  setIsPortraitFrame(el.naturalHeight > el.naturalWidth * 1.05);
+                }}
+                className={`z-10 rounded-lg opacity-0 shadow-2xl transition-opacity duration-300 group-hover/stage:opacity-100 ${
+                  isPortraitFrame
+                    ? "absolute inset-y-0 left-1/2 h-full w-auto max-w-full -translate-x-1/2 object-contain"
+                    : "absolute inset-0 h-full w-full object-cover object-[50%_20%]"
+                }`}
+              />
+            </>
+          ) : (
+            <>
+              {/* Ambient Blurred Studio Backdrop (essential for vertical 2:3 DSLR shots) */}
+              <img
+                src={currentSrc}
+                alt=""
+                className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-2xl opacity-35"
+              />
 
-          <img
-            src={currentSrc}
-            alt={`${project.title} — Frame ${activeFrame + 1}`}
-            onLoad={(e) => {
-              const el = e.currentTarget;
-              setIsPortraitFrame(el.naturalHeight > el.naturalWidth * 1.05);
-            }}
-            className={
-              isPortraitFrame
-                ? "relative z-10 h-full w-auto max-w-full object-contain drop-shadow-[0_12px_28px_rgba(0,0,0,0.75)] transition-transform duration-500 group-hover:scale-[1.02]"
-                : "relative z-10 w-full h-full object-cover object-[50%_20%] transition-transform duration-500 group-hover:scale-[1.03]"
-            }
-          />
+              <img
+                src={currentSrc}
+                alt={`${project.title} — Frame ${activeFrame + 1}`}
+                onLoad={(e) => {
+                  const el = e.currentTarget;
+                  setIsPortraitFrame(el.naturalHeight > el.naturalWidth * 1.05);
+                }}
+                className={
+                  isPortraitFrame
+                    ? "relative z-10 h-full w-auto max-w-full object-contain drop-shadow-[0_12px_28px_rgba(0,0,0,0.75)] transition-transform duration-500 group-hover:scale-[1.02]"
+                    : "relative z-10 h-full w-full object-cover object-[50%_20%] transition-transform duration-500 group-hover:scale-[1.03]"
+                }
+              />
+            </>
+          )}
 
           <div className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-t from-obsidian/90 via-transparent to-obsidian/25" />
 
