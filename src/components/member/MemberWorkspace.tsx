@@ -142,8 +142,8 @@ export function MemberWorkspace() {
           </div>
         </header>
 
-        <div className="grid items-start gap-5 lg:grid-cols-[250px_minmax(0,1fr)]">
-          <nav aria-label="Công cụ profile" className="grid min-w-0 grid-cols-1 gap-2 rounded-2xl border border-white/10 bg-obsidian-surface p-2 lg:sticky lg:top-5">
+        <div className="grid items-start gap-5">
+          <nav aria-label="Công cụ profile" className="grid min-w-0 grid-cols-1 gap-2 rounded-2xl border border-white/10 bg-obsidian-surface p-2 sm:grid-cols-3 lg:sticky lg:top-5">
             {sections.map((item) => {
               const Icon = item.icon;
               const active = item.id === section;
@@ -163,7 +163,7 @@ export function MemberWorkspace() {
                 </button>
               );
             })}
-            <p className="col-span-2 hidden border-t border-white/10 px-3 pt-3 text-xs leading-relaxed text-ivory-subtle lg:block">Chỉnh nội dung rồi bấm <b className="text-ivory">Lưu thay đổi</b> để cập nhật trang công khai.</p>
+            <p className="hidden border-t border-white/10 px-3 pt-3 text-xs leading-relaxed text-ivory-subtle sm:col-span-3 lg:block">Chỉnh nội dung rồi bấm <b className="text-ivory">Lưu thay đổi</b> để cập nhật trang công khai.</p>
           </nav>
 
           <section className="min-w-0 space-y-5">

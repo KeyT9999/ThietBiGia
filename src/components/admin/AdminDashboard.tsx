@@ -70,6 +70,7 @@ export function AdminDashboard() {
   }, [router]);
 
   const member = useMemo(() => content?.crew.find((item) => item.id === memberId) ?? null, [content, memberId]);
+  const memberOrderIndex = content?.crew.findIndex((item) => item.id === memberId) ?? -1;
   const work = useMemo(() => content?.works.find((item) => item.id === workId) ?? null, [content, workId]);
   const isDirty = Boolean(content && JSON.stringify(content) !== savedSnapshot);
   const filteredMembers = useMemo(() => {
@@ -124,6 +125,21 @@ export function AdminDashboard() {
               : moment.memberNames,
           };
         }),
+      };
+    });
+    setNotice("");
+  }
+
+  function moveMember(memberId: string, direction: -1 | 1) {
+    setContent((current) => {
+      if (!current) return current;
+      const orderedCrew = normalizeCrewOrder(current.crew);
+      const fromIndex = orderedCrew.findIndex((item) => item.id === memberId);
+      const toIndex = fromIndex + direction;
+      if (fromIndex < 0 || toIndex < 0 || toIndex >= orderedCrew.length) return current;
+      return {
+        ...current,
+        crew: moveCrewMemberToBadgeNumber(orderedCrew, memberId, String(toIndex + 1)),
       };
     });
     setNotice("");
@@ -360,12 +376,28 @@ export function AdminDashboard() {
               <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
                 <div className="space-y-3 rounded-3xl border border-white/10 bg-obsidian-surface p-4">
                   <div className="flex items-center justify-between gap-2"><h2 className="font-display text-xl font-bold">Thành viên ({content.crew.length})</h2><button type="button" onClick={addMember} className="rounded-lg bg-rec p-2 text-obsidian" title="Thêm thành viên"><Plus className="h-4 w-4" /></button></div>
-                  <p className="text-xs text-ivory-subtle">Danh sách được sắp theo số thẻ.</p>
-                  <select aria-label="Chọn thành viên để chỉnh sửa" value={memberId} onChange={(event) => setMemberId(event.target.value)} className="w-full rounded-xl border border-white/10 bg-obsidian px-3 py-3 text-sm text-ivory xl:hidden">
-                    {content.crew.map((item) => <option key={item.id} value={item.id}>#{item.badgeNumber} · {item.name}</option>)}
-                  </select>
+                  <p className="text-xs leading-relaxed text-ivory-subtle">Danh sách theo thứ tự trên thẻ 3D. Dùng mũi tên để đổi vị trí; số thẻ tự cập nhật. Bấm Lưu thay đổi để áp dụng.</p>
+                  <div className="flex gap-2 xl:hidden">
+                    <select aria-label="Chọn thành viên để chỉnh sửa" value={memberId} onChange={(event) => setMemberId(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-white/10 bg-obsidian px-3 py-3 text-sm text-ivory">
+                      {content.crew.map((item) => <option key={item.id} value={item.id}>#{item.badgeNumber} · {item.name}</option>)}
+                    </select>
+                    <button type="button" disabled={memberOrderIndex <= 0} onClick={() => moveMember(memberId, -1)} aria-label="Đưa thành viên đang chọn lên" title="Đưa lên trước" className="rounded-xl border border-white/10 px-2.5 text-ivory-muted hover:border-rec hover:text-ivory disabled:cursor-not-allowed disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
+                    <button type="button" disabled={memberOrderIndex < 0 || memberOrderIndex >= content.crew.length - 1} onClick={() => moveMember(memberId, 1)} aria-label="Đưa thành viên đang chọn xuống" title="Đưa xuống sau" className="rounded-xl border border-white/10 px-2.5 text-ivory-muted hover:border-rec hover:text-ivory disabled:cursor-not-allowed disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
+                  </div>
                   <label className="relative hidden xl:block"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ivory-subtle" /><input value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="Tìm tên, số thẻ, vai trò..." aria-label="Tìm thành viên" className="w-full rounded-xl border border-white/10 bg-obsidian py-2.5 pl-9 pr-3 text-sm text-ivory outline-none placeholder:text-ivory-subtle focus:border-rec" /></label>
-                  <div className="hidden max-h-[65vh] space-y-1 overflow-y-auto xl:block">{filteredMembers.map((item) => <button key={item.id} type="button" onClick={() => setMemberId(item.id)} className={"w-full rounded-lg px-3 py-2 text-left text-sm " + (item.id === memberId ? "bg-white/10 text-ivory" : "text-ivory-muted hover:bg-white/5 hover:text-ivory")}><span className="font-mono text-[10px] text-rec">#{item.badgeNumber}</span><span className="ml-2">{item.name}</span></button>)}{filteredMembers.length === 0 ? <p className="rounded-lg px-3 py-4 text-sm text-ivory-subtle">Không tìm thấy thành viên.</p> : null}</div>
+                  <div className="hidden max-h-[65vh] space-y-1 overflow-y-auto xl:block">
+                    {filteredMembers.map((item) => {
+                      const orderIndex = content.crew.findIndex((candidate) => candidate.id === item.id);
+                      return <div key={item.id} className="flex items-center gap-1">
+                        <button type="button" onClick={() => setMemberId(item.id)} className={"min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm " + (item.id === memberId ? "bg-white/10 text-ivory" : "text-ivory-muted hover:bg-white/5 hover:text-ivory")}><span className="font-mono text-[10px] text-rec">#{item.badgeNumber}</span><span className="ml-2 break-words">{item.name}</span></button>
+                        <div className="flex shrink-0 flex-col gap-1">
+                          <button type="button" disabled={orderIndex === 0} onClick={() => moveMember(item.id, -1)} aria-label={`Đưa ${item.name} lên trước`} title="Đưa lên trước" className="rounded border border-white/10 p-1.5 text-ivory-muted hover:border-rec hover:text-ivory disabled:cursor-not-allowed disabled:opacity-30"><ArrowUp className="h-3 w-3" /></button>
+                          <button type="button" disabled={orderIndex === content.crew.length - 1} onClick={() => moveMember(item.id, 1)} aria-label={`Đưa ${item.name} xuống sau`} title="Đưa xuống sau" className="rounded border border-white/10 p-1.5 text-ivory-muted hover:border-rec hover:text-ivory disabled:cursor-not-allowed disabled:opacity-30"><ArrowDown className="h-3 w-3" /></button>
+                        </div>
+                      </div>;
+                    })}
+                    {filteredMembers.length === 0 ? <p className="rounded-lg px-3 py-4 text-sm text-ivory-subtle">Không tìm thấy thành viên.</p> : null}
+                  </div>
                 </div>
                 {member ? <MemberEditor member={member} memberCount={content.crew.length} works={content.works} crew={content.crew} canDelete={content.crew.length > 1} accountCanManage={savedMemberIds.includes(member.id)} onChange={(patch) => updateMember(member.id, patch)} onDelete={deleteMember} /> : null}
               </div>
