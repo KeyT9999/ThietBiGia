@@ -79,11 +79,6 @@ export function MemberSpotlightView({
       : projectTab === "shared"
       ? sharedProjects
       : unifiedProjects;
-  const totalFramesCount = unifiedProjects.reduce(
-    (sum, p) => sum + p.frames.length,
-    0
-  );
-
   const teammates = getTeammatesForMember(member.slug, siteContent.works, crewMembers);
 
   const currentIdx = crewMembers.findIndex((m) => m.slug === member.slug);
@@ -433,7 +428,7 @@ export function MemberSpotlightView({
                   <p className="text-xs font-mono text-ivory-muted mt-1 flex items-center gap-2">
                     <Images className="w-3.5 h-3.5 text-rec" />
                     <span>
-                      {unifiedProjects.length} DỰ ÁN • {totalFramesCount} KHUNG HÌNH • RÊ CHUỘT TRÊN ẢNH ĐỂ LƯỚT NHANH
+                      {unifiedProjects.length} DỰ ÁN
                     </span>
                   </p>
                 </div>
