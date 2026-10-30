@@ -112,7 +112,8 @@ export function MemberEditor({
       <AdminField label="Giới thiệu cá nhân" value={member.bio} multiline rows={6} onChange={(bio) => onChange({ bio })} />
       <AdminStringListField label="Gear yêu thích" value={member.favoriteGear} onChange={(favoriteGear) => onChange({ favoriteGear })} placeholder="Ví dụ: Sony FX6" addLabel="THÊM THIẾT BỊ" reorderable />
       <AdminImageField label="Ảnh đại diện" value={member.avatar} folder="thiet-bi-gia/members" onChange={(avatar) => onChange({ avatar })} />
-      <AdminField label="Alt text ảnh" value={member.avatarAlt ?? ""} onChange={(avatarAlt) => onChange({ avatarAlt: avatarAlt || undefined })} />
+      <AdminImageField label="Ảnh khi rê chuột vào thẻ" value={member.avatarAlt ?? ""} folder="thiet-bi-gia/members" onChange={(avatarAlt) => onChange({ avatarAlt: avatarAlt || undefined })} />
+      <p className="-mt-3 text-xs text-ivory-subtle">Ảnh này thay ảnh đại diện khi khách rê chuột lên thẻ thành viên ở trang Đội ngũ. Để trống nếu không cần hiệu ứng đổi ảnh.</p>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <AdminField label="Instagram URL" value={member.socials.instagram ?? ""} onChange={(value) => onChange({ socials: { ...member.socials, instagram: value || undefined } })} />
