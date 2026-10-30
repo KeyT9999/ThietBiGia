@@ -20,8 +20,14 @@ import type { WorkProject } from "@/data/works";
 import { getRoleMeta } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
 import { useSiteContent } from "@/lib/store";
+import { toYoutubeEmbedUrl } from "@/lib/youtube";
 
 gsap.registerPlugin(Flip);
+
+function isGenericProjectCover(src: string) {
+  const path = src.trim().replace(/^https?:\/\/[^/]+/i, "").split(/[?#]/, 1)[0];
+  return !path || /^\/media\/works\/work-\d+\.(?:jpe?g|png|webp)$/i.test(path);
+}
 
 function WorkArchiveCard({
   work,
@@ -35,6 +41,15 @@ function WorkArchiveCard({
   onSelectMember: (slug: string) => void;
 }) {
   const [isPortraitFrame, setIsPortraitFrame] = useState(false);
+  const coverSrc = work.coverImage?.trim() ?? "";
+  const hasRealCover = Boolean(coverSrc) && !isGenericProjectCover(coverSrc);
+  const videoEmbedUrl = toYoutubeEmbedUrl(work.videoEmbedUrl || work.videoUrl || "");
+  const videoId = videoEmbedUrl?.split("/").pop();
+  const shouldPlayVideoCover = !hasRealCover && Boolean(videoEmbedUrl && videoId);
+  const fallbackCoverSrc = coverSrc || "/media/works/work-01.jpg";
+  const autoplayVideoUrl = videoEmbedUrl && videoId
+    ? `${videoEmbedUrl}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&playsinline=1&rel=0`
+    : null;
 
   const selectedCredit =
     selectedMemberSlug !== "ALL"
@@ -72,9 +87,11 @@ function WorkArchiveCard({
               <span>
                 {work.galleryDriveFolderUrl
                   ? "DRIVE ALBUM"
-                  : work.galleryImages.length
-                    ? `${work.galleryImages.length} ẢNH`
-                    : "ẢNH BÌA"}
+                  : shouldPlayVideoCover
+                    ? "VIDEO YOUTUBE"
+                    : work.galleryImages.length
+                      ? `${work.galleryImages.length} ẢNH`
+                      : "ẢNH BÌA"}
               </span>
               <span className="text-ivory-subtle">• {work.year}</span>
             </span>
@@ -88,24 +105,38 @@ function WorkArchiveCard({
           onClick={() => soundEngine.playShutter()}
           className="relative aspect-[16/10] w-full bg-obsidian overflow-hidden flex items-center justify-center block"
         >
-          <img
-            src={work.coverImage}
-            alt=""
-            className="pointer-events-none absolute inset-0 w-full h-full object-cover blur-2xl opacity-35 scale-110"
-          />
-          <img
-            src={work.coverImage}
-            alt={work.title}
-            onLoad={(e) => {
-              const el = e.currentTarget;
-              setIsPortraitFrame(el.naturalHeight > el.naturalWidth * 1.05);
-            }}
-            className={
-              isPortraitFrame
-                ? "relative z-10 h-full w-auto max-w-full object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-[1.02]"
-                : "relative z-10 w-full h-full object-cover object-[50%_20%] transition-transform duration-500 group-hover:scale-[1.03]"
-            }
-          />
+          {shouldPlayVideoCover && autoplayVideoUrl ? (
+            <iframe
+              src={autoplayVideoUrl}
+              title={`Video xem trước ${work.title}`}
+              aria-hidden="true"
+              tabIndex={-1}
+              loading="lazy"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              className="pointer-events-none absolute inset-0 h-full w-full scale-[1.02] border-0"
+            />
+          ) : (
+            <>
+              <img
+                src={fallbackCoverSrc}
+                alt=""
+                className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-2xl"
+              />
+              <img
+                src={fallbackCoverSrc}
+                alt={work.title}
+                onLoad={(event) => {
+                  const image = event.currentTarget;
+                  setIsPortraitFrame(image.naturalHeight > image.naturalWidth * 1.05);
+                }}
+                className={
+                  isPortraitFrame
+                    ? "relative z-10 h-full w-auto max-w-full object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-[1.02]"
+                    : "relative z-10 h-full w-full object-cover object-[50%_20%] transition-transform duration-500 group-hover:scale-[1.03]"
+                }
+              />
+            </>
+          )}
           <div className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-t from-obsidian/92 via-transparent to-obsidian/25" />
 
           <div className="pointer-events-none absolute top-3 left-3 right-3 z-30 flex items-center justify-between gap-2">
