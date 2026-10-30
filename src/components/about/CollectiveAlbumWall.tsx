@@ -169,11 +169,11 @@ export function CollectiveAlbumWall() {
       </div>
 
       {/* AI Face-Tagged Member Filter Strip */}
-      <div className="rounded-2xl border border-obsidian-border bg-obsidian-surface/70 p-4 space-y-3">
+      <div className="rounded-2xl border border-obsidian-border bg-obsidian-surface/70 p-3 space-y-2 sm:p-4 sm:space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <div className="inline-flex items-center gap-2 text-xs font-mono text-ivory-muted">
+          <div className="inline-flex min-w-0 items-center gap-2 text-[10px] font-mono text-ivory-muted sm:text-xs">
             <Filter className="w-3.5 h-3.5 text-rec" />
-            <span>LỌC ẢNH CHUNG CÓ MẶT THÀNH VIÊN:</span>
+            <span className="truncate">LỌC ẢNH CHUNG CÓ MẶT THÀNH VIÊN:</span>
           </div>
           {activeMemberSlug && (
             <button
@@ -182,14 +182,34 @@ export function CollectiveAlbumWall() {
                 soundEngine.playTick(0.8);
                 setActiveMemberSlug(null);
               }}
-              className="text-xs font-mono text-rec hover:underline cursor-pointer"
+              className="shrink-0 text-[10px] font-mono text-rec hover:underline cursor-pointer sm:text-xs"
             >
-              XÓA LỌC THÀNH VIÊN ×
+              <span className="hidden sm:inline">XÓA LỌC THÀNH VIÊN ×</span>
+              <span className="sm:hidden">XÓA LỌC ×</span>
             </button>
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <label className="relative block sm:hidden">
+          <span className="sr-only">Lọc ảnh chung theo thành viên</span>
+          <select
+            value={activeMemberSlug ?? ""}
+            onChange={(event) => {
+              soundEngine.playTick(0.85);
+              setActiveMemberSlug(event.target.value || null);
+              setLightboxIdx(null);
+            }}
+            className="w-full appearance-none rounded-xl border border-obsidian-border bg-obsidian py-2.5 pl-3 pr-9 text-xs font-mono text-ivory outline-none focus:border-rec"
+          >
+            <option value="">Tất cả thành viên</option>
+            {memberFilterChips.map(({ slug, count, member }) => (
+              <option key={slug} value={slug}>{member.name} ({count} ảnh)</option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ivory-muted" />
+        </label>
+
+        <div className="hidden flex-wrap items-center gap-2 sm:flex">
           {memberFilterChips.map(({ slug, count, member }) => {
             const selected = activeMemberSlug === slug;
             return (

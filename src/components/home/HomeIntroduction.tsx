@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDown, ArrowRight } from "lucide-react";
+import { ArrowDown, ArrowRight, Film } from "lucide-react";
 import { useSiteContent } from "@/lib/store";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
 
@@ -33,6 +33,13 @@ export function HomeIntroduction() {
             >
               {homepage.ctaLabel}
               <ArrowRight className="h-3 w-3 min-[640px]:h-4 min-[640px]:w-4" />
+            </Link>
+            <Link
+              href="/works"
+              className="inline-flex items-center gap-1 rounded-lg border border-rec/45 bg-rec/10 px-2 py-2 text-[9px] font-mono font-bold text-rec transition hover:border-rec hover:bg-rec hover:text-obsidian min-[390px]:px-2.5 min-[390px]:py-2.5 min-[480px]:gap-1.5 min-[480px]:text-[10px] min-[640px]:gap-2 min-[640px]:rounded-xl min-[640px]:px-3 min-[640px]:py-3 min-[640px]:text-xs lg:px-5"
+            >
+              <Film className="h-3 w-3 min-[640px]:h-4 min-[640px]:w-4" />
+              PROJECTS
             </Link>
             <a
               href="#living-timeline"

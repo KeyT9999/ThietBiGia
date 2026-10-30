@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   ArrowDownUp,
   Camera,
+  ChevronDown,
   Film,
   IdCard,
   Images,
@@ -348,8 +349,7 @@ export function WorksArchiveGrid() {
             KHO PROJECT &amp; BỘ SƯU TẬP [{workProjects.length}]
           </h1>
           <p className="text-sm sm:text-base text-ivory-muted max-w-2xl">
-            Chọn trực tiếp{" "}
-            <span className="text-ivory font-medium">Avatar thành viên</span> bên dưới để xem toàn bộ các dự án và vai trò cụ thể của từng anh em trong Thiết Bị Gia, hoặc rê chuột lên từng thẻ để lướt nhanh bộ ảnh.
+            Dùng bộ lọc thành viên bên dưới để xem các dự án và vai trò cụ thể của từng anh em trong Thiết Bị Gia, hoặc rê chuột lên từng thẻ để lướt nhanh bộ ảnh.
           </p>
         </div>
 
@@ -390,8 +390,8 @@ export function WorksArchiveGrid() {
       </div>
 
       {/* Idea 3: 16-Member Interactive Avatar Filter Bar (GSAP Flip Powered) */}
-      <div className="rounded-2xl border border-obsidian-border bg-obsidian-surface/65 p-4 space-y-3">
-        <div className="flex items-center justify-between gap-2 text-xs font-mono text-ivory-muted">
+      <div className="rounded-2xl border border-obsidian-border bg-obsidian-surface/65 p-3 space-y-2 sm:p-4 sm:space-y-3">
+        <div className="flex items-center justify-between gap-2 text-[10px] font-mono text-ivory-muted sm:text-xs">
           <span className="inline-flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-rec" />
             <span>LỌC PROJECT THEO THÀNH VIÊN ({crewMembers.length} ANH EM):</span>
@@ -403,12 +403,31 @@ export function WorksArchiveGrid() {
               className="text-rec hover:underline inline-flex items-center gap-1"
             >
               <X className="w-3.5 h-3.5" />
-              <span>Bỏ lọc thành viên</span>
+              <span className="hidden sm:inline">Bỏ lọc thành viên</span>
+              <span className="sm:hidden">Bỏ lọc</span>
             </button>
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <label className="relative block sm:hidden">
+          <span className="sr-only">Lọc dự án theo thành viên</span>
+          <select
+            value={selectedMemberSlug}
+            onChange={(event) => handleMemberSelect(event.target.value)}
+            className="w-full appearance-none rounded-xl border border-obsidian-border bg-obsidian py-2.5 pl-3 pr-9 text-xs font-mono text-ivory outline-none focus:border-rec"
+          >
+            <option value="ALL">Tất cả ekip ({workProjects.length} dự án)</option>
+            {crewMembers.map((member) => {
+              const count = workProjects.filter((work) =>
+                work.credits.some((credit) => credit.memberSlug === member.slug)
+              ).length;
+              return <option key={member.id} value={member.slug}>{member.name} ({count} dự án)</option>;
+            })}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ivory-muted" />
+        </label>
+
+        <div className="hidden flex-wrap items-center gap-2 sm:flex">
           <button
             type="button"
             onClick={() => handleMemberSelect("ALL")}
