@@ -3,7 +3,7 @@
 import * as THREE from "three";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { PerspectiveCamera, useVideoTexture, View } from "@react-three/drei";
+import { Html, PerspectiveCamera, useVideoTexture, View } from "@react-three/drei";
 import { easing } from "maath";
 import { usePathname, useRouter } from "next/navigation";
 import type { CrewMember } from "@/data/schema";
@@ -11,6 +11,7 @@ import type { WorkProject } from "@/data/schema";
 import { timelineMotion, useAppStore, useSiteContent } from "@/lib/store";
 import { getRoleMeta } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
+import { toYoutubeEmbedUrl } from "@/lib/youtube";
 
 const CAROUSEL_CIRCLE_RADIUS = 3.2;
 
@@ -127,6 +128,32 @@ function drawRoundedRectPath(
   ctx.lineTo(x, y + r);
   ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
+}
+
+function wrapCanvasText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number
+) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let line = "";
+  for (const word of words) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (line && ctx.measureText(candidate).width > maxWidth) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function isGenericWorkCover(src: string) {
+  const path = src.trim().replace(/^https?:\/\/[^/]+/i, "").split(/[?#]/, 1)[0];
+  return !path || /^\/media\/works\/work-\d+\.(?:jpe?g|png|webp)$/i.test(path);
 }
 
 /**
@@ -393,7 +420,7 @@ function useMemberCardTexture(member: CrewMember) {
  * for `workProjects` so Works Timeline Mode has full Vietnamese titles, SCENE badges,
  * timecodes, EXIF/camera specs, and crew count!
  */
-function useWorkCardTexture(work: WorkProject) {
+function useWorkCardTexture(work: WorkProject, crewMembers: CrewMember[]) {
   const texture = useMemo(() => {
     const canvas = document.createElement("canvas");
     canvas.width = 768;
@@ -406,15 +433,28 @@ function useWorkCardTexture(work: WorkProject) {
 
   useEffect(() => {
     const canvas = texture.image as HTMLCanvasElement;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    const ctx = context as CanvasRenderingContext2D;
 
     let cancelled = false;
     const W = canvas.width;
     const H = canvas.height;
+    let loadedCover: HTMLImageElement | undefined;
+    const creditedMembers = work.credits
+      .map((credit) => crewMembers.find((member) => member.slug === credit.memberSlug))
+      .filter((member): member is CrewMember => Boolean(member));
+    const crewAvatarImages = creditedMembers.slice(0, 4).map((member) => {
+      const image = new window.Image();
+      image.crossOrigin = "anonymous";
+      image.onload = () => paintSlate(loadedCover);
+      image.src = member.avatar;
+      return { member, image };
+    });
 
-    const paintSlate = (coverImg?: HTMLImageElement) => {
+    function paintSlate(coverImg: HTMLImageElement | undefined = loadedCover) {
       if (cancelled) return;
+      if (coverImg) loadedCover = coverImg;
       ctx.clearRect(0, 0, W, H);
       ctx.save();
       drawRoundedRectPath(ctx, 0, 0, W, H, 36);
@@ -460,22 +500,22 @@ function useWorkCardTexture(work: WorkProject) {
       ctx.fillStyle = "#080A0F";
       ctx.fillRect(px, py, pw, ph);
 
-      if (coverImg && coverImg.width > 0 && coverImg.height > 0) {
-        const imgAspect = coverImg.width / coverImg.height;
+      if (loadedCover && loadedCover.width > 0 && loadedCover.height > 0) {
+        const imgAspect = loadedCover.width / loadedCover.height;
         const boxAspect = pw / ph;
         let sx = 0,
           sy = 0,
-          sw = coverImg.width,
-          sh = coverImg.height;
+          sw = loadedCover.width,
+          sh = loadedCover.height;
         if (imgAspect > boxAspect) {
-          sw = coverImg.height * boxAspect;
-          sx = (coverImg.width - sw) / 2;
+          sw = loadedCover.height * boxAspect;
+          sx = (loadedCover.width - sw) / 2;
         } else {
-          sh = coverImg.width / boxAspect;
+          sh = loadedCover.width / boxAspect;
           const yBias = imgAspect < 0.85 ? 0.14 : 0.4;
-          sy = (coverImg.height - sh) * yBias;
+          sy = (loadedCover.height - sh) * yBias;
         }
-        ctx.drawImage(coverImg, sx, sy, sw, sh, px, py, pw, ph);
+        ctx.drawImage(loadedCover, sx, sy, sw, sh, px, py, pw, ph);
       }
 
       const vig = ctx.createLinearGradient(0, py + ph * 0.5, 0, py + ph);
@@ -493,7 +533,7 @@ function useWorkCardTexture(work: WorkProject) {
       ctx.fillStyle = "#F4F1EA";
       ctx.font = '700 16px "JetBrains Mono", Consolas, monospace';
       ctx.fillText(
-        work.videoUrl
+        work.videoEmbedUrl || work.videoUrl
           ? "LIVE REEL • 24FPS"
           : `${work.galleryImages.length} FRAMES • ${work.year}`,
         px + 50,
@@ -514,46 +554,100 @@ function useWorkCardTexture(work: WorkProject) {
 
       const upperTitle = work.title.toUpperCase();
       let tSize = 42;
-      while (tSize > 25) {
+      let titleLines: string[] = [];
+      while (tSize >= 16) {
         ctx.font = `800 ${tSize}px "Segoe UI", system-ui, sans-serif`;
-        if (ctx.measureText(upperTitle).width <= W - 84) break;
+        titleLines = wrapCanvasText(ctx, upperTitle, W - 84);
+        if (titleLines.length <= 3) break;
         tSize -= 2;
       }
       ctx.fillStyle = "#F5F5F2";
-      ctx.fillText(upperTitle, 42, 708);
+      const titleLineHeight = Math.ceil(tSize * 1.12);
+      const titleTop = 686;
+      titleLines.forEach((line, lineIndex) => {
+        ctx.fillText(line, 42, titleTop + lineIndex * titleLineHeight);
+      });
 
+      const titleBottom = titleTop + Math.max(0, titleLines.length - 1) * titleLineHeight;
+      const subtitleTop = Math.max(742, titleBottom + 38);
       ctx.fillStyle = "#9BA3B8";
-      ctx.font = '500 21px "Segoe UI", system-ui, sans-serif';
-      ctx.fillText(work.clientOrSeries, 42, 752);
+      ctx.font = '500 18px "Segoe UI", system-ui, sans-serif';
+      wrapCanvasText(ctx, work.clientOrSeries, W - 84).slice(0, 2).forEach((line, lineIndex) => {
+        ctx.fillText(line, 42, subtitleTop + lineIndex * 21);
+      });
 
+      const dividerY = subtitleTop + 56;
       ctx.strokeStyle = "rgba(255,255,255,0.10)";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(42, 798);
-      ctx.lineTo(W - 42, 798);
+      ctx.moveTo(42, dividerY);
+      ctx.lineTo(W - 42, dividerY);
       ctx.stroke();
 
       ctx.font = '600 17px "JetBrains Mono", Consolas, monospace';
       ctx.fillStyle = work.accentColor;
-      ctx.fillText("CAMERA / EXIF SPEC", 42, 836);
+      ctx.fillText("CAMERA / EXIF SPEC", 42, dividerY + 32);
 
       ctx.font = '500 18px "JetBrains Mono", Consolas, monospace';
       ctx.fillStyle = "#E2E6F0";
       const specText = (work.exifSpec || work.cameraSpec).slice(0, 44);
-      ctx.fillText(specText, 42, 872);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(42, dividerY + 40, 470, 36);
+      ctx.clip();
+      ctx.fillText(specText, 42, dividerY + 58);
+      ctx.restore();
 
-      // Right Crew Count Pill
-      const crewLabel = `${work.credits.length} CREW`;
-      ctx.font = '700 18px "JetBrains Mono", Consolas, monospace';
-      const cw = ctx.measureText(crewLabel).width + 32;
-      drawRoundedRectPath(ctx, W - 42 - cw, 826, cw, 44, 22);
-      ctx.fillStyle = "rgba(255,255,255,0.08)";
-      ctx.fill();
-      ctx.strokeStyle = `${work.accentColor}88`;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.fillStyle = "#F4F1EA";
-      ctx.fillText(crewLabel, W - 42 - cw + 16, 849);
+      // Crew avatars replace the old member-count-only pill.
+      const avatarSize = 42;
+      const avatarStep = 31;
+      const extraCount = Math.max(0, work.credits.length - crewAvatarImages.length);
+      const itemCount = crewAvatarImages.length + (extraCount > 0 ? 1 : 0);
+      if (itemCount > 0) {
+        const stackWidth = avatarSize + Math.max(0, itemCount - 1) * avatarStep;
+        const startX = W - 42 - stackWidth;
+        const centerY = 910;
+        crewAvatarImages.forEach(({ member, image }, index) => {
+          const centerX = startX + index * avatarStep + avatarSize / 2;
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, avatarSize / 2, 0, Math.PI * 2);
+          ctx.clip();
+          if (image.complete && image.naturalWidth > 0) {
+            ctx.drawImage(image, centerX - avatarSize / 2, centerY - avatarSize / 2, avatarSize, avatarSize);
+          } else {
+            ctx.fillStyle = "#1C2230";
+            ctx.fill();
+            const initials = member.nickname?.slice(0, 2) || member.name.split(/\s+/).slice(-2).map((part) => part[0]).join("");
+            ctx.fillStyle = "#F4F1EA";
+            ctx.font = '700 15px "JetBrains Mono", Consolas, monospace';
+            ctx.textAlign = "center";
+            ctx.fillText(initials.toUpperCase(), centerX, centerY);
+            ctx.textAlign = "left";
+          }
+          ctx.restore();
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, avatarSize / 2 - 1, 0, Math.PI * 2);
+          ctx.strokeStyle = index === 0 ? work.accentColor : "rgba(255,255,255,0.75)";
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        });
+        if (extraCount > 0) {
+          const centerX = startX + crewAvatarImages.length * avatarStep + avatarSize / 2;
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, avatarSize / 2 - 1, 0, Math.PI * 2);
+          ctx.fillStyle = "#10131B";
+          ctx.fill();
+          ctx.strokeStyle = `${work.accentColor}CC`;
+          ctx.lineWidth = 3;
+          ctx.stroke();
+          ctx.fillStyle = "#F4F1EA";
+          ctx.font = '700 14px "JetBrains Mono", Consolas, monospace';
+          ctx.textAlign = "center";
+          ctx.fillText(`+${extraCount}`, centerX, centerY);
+          ctx.textAlign = "left";
+        }
+      }
 
       drawRoundedRectPath(ctx, 2, 2, W - 4, H - 4, 35);
       ctx.strokeStyle = "rgba(255,255,255,0.14)";
@@ -567,13 +661,16 @@ function useWorkCardTexture(work: WorkProject) {
     paintSlate();
     const img = new window.Image();
     img.crossOrigin = "anonymous";
-    img.onload = () => paintSlate(img);
+    img.onload = () => {
+      loadedCover = img;
+      paintSlate(img);
+    };
     img.src = work.coverImage;
 
     return () => {
       cancelled = true;
     };
-  }, [work, texture]);
+  }, [work, crewMembers, texture]);
 
   useEffect(() => {
     return () => {
@@ -599,6 +696,46 @@ function ActiveWorkVideoPlane({ url }: { url: string }) {
       <planeGeometry args={[2.12, 1.6]} />
       <meshBasicMaterial map={videoTex} toneMapped={false} />
     </mesh>
+  );
+}
+
+function ActiveYoutubeCardPlayer({
+  embedUrl,
+  videoId,
+  autoPlay,
+}: {
+  embedUrl: string;
+  videoId: string;
+  autoPlay: boolean;
+}) {
+  const src = autoPlay
+    ? `${embedUrl}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&playsinline=1&rel=0`
+    : `${embedUrl}?playsinline=1&rel=0`;
+
+  return (
+    <Html
+      transform
+      distanceFactor={10}
+      position={[0, 0.3875, 0.025]}
+      pointerEvents="none"
+    >
+      <iframe
+        src={src}
+        title="Video YouTube xem trước dự án"
+        aria-hidden="true"
+        tabIndex={-1}
+        allow="autoplay; encrypted-media; picture-in-picture"
+        referrerPolicy="strict-origin-when-cross-origin"
+        style={{
+          display: "block",
+          width: "85.5px",
+          height: "65px",
+          border: 0,
+          borderRadius: "2px",
+          pointerEvents: "none",
+        }}
+      />
+    </Html>
   );
 }
 
@@ -780,6 +917,7 @@ function MemberCardMesh({
 
 interface WorkCardMeshProps {
   work: WorkProject;
+  crewMembers: CrewMember[];
   index: number;
   total: number;
   isActiveCenter: boolean;
@@ -790,6 +928,7 @@ interface WorkCardMeshProps {
 
 function WorkCardMesh({
   work,
+  crewMembers,
   index,
   total,
   isActiveCenter,
@@ -801,9 +940,17 @@ function WorkCardMesh({
   const cardMeshRef = useRef<THREE.Mesh>(null!);
   const frameRef = useRef<THREE.Mesh>(null!);
   const [hovered, setHovered] = useState(false);
+  const [mouseHovered, setMouseHovered] = useState(false);
   const setCursor = useAppStore((s) => s.setCursor);
 
-  const slateTexture = useWorkCardTexture(work);
+  const youtubeEmbedUrl = toYoutubeEmbedUrl(work.videoEmbedUrl || work.videoUrl || "");
+  const videoId = youtubeEmbedUrl?.split("/").pop();
+  const hasRealCover = !isGenericWorkCover(work.coverImage);
+  const directVideoUrl = work.videoUrl && !toYoutubeEmbedUrl(work.videoUrl)
+    ? work.videoUrl
+    : null;
+
+  const slateTexture = useWorkCardTexture(work, crewMembers);
   const accentColor = useMemo(() => new THREE.Color(work.accentColor), [work.accentColor]);
   const dimColor = useMemo(() => new THREE.Color("#686E82"), []);
   const whiteColor = useMemo(() => new THREE.Color("#FFFFFF"), []);
@@ -858,8 +1005,15 @@ function WorkCardMesh({
     const baseH = 3.0;
 
     easing.damp3(
+      groupRef.current.scale,
+      [scaleBoost, scaleBoost, scaleBoost],
+      0.14,
+      delta
+    );
+
+    easing.damp3(
       cardMeshRef.current.scale,
-      [baseW * scaleBoost, baseH * scaleBoost, 1],
+      [baseW, baseH, 1],
       0.14,
       delta
     );
@@ -867,7 +1021,7 @@ function WorkCardMesh({
     if (frameRef.current) {
       easing.damp3(
         frameRef.current.scale,
-        [baseW * scaleBoost + 0.09, baseH * scaleBoost + 0.09, 1],
+        [baseW + 0.09, baseH + 0.09, 1],
         0.14,
         delta
       );
@@ -923,6 +1077,7 @@ function WorkCardMesh({
         onPointerOver={(e) => {
           e.stopPropagation();
           setHovered(true);
+          setMouseHovered(e.pointerType === "mouse");
           soundEngine.playHover();
           const isActive = Math.abs(
             getCircularOffset(index, timelineMotion.currentIndex, total)
@@ -931,6 +1086,7 @@ function WorkCardMesh({
         }}
         onPointerOut={() => {
           setHovered(false);
+          setMouseHovered(false);
           setCursor("default", "");
         }}
         onClick={(e) => {
@@ -939,10 +1095,19 @@ function WorkCardMesh({
         }}
       />
 
-      {/* Live Video Reel Texture when centered and work.videoUrl is set */}
-      {isActiveCenter && work.videoUrl && (
+      {/* A YouTube poster stays still until this card is hovered. */}
+      {youtubeEmbedUrl && videoId && !hasRealCover && (isActiveCenter || mouseHovered) && (
+        <ActiveYoutubeCardPlayer
+          embedUrl={youtubeEmbedUrl}
+          videoId={videoId}
+          autoPlay={mouseHovered}
+        />
+      )}
+
+      {/* Preserve playback for direct video files that are not YouTube links. */}
+      {isActiveCenter && directVideoUrl && (
         <Suspense fallback={null}>
-          <ActiveWorkVideoPlane url={work.videoUrl} />
+          <ActiveWorkVideoPlane url={directVideoUrl} />
         </Suspense>
       )}
     </group>
@@ -1054,6 +1219,7 @@ function CarouselRig({ active }: { active: boolean }) {
             <WorkCardMesh
               key={work.id}
               work={work}
+              crewMembers={crewMembers}
               index={idx}
               total={total}
               isActiveCenter={idx === activeWorkIndex}
