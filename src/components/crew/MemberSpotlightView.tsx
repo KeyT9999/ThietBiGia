@@ -579,7 +579,7 @@ export function MemberSpotlightView({
                     exit={{ scale: 0.95, opacity: 0 }}
                     transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                     onClick={(e) => e.stopPropagation()}
-                    className="relative max-w-5xl w-full rounded-2xl border border-obsidian-border bg-obsidian-surface overflow-hidden shadow-2xl flex flex-col max-h-[92dvh]"
+                    className="relative max-w-5xl w-full h-[92dvh] max-h-[92dvh] rounded-2xl border border-obsidian-border bg-obsidian-surface overflow-hidden shadow-2xl flex flex-col"
                   >
                     {/* Lightbox Header */}
                     <div className="px-5 py-3.5 border-b border-obsidian-border flex items-center justify-between gap-4 shrink-0">
@@ -654,7 +654,7 @@ export function MemberSpotlightView({
                         className={`relative z-10 rounded-lg shadow-2xl transition-transform duration-300 ${
                           lightboxZoomed
                             ? "max-h-none w-auto scale-150 cursor-zoom-out sm:scale-[1.85]"
-                            : "max-h-[64dvh] w-auto max-w-full cursor-zoom-in object-contain"
+                            : "max-h-full w-auto max-w-full cursor-zoom-in object-contain"
                         }`}
                       />
 
@@ -699,7 +699,7 @@ export function MemberSpotlightView({
                       {driveAlbumError ? <p role="status" className="text-xs leading-relaxed text-amber-200">{driveAlbumError}{legacyDriveFallback.length ? " Đang dùng ảnh album cũ." : ""}</p> : null}
                       {lightboxProject.galleryDriveFolderUrl && driveAlbumImages?.length === 0 && !driveAlbumLoading ? <p className="text-xs text-ivory-muted">Thư mục Drive chưa có ảnh.</p> : null}
                       {lightboxGallery.length > 1 && (
-                        <div className="columns-2 gap-2 pr-1 sm:columns-3 sm:gap-3 lg:columns-4" aria-label="Lưới ảnh dự án">
+                        <div className="columns-2 gap-2 pr-1 sm:columns-3 sm:gap-3 md:columns-4" aria-label="Lưới ảnh dự án">
                           {lightboxGallery.map((src, idx) => (
                             <button
                               key={src + idx}
