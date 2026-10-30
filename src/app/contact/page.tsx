@@ -66,7 +66,9 @@ export default function ContactBookingPage() {
   const [projectRef, setProjectRef] = useState<string>("");
 
   const [name, setName] = useState("");
-  const [contact, setContact] = useState("");
+  const [phone, setPhone] = useState("");
+  const [zalo, setZalo] = useState("");
+  const [email, setEmail] = useState("");
   const [dateInfo, setDateInfo] = useState("");
   const [brief, setBrief] = useState("");
 
@@ -146,6 +148,10 @@ export default function ContactBookingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
+    if (![phone, zalo, email].some((value) => value.trim())) {
+      setSubmitError("Vui lòng nhập ít nhất một phương thức liên hệ: SĐT, Zalo hoặc email.");
+      return;
+    }
     setIsSubmitting(true);
     soundEngine.playShutter();
 
@@ -155,7 +161,9 @@ export default function ContactBookingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
-          contact,
+          phone,
+          zalo,
+          email,
           dateInfo,
           services: selectedServices,
           crewSlugs: selectedCrewSlugs,
@@ -193,6 +201,14 @@ export default function ContactBookingPage() {
     setCopiedRef(true);
     setTimeout(() => setCopiedRef(false), 2000);
   };
+
+  const contactSummary = [
+    phone.trim() ? `SĐT: ${phone.trim()}` : null,
+    zalo.trim() ? `Zalo: ${zalo.trim()}` : null,
+    email.trim() ? `Email: ${email.trim()}` : null,
+  ]
+    .filter(Boolean)
+    .join(" • ");
 
   return (
     <div className="max-w-[1420px] mx-auto px-4 sm:px-8 pt-28 pb-24">
@@ -496,7 +512,7 @@ export default function ContactBookingPage() {
               </div>
             </div>
 
-            {/* 3 & 4. Client Name + Contact */}
+            {/* 3–6. Client Name + Separate Contact Methods */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="block text-xs font-mono text-ivory-muted uppercase">
@@ -514,23 +530,52 @@ export default function ContactBookingPage() {
 
               <div className="space-y-1.5">
                 <label className="block text-xs font-mono text-ivory-muted uppercase">
-                  4. Số điện thoại / Zalo / Email *
+                  4. Số điện thoại
                 </label>
                 <input
-                  required
-                  type="text"
-                  value={contact}
-                  onChange={(e) => setContact(e.target.value)}
-                  placeholder="090xxxxxxx hoặc email@..."
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="VD: 090xxxxxxx"
                   className="w-full px-4 py-3 rounded-xl border border-obsidian-border bg-obsidian text-sm text-ivory placeholder:text-ivory-subtle focus:outline-none focus:border-rec"
                 />
               </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-mono text-ivory-muted uppercase">
+                  5. Zalo
+                </label>
+                <input
+                  type="text"
+                  value={zalo}
+                  onChange={(e) => setZalo(e.target.value)}
+                  placeholder="Số điện thoại hoặc tên tài khoản Zalo"
+                  className="w-full px-4 py-3 rounded-xl border border-obsidian-border bg-obsidian text-sm text-ivory placeholder:text-ivory-subtle focus:outline-none focus:border-rec"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-mono text-ivory-muted uppercase">
+                  6. Email (không bắt buộc)
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="email@example.com"
+                  className="w-full px-4 py-3 rounded-xl border border-obsidian-border bg-obsidian text-sm text-ivory placeholder:text-ivory-subtle focus:outline-none focus:border-rec"
+                />
+              </div>
+
+              <p className="sm:col-span-2 -mt-2 text-[11px] text-ivory-subtle">
+                Điền ít nhất một trong ba cách liên hệ trên.
+              </p>
             </div>
 
-            {/* 5. Date & Location */}
+            {/* 7. Date & Location */}
             <div className="space-y-1.5">
               <label className="block text-xs font-mono text-ivory-muted uppercase">
-                5. Thời gian dự kiến bấm máy &amp; Địa điểm
+                7. Thời gian dự kiến bấm máy &amp; Địa điểm
               </label>
               <input
                 type="text"
@@ -541,10 +586,10 @@ export default function ContactBookingPage() {
               />
             </div>
 
-            {/* 6. Brief */}
+            {/* 8. Brief */}
             <div className="space-y-1.5">
               <label className="block text-xs font-mono text-ivory-muted uppercase">
-                6. Tóm tắt ý tưởng / Moodboard / Yêu cầu đặc biệt
+                8. Tóm tắt ý tưởng / Moodboard / Yêu cầu đặc biệt
               </label>
               <textarea
                 rows={4}
@@ -586,7 +631,7 @@ export default function ContactBookingPage() {
                 <p className="text-sm text-ivory leading-relaxed">
                   Cảm ơn <span className="font-semibold text-emerald-300">{name}</span>! Producer
                   của Thiết Bị Gia sẽ liên hệ qua{" "}
-                  <span className="font-mono font-semibold">{contact}</span> kèm báo giá &amp; lịch
+                  <span className="font-mono font-semibold">{contactSummary}</span> kèm báo giá &amp; lịch
                   trống của ekip.
                 </p>
 

@@ -6,16 +6,23 @@ import { getPublicSiteContent } from "@/lib/site-content";
 
 const BookingPayloadSchema = z.object({
   name: z.string().trim().min(1, "Vui lòng nhập tên hoặc thương hiệu").max(120),
-  contact: z
-    .string()
-    .trim()
-    .min(3, "Vui lòng nhập số điện thoại, Zalo hoặc Email")
-    .max(160),
+  phone: z.string().trim().max(80).optional().default(""),
+  zalo: z.string().trim().max(120).optional().default(""),
+  email: z
+    .union([
+      z.string().trim().max(160).email("Email không hợp lệ"),
+      z.literal(""),
+    ])
+    .optional()
+    .default(""),
   dateInfo: z.string().trim().max(240).optional().default(""),
   services: z.array(z.string().trim().min(1)).min(1, "Vui lòng chọn ít nhất 1 hạng mục"),
   crewSlugs: z.array(z.string().trim()).max(16).optional().default([]),
   projectRef: z.string().trim().max(140).optional().default(""),
   brief: z.string().trim().max(3000).optional().default(""),
+}).refine((data) => Boolean(data.phone || data.zalo || data.email), {
+  message: "Vui lòng nhập ít nhất một phương thức liên hệ: SĐT, Zalo hoặc email.",
+  path: ["phone"],
 });
 
 export async function POST(req: Request) {
@@ -60,7 +67,16 @@ export async function POST(req: Request) {
     referenceCode,
     createdAt,
     name: data.name,
-    contact: data.contact,
+    phone: data.phone || null,
+    zalo: data.zalo || null,
+    email: data.email || null,
+    contact: [
+      data.phone ? `SĐT: ${data.phone}` : null,
+      data.zalo ? `Zalo: ${data.zalo}` : null,
+      data.email ? `Email: ${data.email}` : null,
+    ]
+      .filter(Boolean)
+      .join(" • "),
     dateInfo: data.dateInfo || "Chưa ấn định",
     services: data.services,
     crewSlugs: selectedCrew.map((m) => m.slug),
@@ -102,7 +118,9 @@ export async function POST(req: Request) {
   const summaryText = [
     `🎬 CALL SHEET MỚI // ${referenceCode}`,
     `• Khách hàng: ${record.name}`,
-    `• Liên hệ: ${record.contact}`,
+    `• Số điện thoại: ${record.phone || "Chưa cung cấp"}`,
+    `• Zalo: ${record.zalo || "Chưa cung cấp"}`,
+    `• Email khách: ${record.email || "Chưa cung cấp"}`,
     `• Lịch & Địa điểm: ${record.dateInfo}`,
     `• Hạng mục: ${record.services.join(" | ")}`,
     `• Squad chỉ định (${selectedCrew.length}): ${squadSummary}`,
