@@ -178,7 +178,7 @@ export function MemberProjectCard({
                 <Sparkles className="w-3 h-3 text-rec" />
                 <span>SINGLE PRINT</span>
               </span>
-            )}
+            ) : null}
 
             <span className="px-2.5 py-1 rounded-md bg-obsidian/85 backdrop-blur-md border border-white/15 group-hover:border-rec group-hover:bg-rec group-hover:text-obsidian text-xs font-mono font-semibold text-ivory inline-flex items-center gap-1.5 transition-colors">
               <Maximize2 className="w-3 h-3" />
