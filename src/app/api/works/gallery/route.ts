@@ -14,17 +14,20 @@ type DriveFile = {
 
 export async function GET(request: NextRequest) {
   const slug = request.nextUrl.searchParams.get("slug")?.trim();
-  if (!slug) {
-    return NextResponse.json({ ok: false, error: "Thiếu dự án cần tải album." }, { status: 400 });
-  }
+  const memberSlug = request.nextUrl.searchParams.get("memberSlug")?.trim();
+  const showcaseId = request.nextUrl.searchParams.get("showcaseId")?.trim();
+  const isPersonalProject = Boolean(memberSlug && showcaseId);
+  if (!slug && !isPersonalProject) return NextResponse.json({ ok: false, error: "Thiếu dự án cần tải album." }, { status: 400 });
 
   const content = await getPublicSiteContent();
-  const project = content.works.find((item) => item.slug === slug);
-  if (!project?.galleryDriveFolderUrl) {
-    return NextResponse.json({ ok: false, error: "Dự án chưa có thư mục ảnh Drive." }, { status: 404 });
-  }
+  const teamProject = slug ? content.works.find((item) => item.slug === slug) : undefined;
+  const memberProject = isPersonalProject
+    ? content.crew.find((item) => item.slug === memberSlug)?.showcase.find((item) => item.id === showcaseId)
+    : undefined;
+  const folderUrl = teamProject?.galleryDriveFolderUrl ?? memberProject?.galleryDriveFolderUrl;
+  if (!folderUrl) return NextResponse.json({ ok: false, error: "Dự án chưa có thư mục ảnh Drive." }, { status: 404 });
 
-  const folderId = extractGoogleDriveFolderId(project.galleryDriveFolderUrl);
+  const folderId = extractGoogleDriveFolderId(folderUrl);
   if (!folderId) {
     return NextResponse.json({ ok: false, error: "Link Google Drive chưa đúng. Hãy dán link chia sẻ của thư mục." }, { status: 400 });
   }

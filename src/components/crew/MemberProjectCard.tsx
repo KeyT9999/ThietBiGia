@@ -29,7 +29,7 @@ export function MemberProjectCard({
   const [activeFrame, setActiveFrame] = useState(0);
   const [isPortraitFrame, setIsPortraitFrame] = useState(false);
 
-  const frames = project.frames;
+  const frames = project.galleryDriveFolderUrl ? [project.coverImage] : project.frames;
   const currentSrc = frames[activeFrame] ?? project.coverImage;
   const isWide = project.span ? project.span === "wide" : featured;
   const cardSpan = project.span === "tall"
@@ -107,8 +107,9 @@ export function MemberProjectCard({
               <span className="inline-flex items-center gap-1">
                 <Images className="w-3.5 h-3.5 text-rec" />
                 <span>
-                  {String(activeFrame + 1).padStart(2, "0")}/
-                  {String(frames.length).padStart(2, "0")}
+                  {project.galleryDriveFolderUrl
+                    ? "DRIVE"
+                    : `${String(activeFrame + 1).padStart(2, "0")}/${String(frames.length).padStart(2, "0")}`}
                 </span>
               </span>
               <span className="text-ivory-subtle">• {project.year}</span>
@@ -138,7 +139,7 @@ export function MemberProjectCard({
         <div
           onMouseMove={handleStageScrub}
           onTouchMove={handleTouchScrub}
-          onClick={() => onOpenAlbum(project, activeFrame)}
+          onClick={() => onOpenAlbum(project, project.galleryDriveFolderUrl ? 0 : activeFrame)}
           className={`relative ${
             stageAspect
           } w-full bg-obsidian overflow-hidden cursor-pointer flex items-center justify-center`}
@@ -168,7 +169,11 @@ export function MemberProjectCard({
 
           {/* Floating Action Badges */}
           <div className="absolute top-3 left-3 right-3 z-30 flex items-center justify-between gap-2 pointer-events-none">
-            {frames.length > 1 ? (
+            {project.galleryDriveFolderUrl ? (
+              <span className="px-2.5 py-1 rounded-md bg-obsidian/80 backdrop-blur-md border border-white/15 text-xs font-mono text-ivory/90">
+                ALBUM GOOGLE DRIVE
+              </span>
+            ) : frames.length > 1 ? (
               <span className="px-2.5 py-1 rounded-md bg-obsidian/80 backdrop-blur-md border border-white/15 text-xs font-mono text-ivory/90">
                 RÊ CHUỘT ĐỂ LƯỚT {frames.length} ẢNH
               </span>

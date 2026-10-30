@@ -479,6 +479,8 @@ export interface UnifiedMemberProject {
   summary: string;
   coverImage: string;
   frames: string[];
+  galleryDriveFolderUrl?: string;
+  showcaseItemId?: string;
   workSlug?: string;
   kind?: BentoItem["kind"];
   span?: BentoItem["span"];
@@ -531,7 +533,10 @@ export function getUnifiedProjectsForMember(
       exifSpec: w.exifSpec,
       summary: w.summary,
       coverImage: w.coverImage,
-      frames: w.galleryImages.length > 0 ? w.galleryImages : [w.coverImage],
+      frames: w.galleryDriveFolderUrl
+        ? [w.coverImage, ...w.galleryImages.filter((image) => image !== w.coverImage)]
+        : w.galleryImages.length > 0 ? w.galleryImages : [w.coverImage],
+      galleryDriveFolderUrl: w.galleryDriveFolderUrl,
       workSlug: w.slug,
       videoUrl: w.videoEmbedUrl ?? w.videoUrl,
       coCreators,
@@ -544,7 +549,7 @@ export function getUnifiedProjectsForMember(
     if (item.projectSlug && seenWorkSlugs.has(item.projectSlug)) continue;
     const itemFrames =
       item.gallery && item.gallery.length > 0 ? item.gallery : [item.image];
-    if (itemFrames.length <= 1 && seenCoverImages.has(item.image)) continue;
+    if (!item.galleryDriveFolderUrl && itemFrames.length <= 1 && seenCoverImages.has(item.image)) continue;
 
     fromShowcase.push({
       id: `showcase-${item.id}`,
@@ -561,7 +566,11 @@ export function getUnifiedProjectsForMember(
         item.description ??
         `${item.subtitle} — Thực hiện bởi ${member.name} (${member.roleTitle}).`,
       coverImage: item.image,
-      frames: itemFrames,
+      frames: item.galleryDriveFolderUrl
+        ? [item.image, ...itemFrames.filter((image) => image !== item.image)]
+        : itemFrames,
+      galleryDriveFolderUrl: item.galleryDriveFolderUrl,
+      showcaseItemId: item.id,
       workSlug: item.projectSlug,
       kind: item.kind,
       span: item.span,

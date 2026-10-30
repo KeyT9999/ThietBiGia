@@ -60,6 +60,9 @@ export function MemberSpotlightView({
     useState<UnifiedMemberProject | null>(null);
   const [lightboxPhotoIdx, setLightboxPhotoIdx] = useState(0);
   const [lightboxZoomed, setLightboxZoomed] = useState(false);
+  const [driveAlbumImages, setDriveAlbumImages] = useState<string[] | null>(null);
+  const [driveAlbumLoading, setDriveAlbumLoading] = useState(false);
+  const [driveAlbumError, setDriveAlbumError] = useState("");
   const progressBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -129,7 +132,55 @@ export function MemberSpotlightView({
     };
   }, [isModal, member.slug, projectTab]);
 
-  const lightboxGallery = lightboxProject ? lightboxProject.frames : [];
+  const legacyDriveFallback = lightboxProject
+    ? lightboxProject.frames.filter((src) => src !== lightboxProject.coverImage)
+    : [];
+  const lightboxGallery = lightboxProject?.galleryDriveFolderUrl
+    ? [
+        lightboxProject.coverImage,
+        ...(driveAlbumImages ?? (driveAlbumError ? legacyDriveFallback : [])),
+      ]
+    : lightboxProject?.frames ?? [];
+
+  useEffect(() => {
+    if (!lightboxProject?.galleryDriveFolderUrl) {
+      setDriveAlbumImages(null);
+      setDriveAlbumLoading(false);
+      setDriveAlbumError("");
+      return;
+    }
+
+    const params = new URLSearchParams();
+    if (lightboxProject.scope === "personal" && lightboxProject.showcaseItemId) {
+      params.set("memberSlug", member.slug);
+      params.set("showcaseId", lightboxProject.showcaseItemId);
+    } else if (lightboxProject.workSlug) {
+      params.set("slug", lightboxProject.workSlug);
+    } else {
+      setDriveAlbumError("Không xác định được dự án Drive này.");
+      return;
+    }
+
+    const controller = new AbortController();
+    setDriveAlbumImages(null);
+    setDriveAlbumLoading(true);
+    setDriveAlbumError("");
+    fetch(`/api/works/gallery?${params.toString()}`, { signal: controller.signal, cache: "no-store" })
+      .then(async (response) => {
+        const result = await response.json() as { ok: boolean; images?: { src: string }[]; error?: string };
+        if (!response.ok || !result.ok) throw new Error(result.error || "Không tải được album Drive.");
+        setDriveAlbumImages((result.images ?? []).map((image) => image.src));
+      })
+      .catch((cause) => {
+        if (cause instanceof DOMException && cause.name === "AbortError") return;
+        setDriveAlbumError(cause instanceof Error ? cause.message : "Không tải được album Drive.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setDriveAlbumLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [lightboxProject, member.slug]);
 
   useEffect(() => {
     if (!lightboxProject) return;
@@ -156,6 +207,8 @@ export function MemberSpotlightView({
     startIdx = 0
   ) => {
     soundEngine.playShutter();
+    setDriveAlbumImages(null);
+    setDriveAlbumError("");
     setLightboxProject(proj);
     setLightboxPhotoIdx(startIdx);
   };
@@ -642,6 +695,9 @@ export function MemberSpotlightView({
 
                     {/* Thumbnails & Description Footer */}
                     <div className="p-4 border-t border-obsidian-border space-y-3 shrink-0">
+                      {driveAlbumLoading ? <p className="text-xs text-ivory-muted">Đang tải ảnh từ Google Drive…</p> : null}
+                      {driveAlbumError ? <p role="status" className="text-xs leading-relaxed text-amber-200">{driveAlbumError}{legacyDriveFallback.length ? " Đang dùng ảnh album cũ." : ""}</p> : null}
+                      {lightboxProject.galleryDriveFolderUrl && driveAlbumImages?.length === 0 && !driveAlbumLoading ? <p className="text-xs text-ivory-muted">Thư mục Drive chưa có ảnh.</p> : null}
                       {lightboxGallery.length > 1 && (
                         <div className="flex items-center gap-2 overflow-x-auto pb-1">
                           {lightboxGallery.map((src, idx) => (

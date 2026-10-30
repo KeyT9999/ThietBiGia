@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import type { BentoItem, CrewMember, WorkProject } from "@/data/schema";
 import { getSharedWorkIdsForMember, getUnifiedProjectsForMember } from "@/data/works";
-import { AdminField, AdminImageField, AdminMultiImageField } from "./AdminFields";
+import { AdminDriveFolderField, AdminField, AdminImageField, AdminMultiImageField } from "./AdminFields";
 
 function moveItem<T>(items: T[], from: number, to: number) {
   if (to < 0 || to >= items.length) return items;
@@ -108,7 +108,7 @@ export function MemberProjectsEditor({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="font-display text-xl font-bold">Dự án cá nhân ({member.showcase.length})</h3>
-            <p className="mt-1 text-sm text-ivory-muted">Tạo album hoặc dự án riêng, tải ảnh lên Cloudinary và chỉnh nội dung từng bài.</p>
+            <p className="mt-1 text-sm text-ivory-muted">Tạo album hoặc dự án riêng. Mỗi bài có thể dùng link Google Drive hoặc album ảnh đã tải lên.</p>
           </div>
           <button type="button" onClick={addPersonalProject} className="inline-flex items-center gap-2 rounded-xl bg-rec px-3.5 py-2.5 text-xs font-mono font-bold text-obsidian">
             <Plus className="h-4 w-4" /> THÊM DỰ ÁN CÁ NHÂN
@@ -156,6 +156,7 @@ export function MemberProjectsEditor({
 
               <AdminField label="Mô tả dự án" value={item.description ?? ""} multiline rows={4} onChange={(description) => updateShowcaseItem(item.id, { description: description || undefined })} />
               <AdminImageField label="Ảnh bìa" value={item.image} folder="thiet-bi-gia/projects" signatureEndpoint={signatureEndpoint} onChange={(image) => updateShowcaseItem(item.id, { image })} />
+              <AdminDriveFolderField value={item.galleryDriveFolderUrl} onChange={(galleryDriveFolderUrl) => updateShowcaseItem(item.id, { galleryDriveFolderUrl })} hint="Ảnh trong link này sẽ hiện khi mở album dự án. Chỉ ảnh trực tiếp trong thư mục; đặt tên 01, 02, 03… để sắp thứ tự." />
               <AdminField label="Thông số EXIF (tùy chọn)" value={item.exifSpec ?? ""} onChange={(exifSpec) => updateShowcaseItem(item.id, { exifSpec: exifSpec || undefined })} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <AdminField label="Link video (tùy chọn)" value={item.videoUrl ?? ""} onChange={(videoUrl) => updateShowcaseItem(item.id, { videoUrl: videoUrl || undefined })} hint="Dán link YouTube hoặc video liên quan." />

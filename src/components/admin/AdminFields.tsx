@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, ImagePlus, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ImagePlus, Link2, Plus, Trash2 } from "lucide-react";
 
 class CloudinaryFileSizeError extends Error {
   constructor(message: string, readonly maximumBytes?: number) {
@@ -251,6 +251,54 @@ export function AdminListField({
       onChange={(text) => onChange(text.split(/\r?\n/).map((item) => item.trim()).filter(Boolean))}
       hint={hint || "Mỗi dòng là một mục."}
     />
+  );
+}
+
+export function AdminDriveFolderField({
+  value,
+  onChange,
+  hint = "Dán link thư mục Drive đã bật chia sẻ “Bất kỳ ai có đường liên kết – Người xem”.",
+}: {
+  value?: string;
+  onChange: (value: string | undefined) => void;
+  hint?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(Boolean(value));
+
+  useEffect(() => {
+    if (value) setIsOpen(true);
+  }, [value]);
+
+  if (!isOpen) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/15 px-3.5 py-2.5 text-xs font-mono text-ivory transition-colors hover:border-rec hover:text-rec"
+      >
+        <Link2 className="h-4 w-4 text-rec" /> THÊM LINK GOOGLE DRIVE
+      </button>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <AdminField
+        label="Link thư mục ảnh Google Drive"
+        value={value ?? ""}
+        onChange={(nextValue) => onChange(nextValue.trim() || undefined)}
+        hint={hint}
+      />
+      {value ? (
+        <button type="button" onClick={() => { onChange(undefined); setIsOpen(false); }} className="inline-flex items-center gap-1.5 rounded-lg border border-red-400/20 px-2.5 py-2 text-xs text-red-300 hover:bg-red-400/10">
+          <Trash2 className="h-3.5 w-3.5" /> GỠ LINK DRIVE
+        </button>
+      ) : (
+        <button type="button" onClick={() => setIsOpen(false)} className="rounded-lg border border-white/10 px-2.5 py-2 text-xs text-ivory-muted hover:text-ivory">
+          HỦY
+        </button>
+      )}
+    </div>
   );
 }
 

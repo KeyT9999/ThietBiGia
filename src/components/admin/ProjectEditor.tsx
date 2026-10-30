@@ -3,7 +3,7 @@
 import { Trash2 } from "lucide-react";
 import type { CrewMember, ProjectCredit, WorkProject } from "@/data/schema";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
-import { AdminField, AdminImageField, AdminMultiImageField, AdminStringListField } from "./AdminFields";
+import { AdminDriveFolderField, AdminField, AdminImageField, AdminMultiImageField, AdminStringListField } from "./AdminFields";
 
 export function ProjectEditor({
   work,
@@ -50,8 +50,8 @@ export function ProjectEditor({
       <AdminField label="Tóm tắt dự án" value={work.summary} multiline rows={5} onChange={(summary) => onChange({ summary })} />
       <AdminImageField label="Ảnh bìa dự án" value={work.coverImage} folder="thiet-bi-gia/projects" onChange={(coverImage) => onChange({ coverImage })} />
       <section className="space-y-3 rounded-2xl border border-white/10 p-4">
-        <div><h3 className="font-display text-lg font-bold">Album ảnh hiển thị bên dưới</h3><p className="mt-1 text-xs text-ivory-muted">Dán link thư mục Google Drive đã bật quyền “Bất kỳ ai có đường liên kết”. Website sẽ tự lấy ảnh trong thư mục và xếp thành lưới sát nhau, giữ đúng tỷ lệ ảnh ngang/dọc. Ảnh bìa phía trên vẫn là một ảnh riêng.</p></div>
-        <AdminField label="Link thư mục ảnh Google Drive" value={work.galleryDriveFolderUrl ?? ""} onChange={(galleryDriveFolderUrl) => onChange({ galleryDriveFolderUrl: galleryDriveFolderUrl.trim() || undefined })} hint="Chỉ lấy ảnh nằm trực tiếp trong thư mục; không đưa ảnh bìa vào album nếu không muốn ảnh bị lặp. Đặt tên 01, 02, 03… để tự sắp thứ tự." />
+        <div><h3 className="font-display text-lg font-bold">Album ảnh hiển thị bên dưới</h3><p className="mt-1 text-xs text-ivory-muted">Thêm một link thư mục để website tự lấy ảnh và xếp thành lưới sát nhau, giữ đúng tỷ lệ ảnh ngang/dọc. Ảnh bìa phía trên vẫn là một ảnh riêng.</p></div>
+        <AdminDriveFolderField value={work.galleryDriveFolderUrl} onChange={(galleryDriveFolderUrl) => onChange({ galleryDriveFolderUrl })} hint="Chỉ lấy ảnh nằm trực tiếp trong thư mục; không đưa ảnh bìa vào album nếu không muốn ảnh bị lặp. Đặt tên 01, 02, 03… để tự sắp thứ tự." />
       </section>
       <details className="rounded-2xl border border-white/10 p-4">
         <summary className="cursor-pointer select-none text-sm font-semibold text-ivory">Album cũ tải lên website ({work.galleryImages.length} ảnh)</summary>
