@@ -382,7 +382,7 @@ export function ProjectDetailView({
       {isVideoExpanded && expandedVideoUrl && typeof document !== "undefined"
         ? createPortal(
             <div
-              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-2 backdrop-blur-sm sm:p-5"
+              className="fixed inset-0 z-[100] flex items-stretch justify-center bg-black/90 backdrop-blur-sm"
               onClick={() => setIsVideoExpanded(false)}
             >
               <section
@@ -390,9 +390,9 @@ export function ProjectDetailView({
                 aria-modal="true"
                 aria-labelledby="expanded-project-video-title"
                 onClick={(event) => event.stopPropagation()}
-                className="flex max-h-[96dvh] w-full max-w-[1500px] flex-col overflow-hidden rounded-xl border border-white/15 bg-obsidian shadow-[0_30px_120px_rgba(0,0,0,0.8)] sm:rounded-2xl"
+                className="flex h-full w-full max-w-[1500px] flex-col overflow-hidden border-x border-white/10 bg-obsidian shadow-[0_30px_120px_rgba(0,0,0,0.8)] sm:border-x-0 sm:border-y sm:border-white/15"
               >
-                <header className="flex shrink-0 items-center justify-between gap-3 border-b border-obsidian-border px-3 py-3 sm:px-5 sm:py-4">
+                <header className="flex shrink-0 items-center justify-between gap-3 border-b border-obsidian-border px-3 py-2.5 sm:px-5 sm:py-3">
                   <div className="min-w-0">
                     <p className="truncate font-mono text-[10px] font-bold tracking-wider text-rec sm:text-xs">
                       {work.category.toUpperCase()} • {work.clientOrSeries} • {work.year}
@@ -412,31 +412,31 @@ export function ProjectDetailView({
                   </button>
                 </header>
 
-                <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.75fr)] lg:overflow-hidden">
-                  <div className="aspect-video w-full shrink-0 self-start bg-black lg:aspect-auto lg:h-full">
-                    <iframe
-                      src={expandedVideoUrl}
-                      title={work.title}
-                      className="h-full w-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                      referrerPolicy="strict-origin-when-cross-origin"
-                      allowFullScreen
-                    />
-                  </div>
+                <div className="mx-auto flex h-[min(62dvh,56.25vw)] w-full max-w-[1500px] shrink-0 items-center justify-center border-b border-obsidian-border bg-black">
+                  <iframe
+                    src={expandedVideoUrl}
+                    title={work.title}
+                    className="aspect-video h-full w-auto max-w-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                  />
+                </div>
 
-                  <aside className="space-y-5 border-t border-obsidian-border p-4 sm:p-5 lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0">
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" tabIndex={0} aria-label="Ghi chú dự án, cuộn để xem">
+                  <div className="mx-auto max-w-5xl space-y-5 px-4 py-5 sm:space-y-7 sm:px-8 sm:py-7">
                     <div className="space-y-2">
-                      <p className="font-mono text-[10px] font-bold tracking-[0.2em] text-rec">PROJECT NOTES</p>
-                      <h3 className="font-display text-lg font-bold text-ivory">{work.title}</h3>
-                      <p className="whitespace-pre-line text-sm leading-relaxed text-ivory/85">{work.summary}</p>
+                      <p className="font-mono text-[10px] font-bold tracking-[0.2em] text-rec">TÓM TẮT DỰ ÁN</p>
+                      <h3 className="font-display text-lg font-bold text-ivory sm:text-xl">{work.title}</h3>
+                      <p className="whitespace-pre-line text-sm leading-relaxed text-ivory/85 sm:text-base">{work.summary}</p>
                     </div>
 
                     {work.btsNotes.length > 0 ? (
-                      <div className="space-y-3 border-t border-obsidian-border pt-4">
+                      <div className="space-y-3 border-t border-obsidian-border pt-4 sm:pt-5">
                         <h4 className="flex items-center gap-2 font-display font-bold text-ivory">
                           <Film className="h-4 w-4 text-rec" /> GHI CHÚ DỰ ÁN
                         </h4>
-                        <ul className="space-y-3">
+                        <ul className="grid gap-3 sm:grid-cols-2">
                           {work.btsNotes.map((note, index) => (
                             <li key={`${index}-${note}`} className="flex items-start gap-2.5 text-sm leading-relaxed text-ivory/85">
                               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-rec" />
@@ -447,11 +447,13 @@ export function ProjectDetailView({
                       </div>
                     ) : null}
 
-                    <div className="space-y-2 border-t border-obsidian-border pt-4">
-                      <h4 className="font-mono text-[10px] font-bold tracking-wider text-ivory-muted">THÔNG TIN GHI HÌNH</h4>
-                      <p className="text-sm leading-relaxed text-ivory">{work.exifSpec ?? work.cameraSpec}</p>
+                    <div className="space-y-3 border-t border-obsidian-border pt-4 sm:pt-5">
+                      <div>
+                        <h4 className="font-mono text-[10px] font-bold tracking-wider text-ivory-muted">THÔNG TIN GHI HÌNH</h4>
+                        <p className="mt-1 text-sm leading-relaxed text-ivory">{work.exifSpec ?? work.cameraSpec}</p>
+                      </div>
                       {work.gearUsed.length > 0 ? (
-                        <div className="flex flex-wrap gap-2 pt-1">
+                        <div className="flex flex-wrap gap-2">
                           {work.gearUsed.map((gear) => (
                             <span key={gear} className="rounded-lg border border-obsidian-border bg-obsidian-surface px-2.5 py-1.5 font-mono text-[10px] text-ivory-muted">
                               {gear}
@@ -460,7 +462,7 @@ export function ProjectDetailView({
                         </div>
                       ) : null}
                     </div>
-                  </aside>
+                  </div>
                 </div>
               </section>
             </div>,
