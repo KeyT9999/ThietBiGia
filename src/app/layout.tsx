@@ -19,13 +19,13 @@ const fontDisplay = Space_Grotesk({
 const fontSans = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
   variable: "--font-sans",
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 const fontMono = JetBrains_Mono({
   subsets: ["latin", "vietnamese"],
   variable: "--font-mono",
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const dynamic = "force-dynamic";

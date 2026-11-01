@@ -25,6 +25,7 @@ import { getUnifiedProjectsForMember } from "@/data/works";
 import { useSiteContent } from "@/lib/store";
 import { generateQrMatrix } from "@/lib/qr";
 import { soundEngine } from "@/lib/sound";
+import { drawFittedCanvasText, loadBadgeFonts, type BadgeFontFamilies } from "@/lib/canvas-fonts";
 
 const STRAP_SEGMENTS = 28;
 const STRAP_HALF_WIDTH = 0.058;
@@ -50,7 +51,8 @@ function paintFrontBadgeCanvas(
   canvas: HTMLCanvasElement,
   member: CrewMember,
   avatarImg: HTMLImageElement | null,
-  unifiedProjectCount: number
+  unifiedProjectCount: number,
+  fonts: BadgeFontFamilies
 ) {
   const W = canvas.width;
   const H = canvas.height;
@@ -101,12 +103,12 @@ function paintFrontBadgeCanvas(
 
   // Top pass header bar inside plate
   ctx.fillStyle = "#111319";
-  ctx.font = "700 28px monospace";
+  ctx.font = `700 28px ${fonts.mono}`;
   ctx.fillText("THIẾT BỊ GIA // PRESS PASS", 88, 190);
 
   ctx.textAlign = "right";
   ctx.fillStyle = roleMeta.color;
-  ctx.font = "800 32px monospace";
+  ctx.font = `700 32px ${fonts.mono}`;
   ctx.fillText(`#${member.badgeNumber}`, W - 88, 190);
   ctx.textAlign = "left";
 
@@ -154,6 +156,7 @@ function paintFrontBadgeCanvas(
     ctx.stroke();
 
     const initials = member.name
+      .normalize("NFC")
       .split(" ")
       .slice(-2)
       .map((w) => w[0] ?? "")
@@ -161,14 +164,14 @@ function paintFrontBadgeCanvas(
       .toUpperCase();
     ctx.textAlign = "center";
     ctx.fillStyle = "#F4F1EA";
-    ctx.font = "800 84px sans-serif";
+    ctx.font = `800 84px ${fonts.sans}`;
     ctx.fillText(initials, cx, cy + 28);
     ctx.textAlign = "left";
   }
   ctx.restore();
 
   // Role badge floating on bottom-left of portrait
-  ctx.font = "700 26px sans-serif";
+  ctx.font = `700 26px ${fonts.sans}`;
   const badgeText = getCombinedRoleBadge(member.roles);
   const badgeW = ctx.measureText(badgeText).width + 52;
   drawRoundedRect(ctx, px + 24, py + ph - 74, badgeW, 50, 25);
@@ -179,18 +182,10 @@ function paintFrontBadgeCanvas(
 
   // Member Name & Role Title
   ctx.fillStyle = "#0E1016";
-  const upperName = member.name.toUpperCase();
-  let nameFontSize = 52;
-  ctx.font = `800 ${nameFontSize}px sans-serif`;
-  while (ctx.measureText(upperName).width > W - 176 && nameFontSize > 32) {
-    nameFontSize -= 2;
-    ctx.font = `800 ${nameFontSize}px sans-serif`;
-  }
-  ctx.fillText(upperName, 88, 948);
+  drawFittedCanvasText(ctx, member.name.toUpperCase(), 88, 948, { family: fonts.sans, weight: 800, size: 52, minSize: 32, maxWidth: W - 176 });
 
   ctx.fillStyle = "#313647";
-  ctx.font = "700 28px monospace";
-  ctx.fillText(member.roleTitle.toUpperCase(), 88, 996);
+  drawFittedCanvasText(ctx, member.roleTitle.toUpperCase(), 88, 996, { family: fonts.mono, weight: 700, size: 28, minSize: 21, maxWidth: W - 176 });
 
   // Barcode vector stripes
   const barY = 1032;
@@ -212,9 +207,9 @@ function paintFrontBadgeCanvas(
   // Favorite Gear Chips (up to 3)
   let gx = 88;
   const gy = 1158;
-  ctx.font = "700 23px monospace";
+  ctx.font = `700 23px ${fonts.mono}`;
   member.favoriteGear.slice(0, 3).forEach((gear) => {
-    const label = gear.toUpperCase();
+    const label = gear.toUpperCase().normalize("NFC");
     const cw = ctx.measureText(label).width + 38;
     if (gx + cw < W - 80) {
       drawRoundedRect(ctx, gx, gy, cw, 46, 23);
@@ -244,29 +239,25 @@ function paintFrontBadgeCanvas(
 
   // Socials left
   ctx.fillStyle = "#222634";
-  ctx.font = "600 24px monospace";
-  ctx.fillText(member.socials.instagram || `@${member.slug}.tbg`, 88, 1290);
-  ctx.fillText(member.location + " • " + member.yearsActive, 88, 1336);
+  const footerWidth = W * 0.6 - 112;
+  drawFittedCanvasText(ctx, member.socials.instagram || `@${member.slug}.tbg`, 88, 1290, { family: fonts.mono, weight: 600, size: 24, minSize: 17, maxWidth: footerWidth });
+  drawFittedCanvasText(ctx, member.location + " • " + member.yearsActive, 88, 1336, { family: fonts.mono, weight: 600, size: 24, minSize: 17, maxWidth: footerWidth });
   ctx.fillStyle = "#FF4D00";
-  ctx.font = "700 22px monospace";
-  ctx.fillText("ALL ACCESS • NHẤP ĐÚP LẬT QR", 88, 1384);
+  drawFittedCanvasText(ctx, "ALL ACCESS • NHẤP ĐÚP LẬT QR", 88, 1384, { family: fonts.mono, weight: 700, size: 22, minSize: 17, maxWidth: footerWidth });
 
   // Unified Project stat right (matches right column 100%!)
   ctx.fillStyle = "#0E1016";
-  ctx.font = "800 84px sans-serif";
+  ctx.font = `800 84px ${fonts.sans}`;
   ctx.fillText(String(unifiedProjectCount).padStart(2, "0"), W * 0.64, 1335);
-  ctx.font = "700 22px sans-serif";
+  ctx.font = `700 22px ${fonts.sans}`;
   ctx.fillStyle = "#313647";
   ctx.fillText("DỰ ÁN &", W * 0.64, 1375);
   ctx.fillText("ALBUM CHÍNH", W * 0.64, 1404);
 }
 
-function createBackBadgeTexture(member: CrewMember): THREE.CanvasTexture {
-  const W = 1024;
-  const H = 1520;
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
+function paintBackBadgeCanvas(canvas: HTMLCanvasElement, member: CrewMember, fonts: BadgeFontFamilies) {
+  const W = canvas.width;
+  const H = canvas.height;
   const ctx = canvas.getContext("2d")!;
 
   const roleMeta = getRoleMeta(member.roleCategory);
@@ -296,24 +287,17 @@ function createBackBadgeTexture(member: CrewMember): THREE.CanvasTexture {
   // Header brand
   ctx.textAlign = "center";
   ctx.fillStyle = "#FF4D00";
-  ctx.font = "700 26px monospace";
+  ctx.font = `700 26px ${fonts.mono}`;
   ctx.fillText("THIẾT BỊ GIA // DIGITAL VCARD & QR", W / 2, 210);
 
   ctx.fillStyle = "#F4F1EA";
   const displayName = member.nickname
     ? `${member.name.toUpperCase()} (${member.nickname.toUpperCase()})`
     : member.name.toUpperCase();
-  let titleSize = 46;
-  ctx.font = `800 ${titleSize}px sans-serif`;
-  while (ctx.measureText(displayName).width > W - 160 && titleSize > 28) {
-    titleSize -= 2;
-    ctx.font = `800 ${titleSize}px sans-serif`;
-  }
-  ctx.fillText(displayName, W / 2, 282);
+  drawFittedCanvasText(ctx, displayName, W / 2, 282, { family: fonts.sans, weight: 800, size: 46, minSize: 28, maxWidth: W - 160 });
 
   ctx.fillStyle = roleMeta.color;
-  ctx.font = "700 28px monospace";
-  ctx.fillText(`CREW #${member.badgeNumber} • ${member.roleTitle.toUpperCase()}`, W / 2, 334);
+  drawFittedCanvasText(ctx, `CREW #${member.badgeNumber} • ${member.roleTitle.toUpperCase()}`, W / 2, 334, { family: fonts.mono, weight: 700, size: 28, minSize: 21, maxWidth: W - 160 });
 
   // Scannable ISO QR Code Card Center
   const profileUrl =
@@ -348,12 +332,11 @@ function createBackBadgeTexture(member: CrewMember): THREE.CanvasTexture {
 
   // Center tiny TBG emblem accent below QR
   ctx.fillStyle = "#FF4D00";
-  ctx.font = "700 25px monospace";
+  ctx.font = `700 25px ${fonts.mono}`;
   ctx.fillText("QUÉT MÃ QR ĐỂ MỞ HỒ SƠ & BOOKING", W / 2, 996);
 
   ctx.fillStyle = "#9499AB";
-  ctx.font = "500 22px monospace";
-  ctx.fillText(`/crew/${member.slug}`, W / 2, 1038);
+  drawFittedCanvasText(ctx, `/crew/${member.slug}`, W / 2, 1038, { family: fonts.mono, weight: 500, size: 22, minSize: 16, maxWidth: W - 160 });
 
   // Divider
   ctx.strokeStyle = "rgba(255,255,255,0.12)";
@@ -365,16 +348,15 @@ function createBackBadgeTexture(member: CrewMember): THREE.CanvasTexture {
 
   // Equipment Locker Summary on Back
   ctx.fillStyle = roleMeta.color;
-  ctx.font = "700 24px monospace";
+  ctx.font = `700 24px ${fonts.mono}`;
   ctx.fillText("GEAR CHỦ LỰC TRÊN SET", W / 2, 1146);
 
   ctx.fillStyle = "#E4E7F0";
-  ctx.font = "600 25px monospace";
   const gearLine1 = member.favoriteGear.slice(0, 2).join("  •  ");
   const gearLine2 = member.favoriteGear.slice(2, 4).join("  •  ");
-  ctx.fillText(gearLine1, W / 2, 1196);
+  drawFittedCanvasText(ctx, gearLine1, W / 2, 1196, { family: fonts.mono, weight: 600, size: 25, minSize: 18, maxWidth: W - 200 });
   if (gearLine2) {
-    ctx.fillText(gearLine2, W / 2, 1238);
+    drawFittedCanvasText(ctx, gearLine2, W / 2, 1238, { family: fonts.mono, weight: 600, size: 25, minSize: 18, maxWidth: W - 200 });
   }
 
   // Footer Authorization
@@ -386,12 +368,21 @@ function createBackBadgeTexture(member: CrewMember): THREE.CanvasTexture {
   ctx.stroke();
 
   ctx.fillStyle = "#F4F1EA";
-  ctx.font = "700 24px monospace";
+  ctx.font = `700 24px ${fonts.mono}`;
   ctx.fillText("BOOKING DESK: BOOKING@THIETBIGIA.VN", W / 2, 1344);
   ctx.fillStyle = "#FF6A2B";
-  ctx.font = "600 20px monospace";
+  ctx.font = `600 20px ${fonts.mono}`;
   ctx.fillText("OFFICIAL ALL-ACCESS CREW CREDENTIAL", W / 2, 1376);
 
+}
+
+function createBadgeTexture(): THREE.CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1024;
+  canvas.height = 1520;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#0A0B0E";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 8;
@@ -428,39 +419,53 @@ function PhysicsBadgeAssembly({
   const [hovered, setHovered] = useState(false);
 
   const { camera } = useThree();
-  const frontTex = useMemo(() => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 1024;
-    canvas.height = 1520;
-    paintFrontBadgeCanvas(canvas, member, null, unifiedCount);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 8;
-    tex.needsUpdate = true;
-    return tex;
-  }, [member, unifiedCount]);
+  const frontTex = useMemo(createBadgeTexture, []);
+  const backTex = useMemo(createBadgeTexture, []);
 
   useEffect(() => {
     let active = true;
-    const canvas = frontTex.image as HTMLCanvasElement;
+    let fonts: BadgeFontFamilies | null = null;
+    let portrait: HTMLImageElement | null = null;
     const img = new window.Image();
     img.crossOrigin = "anonymous";
-    const applyPortrait = () => {
-      if (!active) return;
-      paintFrontBadgeCanvas(canvas, member, img, unifiedCount);
+
+    const repaint = () => {
+      if (!active || !fonts) return;
+      paintFrontBadgeCanvas(frontTex.image as HTMLCanvasElement, member, portrait, unifiedCount, fonts);
+      paintBackBadgeCanvas(backTex.image as HTMLCanvasElement, member, fonts);
       frontTex.needsUpdate = true;
+      backTex.needsUpdate = true;
     };
-    img.onload = applyPortrait;
-    img.src = member.avatar;
-    if (img.complete && img.naturalWidth > 0) {
-      applyPortrait();
+
+    const sample = [
+      "THIẾT BỊ GIA // PRESS PASS • DIGITAL VCARD & QR • QUÉT MÃ QR ĐỂ MỞ HỒ SƠ & BOOKING • GEAR CHỦ LỰC TRÊN SET • ALL ACCESS • NHẤP ĐÚP LẬT QR • DỰ ÁN & ALBUM CHÍNH",
+      member.name, member.nickname, member.roleTitle, member.location, member.yearsActive,
+      member.socials.instagram, member.slug, member.badgeNumber, ...member.favoriteGear,
+    ].filter(Boolean).join(" ");
+
+    void loadBadgeFonts(sample + " " + sample.toUpperCase()).then((loadedFonts) => {
+      if (!active) return;
+      fonts = loadedFonts;
+      repaint();
+    });
+    img.onload = () => { portrait = img; repaint(); };
+    img.onerror = () => { portrait = null; repaint(); };
+    if (member.avatar) {
+      img.src = member.avatar;
+      if (img.complete && img.naturalWidth > 0) {
+        portrait = img;
+        repaint();
+      }
     }
+    document.fonts.addEventListener("loadingdone", repaint);
     return () => {
       active = false;
+      img.onload = null;
+      img.onerror = null;
+      document.fonts.removeEventListener("loadingdone", repaint);
     };
-  }, [frontTex, member, unifiedCount]);
+  }, [frontTex, backTex, member, unifiedCount]);
 
-  const backTex = useMemo(() => createBackBadgeTexture(member), [member]);
   const strapGeo = useMemo(() => createStrapRibbonGeometry(), []);
 
   useEffect(() => {
