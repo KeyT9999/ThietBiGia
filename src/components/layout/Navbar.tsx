@@ -12,6 +12,10 @@ export function Navbar() {
   const pathname = usePathname();
   const siteContent = useSiteContent();
   const settings = siteContent.settings;
+  const partnerCount = new Set([
+    ...siteContent.partnerOrganizations.map((organization) => organization.id),
+    ...siteContent.crew.flatMap((member) => (member.partnerOrganizations ?? []).map((organization) => organization.id)),
+  ]).size;
   const soundMuted = useAppStore((s) => s.soundMuted);
   const toggleSound = useAppStore((s) => s.toggleSound);
   const isOverlayOpen = useAppStore((s) => s.isOverlayOpen);
@@ -53,6 +57,11 @@ export function Navbar() {
       href: "/crew",
       label: (settings.navCrewLabel || "CREW") + " [" + siteContent.crew.length + "]",
       match: (p: string) => p.startsWith("/crew"),
+    },
+    {
+      href: "/partners",
+      label: "PARTNERS [" + partnerCount + "]",
+      match: (p: string) => p.startsWith("/partners"),
     },
     { href: "/about", label: settings.navAboutLabel || "ABOUT & GEAR", match: (p: string) => p.startsWith("/about") },
     { href: "/contact", label: settings.navContactLabel || "CONTACT", match: (p: string) => p.startsWith("/contact") },
@@ -107,7 +116,7 @@ export function Navbar() {
                   key={item.href}
                   href={item.href}
                   onMouseEnter={() => soundEngine.playHover()}
-                  className={`relative px-3 py-1.5 text-xs font-mono tracking-wider transition-colors rounded-md ${
+                  className={`relative px-2.5 py-1.5 text-xs font-mono tracking-wider transition-colors rounded-md xl:px-3 ${
                     active
                       ? "text-ivory font-semibold bg-white/[0.06]"
                       : "text-ivory-muted hover:text-ivory"

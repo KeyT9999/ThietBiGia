@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowUpRight,
+  Building2,
   CalendarPlus,
   Camera,
   CornerDownLeft,
@@ -44,6 +45,10 @@ export function CommandPalette() {
   const crewMembers = siteContent.crew;
   const workProjects = siteContent.works;
   const gearArsenal = siteContent.gear;
+  const partnerCount = new Set([
+    ...siteContent.partnerOrganizations.map((organization) => organization.id),
+    ...crewMembers.flatMap((member) => (member.partnerOrganizations ?? []).map((organization) => organization.id)),
+  ]).size;
   const router = useRouter();
   const open = useAppStore((s) => s.commandPaletteOpen);
   const setOpen = useAppStore((s) => s.setCommandPaletteOpen);
@@ -125,6 +130,15 @@ export function CommandPalette() {
         href: "/crew",
         searchBlob: normalizeVi("danh sach thanh vien crew roster ekip"),
       },
+      {
+        id: "act-partner-directory",
+        group: "THAO TÁC NHANH",
+        title: `Giới thiệu ${partnerCount} đơn vị đồng hành`,
+        subtitle: "Xem hồ sơ đối tác và các dự án liên quan",
+        badge: "PARTNERS",
+        href: "/partners",
+        searchBlob: normalizeVi("danh sach don vi dong hanh doi tac partner thuong hieu"),
+      },
     ];
 
     const crewItems: PaletteItem[] = crewMembers.map((m) => ({
@@ -181,12 +195,12 @@ export function CommandPalette() {
     );
 
     return [...crewItems, ...workItems, ...quickItems, ...gearItems];
-  }, []);
+  }, [crewMembers, gearArsenal, partnerCount, workProjects]);
 
   const filteredItems = useMemo(() => {
     const q = normalizeVi(query.trim());
     if (!q) {
-      // Curated default view: top 5 crew + top 4 works + 3 quick actions
+      // Curated default view: quick actions, top 6 crew, and top 4 works
       return [
         ...allItems.filter((i) => i.group === "THAO TÁC NHANH"),
         ...allItems.filter((i) => i.group === "THÀNH VIÊN EKIP").slice(0, 6),
@@ -304,9 +318,7 @@ export function CommandPalette() {
                           {item.group === "THÀNH VIÊN EKIP" && <Users className="w-3 h-3" />}
                           {item.group === "DỰ ÁN & BỘ ẢNH" && <Film className="w-3 h-3" />}
                           {item.group === "THIẾT BỊ & GEAR" && <Camera className="w-3 h-3" />}
-                          {item.group === "THAO TÁC NHANH" && (
-                            <CalendarPlus className="w-3 h-3" />
-                          )}
+                          {item.group === "THAO TÁC NHANH" && (item.badge === "PARTNERS" ? <Building2 className="w-3 h-3" /> : <CalendarPlus className="w-3 h-3" />)}
                           <span>{item.group}</span>
                         </div>
                       )}
