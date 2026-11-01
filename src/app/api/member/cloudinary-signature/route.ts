@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 import { getMemberSession } from "@/lib/member-auth";
 
-const MEMBER_FOLDERS = new Set(["thiet-bi-gia/members", "thiet-bi-gia/projects"]);
+const MEMBER_FOLDERS = new Set(["thiet-bi-gia/members", "thiet-bi-gia/projects", "thiet-bi-gia/partners"]);
 
 export async function POST(request: Request) {
   if (!(await getMemberSession())) return NextResponse.json({ ok: false, error: "Bạn cần đăng nhập member." }, { status: 401 });

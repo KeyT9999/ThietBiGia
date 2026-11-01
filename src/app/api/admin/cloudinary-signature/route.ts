@@ -6,6 +6,7 @@ const ALLOWED_FOLDERS = new Set([
   "thiet-bi-gia/home",
   "thiet-bi-gia/members",
   "thiet-bi-gia/projects",
+  "thiet-bi-gia/partners",
   "thiet-bi-gia/site",
 ]);
 
