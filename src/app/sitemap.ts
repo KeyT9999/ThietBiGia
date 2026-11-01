@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getPublicSiteContent } from "@/lib/site-content";
+import { getPartnerEntries, getPartnerHref } from "@/lib/partners";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = (
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://thietbigia.vn"
   ).replace(/\/$/, "");
-  const staticRoutes = ["", "/works", "/crew", "/about", "/contact"].map((path) => ({
+  const staticRoutes = ["", "/works", "/crew", "/partners", "/about", "/contact"].map((path) => ({
     url: base + path,
     lastModified: new Date(),
     changeFrequency: "weekly" as const,
@@ -26,5 +27,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: "monthly" as const,
     priority: 0.7,
   }));
-  return [...staticRoutes, ...crewRoutes, ...workRoutes];
+  const partnerRoutes = getPartnerEntries(content).map(({ organization }) => ({
+    url: base + getPartnerHref(organization.id),
+    lastModified: new Date(),
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
+  }));
+  return [...staticRoutes, ...crewRoutes, ...workRoutes, ...partnerRoutes];
 }

@@ -3,23 +3,9 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Building2, Clapperboard, ExternalLink, Search, Users, X } from "lucide-react";
-import type { PartnerOrganization } from "@/data/schema";
 import { useSiteContent } from "@/lib/store";
-
-type RelatedProject = {
-  id: string;
-  title: string;
-  image: string;
-  year: string;
-  href: string;
-  owner?: string;
-};
-
-type PartnerEntry = {
-  organization: PartnerOrganization;
-  owner?: string;
-  relatedProjects: RelatedProject[];
-};
+import { getPartnerEntries, getPartnerHref, type PartnerEntry } from "@/lib/partners";
+import { PartnerProjectPreview } from "./PartnerProjectPreview";
 
 function initials(name: string) {
   return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0] ?? "").join("").toUpperCase();
@@ -30,7 +16,8 @@ function PartnerCard({ entry }: { entry: PartnerEntry }) {
   const safeWebsite = /^https?:\/\//i.test(organization.website ?? "") ? organization.website : "";
 
   return (
-    <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-obsidian-border bg-obsidian-surface shadow-[0_12px_36px_rgba(0,0,0,0.28)] transition-colors hover:border-rec/60">
+    <article className="group flex min-w-0 overflow-hidden rounded-2xl border border-obsidian-border bg-obsidian-surface shadow-[0_12px_36px_rgba(0,0,0,0.28)] transition-colors hover:border-rec/60">
+      <Link href={getPartnerHref(organization.id)} aria-label={`Giới thiệu ${organization.name} và ${relatedProjects.length} dự án đồng hành`} className="flex min-w-0 flex-1 flex-col focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rec">
       <div className="relative flex min-h-48 items-center justify-center overflow-hidden border-b border-obsidian-border bg-[radial-gradient(ellipse_at_50%_55%,rgba(255,77,0,0.16),transparent_58%),linear-gradient(145deg,#151820,#0c0d11)] p-8">
         <div className="pointer-events-none absolute inset-0 opacity-[0.16]" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,.12) 1px, transparent 1px),linear-gradient(90deg,rgba(255,255,255,.12) 1px,transparent 1px)", backgroundSize: "36px 36px" }} />
         {organization.logo ? (
@@ -40,14 +27,14 @@ function PartnerCard({ entry }: { entry: PartnerEntry }) {
         )}
         <span className="absolute left-4 top-4 rounded-md border border-white/10 bg-obsidian/80 px-2.5 py-1 font-mono text-[9px] tracking-[0.16em] text-ivory-muted">ĐƠN VỊ ĐỒNG HÀNH</span>
         {owner ? <span className="absolute bottom-4 left-4 rounded-full border border-white/10 bg-obsidian/80 px-2.5 py-1 text-[10px] text-ivory-muted">Cùng {owner}</span> : null}
-        {safeWebsite ? <a href={safeWebsite} target="_blank" rel="noreferrer" aria-label={`Mở website ${organization.name}`} className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-obsidian/80 text-ivory-muted transition hover:border-rec hover:text-rec"><ExternalLink className="h-4 w-4" /></a> : null}
+        <span className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-obsidian/80 text-ivory-muted transition group-hover:border-rec group-hover:text-rec"><ArrowUpRight className="h-4 w-4" /></span>
       </div>
 
       <div className="flex flex-1 flex-col gap-4 p-4 sm:p-5">
         <div className="min-w-0">
           <h2 className="break-words font-display text-xl font-bold text-ivory">{organization.name}</h2>
-          {organization.description ? <p className="mt-2 whitespace-pre-line break-words text-sm leading-relaxed text-ivory-muted">{organization.description}</p> : <p className="mt-2 text-sm text-ivory-subtle">Đơn vị đồng hành cùng các dự án của Thiết Bị Gia.</p>}
-          {safeWebsite ? <a href={safeWebsite} target="_blank" rel="noreferrer" className="mt-3 inline-flex max-w-full items-center gap-1.5 text-xs text-rec hover:text-orange-300"><span className="truncate">{safeWebsite.replace(/^https?:\/\//i, "").replace(/\/$/, "")}</span><ArrowUpRight className="h-3.5 w-3.5 shrink-0" /></a> : null}
+          {organization.description ? <p className="mt-2 line-clamp-3 whitespace-pre-line break-words text-sm leading-relaxed text-ivory-muted">{organization.description}</p> : <p className="mt-2 text-sm text-ivory-subtle">Đơn vị đồng hành cùng các dự án của Thiết Bị Gia.</p>}
+          {safeWebsite ? <span className="mt-3 inline-flex max-w-full items-center gap-1.5 text-xs text-rec"><ExternalLink className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{safeWebsite.replace(/^https?:\/\//i, "").replace(/\/$/, "")}</span></span> : null}
         </div>
 
         {relatedProjects.length ? (
@@ -56,19 +43,16 @@ function PartnerCard({ entry }: { entry: PartnerEntry }) {
               <p className="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-ivory-subtle"><Clapperboard className="h-3.5 w-3.5 text-rec" />DỰ ÁN ĐỒNG HÀNH</p>
               <span className="font-mono text-[10px] text-rec">{relatedProjects.length}</span>
             </div>
-            <div className="space-y-2">
-              {relatedProjects.slice(0, 4).map((project) => <Link key={project.id} href={project.href} className="group/project flex min-w-0 items-center gap-3 rounded-xl border border-white/[0.07] bg-obsidian/55 p-2 transition hover:border-rec/40">
-                <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-obsidian">
-                  {project.image ? <img src={project.image} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover/project:scale-105" /> : <div className="grid h-full w-full place-items-center"><Clapperboard className="h-4 w-4 text-ivory-subtle" /></div>}
-                </div>
-                <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-ivory group-hover/project:text-rec">{project.title}</span><span className="mt-1 block truncate font-mono text-[9px] text-ivory-subtle">{project.owner ? `${project.owner} · ` : ""}{project.year}</span></span>
-                <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-ivory-subtle group-hover/project:text-rec" />
-              </Link>)}
-              {relatedProjects.length > 4 ? <p className="pl-1 font-mono text-[9px] text-ivory-subtle">VÀ {relatedProjects.length - 4} DỰ ÁN KHÁC</p> : null}
+            <div className={`grid gap-1.5 ${relatedProjects.length > 3 ? "grid-cols-4" : "grid-cols-3"}`}>
+              {relatedProjects.slice(0, 3).map((project) => <div key={project.id} title={project.title} className="aspect-video min-w-0 overflow-hidden rounded-lg border border-white/10 bg-obsidian">
+                <PartnerProjectPreview image={project.image} videoUrl={project.videoUrl} title={project.title} className="h-full w-full" />
+              </div>)}
+              {relatedProjects.length > 3 ? <span className="flex aspect-video min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg border border-rec/30 bg-rec/[0.08] text-rec transition group-hover:bg-rec/15"><span className="text-sm font-bold">+{relatedProjects.length - 3}</span><span className="font-mono text-[8px] font-bold">XEM THÊM</span></span> : null}
             </div>
           </div>
         ) : <div className="mt-auto flex items-center gap-2 border-t border-obsidian-border/80 pt-3 text-xs text-ivory-subtle"><Users className="h-3.5 w-3.5" />Đang đồng hành cùng Thiết Bị Gia</div>}
       </div>
+      </Link>
     </article>
   );
 }
@@ -78,41 +62,7 @@ export function PartnersArchiveGrid() {
   const [query, setQuery] = useState("");
   const [projectsOnly, setProjectsOnly] = useState(false);
 
-  const entries = useMemo<PartnerEntry[]>(() => {
-    const partners = new Map<string, { organization: PartnerOrganization; owner?: string }>();
-    for (const organization of siteContent.partnerOrganizations) partners.set(organization.id, { organization });
-    for (const member of siteContent.crew) {
-      for (const organization of member.partnerOrganizations ?? []) {
-        if (!partners.has(organization.id)) partners.set(organization.id, { organization, owner: member.nickname || member.name });
-      }
-    }
-
-    const relatedById = new Map<string, RelatedProject[]>();
-    const addRelated = (partnerIds: string[] | undefined, project: RelatedProject) => {
-      for (const id of partnerIds ?? []) relatedById.set(id, [...(relatedById.get(id) ?? []), project]);
-    };
-    for (const work of siteContent.works) {
-      addRelated(work.partnerIds, { id: `team-${work.id}`, title: work.title, image: work.coverImage, year: work.year, href: `/works/${work.slug}` });
-    }
-    for (const member of siteContent.crew) {
-      for (const project of member.showcase) {
-        addRelated(project.partnerIds, {
-          id: `member-${member.id}-${project.id}`,
-          title: project.title,
-          image: project.image || member.avatar,
-          year: project.year || "",
-          href: `/crew/${member.slug}`,
-          owner: member.nickname || member.name,
-        });
-      }
-    }
-
-    return Array.from(partners.values()).map(({ organization, owner }) => ({
-      organization,
-      owner,
-      relatedProjects: relatedById.get(organization.id) ?? [],
-    }));
-  }, [siteContent.partnerOrganizations, siteContent.crew, siteContent.works]);
+  const entries = useMemo(() => getPartnerEntries(siteContent), [siteContent]);
 
   const normalizedQuery = query.trim().toLocaleLowerCase("vi");
   const visibleEntries = entries.filter(({ organization, owner, relatedProjects }) => {
