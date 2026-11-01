@@ -8,6 +8,7 @@ import { TimecodePreloader } from "@/components/layout/TimecodePreloader";
 import { CustomCursor } from "@/components/layout/CustomCursor";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { getPublicSiteContent } from "@/lib/site-content";
+import { getSiteUrl } from "@/lib/site-url";
 
 const fontDisplay = Space_Grotesk({
   subsets: ["latin", "vietnamese"],
@@ -41,9 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const settings = content.settings;
   const brandName = settings.brandName || "THIẾT BỊ GIA";
   return {
-    metadataBase: new URL(
-      process.env.NEXT_PUBLIC_SITE_URL ?? "https://thietbigia.vn"
-    ),
+    metadataBase: getSiteUrl(),
     icons: { icon: "/brand-logo.png", shortcut: "/brand-logo.png" },
     title: {
       default: brandName + " — " + (settings.brandSubtitle || "Creative Media Collective"),
@@ -54,6 +53,9 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: brandName,
       locale: "vi_VN",
       type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
     },
   };
 }

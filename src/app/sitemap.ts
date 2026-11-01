@@ -1,14 +1,13 @@
 import type { MetadataRoute } from "next";
 import { getPublicSiteContent } from "@/lib/site-content";
 import { getPartnerEntries, getPartnerHref } from "@/lib/partners";
+import { getSiteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const content = await getPublicSiteContent();
-  const base = (
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://thietbigia.vn"
-  ).replace(/\/$/, "");
+  const base = getSiteUrl().toString().replace(/\/$/, "");
   const staticRoutes = ["", "/works", "/crew", "/partners", "/about", "/contact"].map((path) => ({
     url: base + path,
     lastModified: new Date(),
