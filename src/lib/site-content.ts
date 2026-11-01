@@ -4,12 +4,14 @@ import { CREW_MEMBERS } from "@/data/crew";
 import { WORKS_DATA } from "@/data/works";
 import { GEAR_ARSENAL } from "@/data/gear";
 import { GROUP_MOMENTS } from "@/data/moments";
-import { SiteContentSchema, type SiteContent } from "@/lib/content-schema";
+import { DEFAULT_CONTACT_SERVICES, SiteContentSchema, type SiteContent } from "@/lib/content-schema";
 import { normalizeCrewOrder } from "@/lib/crew-order";
 
 export const DEFAULT_SITE_CONTENT: SiteContent = {
   crew: normalizeCrewOrder(structuredClone(CREW_MEMBERS)),
   works: structuredClone(WORKS_DATA),
+  contactServices: structuredClone(DEFAULT_CONTACT_SERVICES),
+  partnerOrganizations: [],
   gear: structuredClone(GEAR_ARSENAL),
   moments: structuredClone(GROUP_MOMENTS),
   homepage: {

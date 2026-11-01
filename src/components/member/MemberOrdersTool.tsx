@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CalendarClock, Check, Clock3, Mail, Phone, RefreshCw, ShieldCheck, ShoppingBag, UserRound } from "lucide-react";
 
 type Order = {
@@ -40,6 +40,8 @@ export function MemberOrdersTool() {
   const [progressDrafts, setProgressDrafts] = useState<Record<string, { status: Order["progress_status"]; note: string }>>({});
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const hasLoadedOrders = useRef(false);
+  const knownOrderIds = useRef(new Set<string>());
 
   const loadOrders = useCallback(async () => {
     setError("");
@@ -48,7 +50,16 @@ export function MemberOrdersTool() {
       const result = await response.json();
       if (response.status === 401) { window.location.assign("/member/login"); return; }
       if (!response.ok) throw new Error(result.error || "Không tải được đơn được phân công.");
-      setOrders(result.orders as Order[]);
+      const nextOrders = result.orders as Order[];
+      const newOrderCount = hasLoadedOrders.current
+        ? nextOrders.filter((order) => !knownOrderIds.current.has(order.id)).length
+        : 0;
+      knownOrderIds.current = new Set(nextOrders.map((order) => order.id));
+      setOrders(nextOrders);
+      if (hasLoadedOrders.current && newOrderCount > 0) {
+        setNotice(`${newOrderCount} đơn mới có bạn trong ekip vừa được cập nhật.`);
+      }
+      hasLoadedOrders.current = true;
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Không tải được đơn được phân công.");
     } finally {
@@ -56,7 +67,11 @@ export function MemberOrdersTool() {
     }
   }, []);
 
-  useEffect(() => { void loadOrders(); }, [loadOrders]);
+  useEffect(() => {
+    void loadOrders();
+    const interval = window.setInterval(() => void loadOrders(), 60_000);
+    return () => window.clearInterval(interval);
+  }, [loadOrders]);
 
   async function updateOrder(order: Order, patch: { acceptanceStatus?: "accepted" | "declined"; contactStatus?: "contacted"; progressStatus?: Order["progress_status"]; progressNote?: string }) {
     setBusyOrderId(order.id);

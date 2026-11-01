@@ -33,7 +33,9 @@ export function ProjectDetailView({
   isModal?: boolean;
 }) {
   const router = useRouter();
-  const crewMembers = useSiteContent().crew;
+  const siteContent = useSiteContent();
+  const crewMembers = siteContent.crew;
+  const partnerOrganizations = siteContent.partnerOrganizations;
   const [compareGrade, setCompareGrade] = useState(false);
   const [isPortraitFrame, setIsPortraitFrame] = useState(false);
   const [isVideoExpanded, setIsVideoExpanded] = useState(false);
@@ -359,6 +361,23 @@ export function ProjectDetailView({
                 );
               })}
             </div>
+
+            {(work.partnerIds ?? []).length > 0 ? <section className="space-y-3 border-t border-obsidian-border pt-4">
+              <h3 className="font-display text-lg font-bold text-ivory">ĐƠN VỊ ĐỒNG HÀNH</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {(work.partnerIds ?? []).map((partnerId) => {
+                  const organization = partnerOrganizations.find((item) => item.id === partnerId);
+                  if (!organization) return null;
+                  const safeWebsite = /^https?:\/\//i.test(organization.website ?? "") ? organization.website : "";
+                  const card = <span className="flex min-w-0 items-center gap-3 rounded-xl border border-obsidian-border bg-obsidian-surface p-3.5">
+                    {organization.logo ? <img src={organization.logo} alt="" className="h-11 w-11 shrink-0 rounded-lg bg-white object-contain p-1" /> : <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/10 text-xs font-bold text-ivory-muted">{organization.name.slice(0, 2).toUpperCase()}</span>}
+                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-ivory">{organization.name}</span>{organization.description ? <span className="mt-1 block line-clamp-2 text-xs leading-relaxed text-ivory-muted">{organization.description}</span> : null}</span>
+                    {safeWebsite ? <ArrowUpRight className="h-4 w-4 shrink-0 text-ivory-subtle" /> : null}
+                  </span>;
+                  return safeWebsite ? <a key={organization.id} href={safeWebsite} target="_blank" rel="noreferrer" className="block transition hover:border-rec/70">{card}</a> : <div key={organization.id}>{card}</div>;
+                })}
+              </div>
+            </section> : null}
           </div>
 
           <div className="lg:col-span-5 space-y-6">

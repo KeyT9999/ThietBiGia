@@ -17,7 +17,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import type { CrewMember } from "@/data/schema";
+import type { CrewMember, PartnerOrganization } from "@/data/schema";
 import type { WorkProject } from "@/data/works";
 import { getRoleMeta } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
@@ -32,11 +32,13 @@ type WorkSortOrder = "default" | "newest" | "oldest" | "title-asc" | "title-desc
 function WorkArchiveCard({
   work,
   crewMembers,
+  partnerOrganizations,
   selectedMemberSlug,
   onSelectMember,
 }: {
   work: WorkProject;
   crewMembers: CrewMember[];
+  partnerOrganizations: PartnerOrganization[];
   selectedMemberSlug: string;
   onSelectMember: (slug: string) => void;
 }) {
@@ -51,6 +53,9 @@ function WorkArchiveCard({
     selectedMemberSlug !== "ALL"
       ? work.credits.find((c) => c.memberSlug === selectedMemberSlug)
       : undefined;
+  const linkedPartners = (work.partnerIds ?? [])
+    .map((id) => partnerOrganizations.find((organization) => organization.id === id))
+    .filter((organization): organization is PartnerOrganization => Boolean(organization));
 
   return (
     <article className="rounded-2xl border border-obsidian-border hover:border-rec/70 bg-obsidian-surface overflow-hidden flex flex-col justify-between transition-colors shadow-[0_12px_36px_rgba(0,0,0,0.35)] group h-full">
@@ -218,6 +223,16 @@ function WorkArchiveCard({
             )}
           </div>
         </div>
+
+        {linkedPartners.length ? <div className="space-y-2 border-t border-obsidian-border/70 pt-2.5">
+          <p className="text-[10px] font-mono text-ivory-subtle">ĐƠN VỊ ĐỒNG HÀNH</p>
+          <div className="flex flex-wrap gap-1.5">
+            {linkedPartners.map((organization) => <span key={organization.id} title={organization.description || organization.name} className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-white/10 bg-obsidian px-2.5 py-1 text-[11px] text-ivory-muted">
+              {organization.logo ? <img src={organization.logo} alt="" className="h-5 w-5 rounded-full bg-white object-contain p-0.5" /> : null}
+              <span className="max-w-[180px] truncate">{organization.name}</span>
+            </span>)}
+          </div>
+        </div> : null}
       </div>
     </article>
   );
@@ -226,6 +241,7 @@ function WorkArchiveCard({
 export function WorksArchiveGrid() {
   const siteContent = useSiteContent();
   const crewMembers = siteContent.crew;
+  const partnerOrganizations = siteContent.partnerOrganizations;
   const workProjects = siteContent.works;
   const [selectedMemberSlug, setSelectedMemberSlug] = useState<string>("ALL");
   const [query, setQuery] = useState("");
@@ -538,6 +554,7 @@ export function WorksArchiveGrid() {
               <WorkArchiveCard
                 work={work}
                 crewMembers={crewMembers}
+                partnerOrganizations={partnerOrganizations}
                 selectedMemberSlug={selectedMemberSlug}
                 onSelectMember={handleMemberSelect}
               />

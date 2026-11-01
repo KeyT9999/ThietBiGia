@@ -112,6 +112,10 @@ export async function PUT(request: Request) {
 
   const crewSlugs = parsed.data.crew.map((member) => member.slug);
   const workSlugs = parsed.data.works.map((work) => work.slug);
+  const serviceIds = parsed.data.contactServices.map((service) => service.id);
+  const partnerIds = parsed.data.partnerOrganizations.map((organization) => organization.id);
+  const memberPartnerIds = parsed.data.crew.flatMap((member) => (member.partnerOrganizations ?? []).map((organization) => organization.id));
+  const allPartnerIds = [...partnerIds, ...memberPartnerIds];
   const workById = new Map(parsed.data.works.map((work) => [work.id, work]));
   const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
   if (
@@ -121,6 +125,21 @@ export async function PUT(request: Request) {
   ) {
     return NextResponse.json(
       { ok: false, error: "Slug phải là chữ thường/số, phân tách bằng dấu gạch ngang và không trùng." },
+      { status: 400 }
+    );
+  }
+
+  if (
+    new Set(serviceIds).size !== serviceIds.length ||
+    new Set(allPartnerIds).size !== allPartnerIds.length ||
+    parsed.data.works.some((work) => (work.partnerIds ?? []).some((id) => !partnerIds.includes(id))) ||
+    parsed.data.crew.some((member) => {
+      const availableForMember = new Set([...partnerIds, ...(member.partnerOrganizations ?? []).map((organization) => organization.id)]);
+      return member.showcase.some((item) => (item.partnerIds ?? []).some((id) => !availableForMember.has(id)));
+    })
+  ) {
+    return NextResponse.json(
+      { ok: false, error: "Mã dịch vụ hoặc đơn vị đồng hành bị trùng, hoặc dự án đang gắn với đơn vị không tồn tại." },
       { status: 400 }
     );
   }

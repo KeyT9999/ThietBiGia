@@ -12,9 +12,11 @@ import {
 } from "lucide-react";
 import { type UnifiedMemberProject } from "@/data/works";
 import { getRoleMeta } from "@/lib/utils";
+import { useSiteContent } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
 import { shouldUseYoutubeCoverPreview } from "@/lib/youtube";
 import { YouTubePreview } from "@/components/works/YouTubePreview";
+import type { PartnerOrganization } from "@/data/schema";
 
 export function MemberProjectCard({
   project,
@@ -29,6 +31,7 @@ export function MemberProjectCard({
   isModal?: boolean;
   onOpenAlbum: (project: UnifiedMemberProject, frameIdx: number) => void;
 }) {
+  const siteContent = useSiteContent();
   const [activeFrame, setActiveFrame] = useState(0);
   const [isPortraitFrame, setIsPortraitFrame] = useState(false);
   const [isCoverPortraitFrame, setIsCoverPortraitFrame] = useState(false);
@@ -53,6 +56,12 @@ export function MemberProjectCard({
     params.set("limit", "11");
     return `/api/works/gallery?${params.toString()}`;
   })();
+  const personalPartners = siteContent.crew.find((member) => member.slug === memberSlug)?.partnerOrganizations ?? [];
+  const partnerCatalog = [...siteContent.partnerOrganizations, ...personalPartners];
+  const partnerById = new Map(partnerCatalog.map((organization) => [organization.id, organization]));
+  const linkedPartners = (project.partnerIds ?? [])
+    .map((id) => partnerById.get(id))
+    .filter((organization): organization is PartnerOrganization => Boolean(organization));
 
   useEffect(() => {
     if (!driveGalleryUrl) return;
@@ -384,6 +393,14 @@ export function MemberProjectCard({
             {project.exifSpec ?? project.cameraSpec}
           </span>
         </div>
+
+        {linkedPartners.length ? <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-[10px] font-mono text-ivory-subtle">ĐỒNG HÀNH:</span>
+          {linkedPartners.map((organization) => organization ? <span key={organization.id} title={organization.description || organization.name} className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-white/10 bg-obsidian px-2.5 py-1 text-[10px] text-ivory-muted">
+            {organization.logo ? <img src={organization.logo} alt="" className="h-4 w-4 rounded-full bg-white object-contain p-0.5" /> : null}
+            <span className="max-w-[160px] truncate">{organization.name}</span>
+          </span> : null)}
+        </div> : null}
 
         <div className="pt-2.5 border-t border-obsidian-border/70 flex flex-wrap items-center justify-between gap-3">
           {/* Co-Creator Avatar Stack */}

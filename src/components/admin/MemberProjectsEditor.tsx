@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
-import type { BentoItem, CrewMember, WorkProject } from "@/data/schema";
+import type { BentoItem, CrewMember, PartnerOrganization, WorkProject } from "@/data/schema";
 import { getSharedWorkIdsForMember, getUnifiedProjectsForMember } from "@/data/works";
 import { AdminDriveFolderField, AdminField, AdminImageField, AdminMultiImageField } from "./AdminFields";
 
@@ -18,12 +18,14 @@ export function MemberProjectsEditor({
   member,
   works,
   crew,
+  partnerOrganizations,
   onChange,
   signatureEndpoint,
 }: {
   member: CrewMember;
   works: WorkProject[];
   crew: CrewMember[];
+  partnerOrganizations: PartnerOrganization[];
   onChange: (patch: Partial<CrewMember>) => void;
   signatureEndpoint?: string;
 }) {
@@ -50,6 +52,7 @@ export function MemberProjectsEditor({
       span: "normal",
       image: "",
       gallery: [],
+      partnerIds: [],
       description: "",
       durationOrSpec: "DỰ ÁN CÁ NHÂN",
     };
@@ -157,6 +160,22 @@ export function MemberProjectsEditor({
               <AdminField label="Mô tả dự án" value={item.description ?? ""} multiline rows={4} onChange={(description) => updateShowcaseItem(item.id, { description: description || undefined })} />
               <AdminImageField label="Ảnh bìa" value={item.image} folder="thiet-bi-gia/projects" signatureEndpoint={signatureEndpoint} onChange={(image) => updateShowcaseItem(item.id, { image })} />
               <AdminDriveFolderField value={item.galleryDriveFolderUrl} onChange={(galleryDriveFolderUrl) => updateShowcaseItem(item.id, { galleryDriveFolderUrl })} hint="Ảnh trong link này sẽ hiện khi mở album dự án. Chỉ ảnh trực tiếp trong thư mục; đặt tên 01, 02, 03… để sắp thứ tự." />
+              <div className="space-y-2 rounded-xl border border-white/10 p-3 sm:p-4">
+                <div><h4 className="text-sm font-bold">Đơn vị đồng hành</h4><p className="mt-1 text-xs text-ivory-subtle">Chọn các đơn vị admin đã thêm. Đơn vị được hiển thị trên thẻ dự án ở profile.</p></div>
+                {partnerOrganizations.length ? <div className="grid gap-2 sm:grid-cols-2">{partnerOrganizations.map((organization) => {
+                  const checked = (item.partnerIds ?? []).includes(organization.id);
+                  return <label key={organization.id} className={`flex cursor-pointer items-center gap-2.5 rounded-xl border p-2.5 ${checked ? "border-rec/50 bg-rec/[0.07]" : "border-white/10 bg-obsidian/50"}`}>
+                    <input type="checkbox" checked={checked} onChange={(event) => {
+                      const next = new Set(item.partnerIds ?? []);
+                      if (event.target.checked) next.add(organization.id);
+                      else next.delete(organization.id);
+                      updateShowcaseItem(item.id, { partnerIds: partnerOrganizations.filter((candidate) => next.has(candidate.id)).map((candidate) => candidate.id) });
+                    }} className="accent-[#ff4d00]" />
+                    {organization.logo ? <img src={organization.logo} alt="" className="h-8 w-8 shrink-0 rounded-md bg-white object-contain p-1" /> : null}
+                    <span className="min-w-0 truncate text-xs font-semibold text-ivory">{organization.name}</span>
+                  </label>;
+                })}</div> : <p className="text-xs text-ivory-subtle">Chưa có đơn vị nào trong danh mục. Hãy tạo trước ở công cụ admin “Đơn vị đồng hành”.</p>}
+              </div>
               <AdminField label="Thông số EXIF (tùy chọn)" value={item.exifSpec ?? ""} onChange={(exifSpec) => updateShowcaseItem(item.id, { exifSpec: exifSpec || undefined })} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <AdminField label="Link video (tùy chọn)" value={item.videoUrl ?? ""} onChange={(videoUrl) => updateShowcaseItem(item.id, { videoUrl: videoUrl || undefined })} hint="Dán link YouTube hoặc video liên quan." />

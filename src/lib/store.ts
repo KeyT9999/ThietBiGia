@@ -4,7 +4,7 @@ import { CREW_MEMBERS } from "@/data/crew";
 import { WORKS_DATA } from "@/data/works";
 import { GEAR_ARSENAL } from "@/data/gear";
 import { FILM_STRIP_MOMENTS, GROUP_MOMENTS } from "@/data/moments";
-import type { SiteContent } from "@/lib/content-schema";
+import { DEFAULT_CONTACT_SERVICES, type SiteContent } from "@/lib/content-schema";
 import { normalizeCrewOrder } from "@/lib/crew-order";
 import { getHome3DWorks } from "@/lib/home-3d-works";
 import { soundEngine } from "./sound";
@@ -30,6 +30,8 @@ export type TimelineMode = "crew" | "works";
 const initialSiteContent: SiteContent = {
   crew: normalizeCrewOrder(CREW_MEMBERS),
   works: WORKS_DATA,
+  contactServices: DEFAULT_CONTACT_SERVICES,
+  partnerOrganizations: [],
   gear: GEAR_ARSENAL,
   moments: GROUP_MOMENTS,
   homepage: {

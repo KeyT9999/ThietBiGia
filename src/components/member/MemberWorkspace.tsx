@@ -3,19 +3,21 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Camera, Check, CircleUserRound, Images, KeyRound, LogOut, Save, ShieldCheck, ShoppingBag, UserRound } from "lucide-react";
-import type { CrewMember, WorkProject } from "@/data/schema";
+import { ArrowLeft, Building2, Camera, Check, CircleUserRound, Images, KeyRound, LogOut, Save, ShieldCheck, ShoppingBag, UserRound } from "lucide-react";
+import type { CrewMember, PartnerOrganization, WorkProject } from "@/data/schema";
 import { useSetSiteContent } from "@/lib/store";
 import type { SiteContent } from "@/lib/content-schema";
 import { AdminField, AdminImageField, AdminStringListField } from "@/components/admin/AdminFields";
 import { MemberProjectsEditor } from "@/components/admin/MemberProjectsEditor";
+import { MemberPartnerOrganizationsEditor } from "@/components/admin/MemberPartnerOrganizationsEditor";
 import { BrandLogo } from "@/components/layout/BrandLogo";
 import { MemberOrdersTool } from "./MemberOrdersTool";
 
-type Section = "profile" | "projects" | "orders" | "security";
+type Section = "profile" | "projects" | "partners" | "orders" | "security";
 const sections: { id: Section; label: string; detail: string; icon: typeof CircleUserRound }[] = [
   { id: "profile", label: "Thông tin cá nhân", detail: "Ảnh, giới thiệu và liên hệ", icon: CircleUserRound },
   { id: "projects", label: "Dự án trưng bày", detail: "Dự án riêng và dự án chung", icon: Images },
+  { id: "partners", label: "Đơn vị đồng hành", detail: "Đối tác cho dự án cá nhân", icon: Building2 },
   { id: "orders", label: "Đơn hàng", detail: "Xác nhận & liên hệ khách", icon: ShoppingBag },
   { id: "security", label: "Bảo mật tài khoản", detail: "Đổi mật khẩu đăng nhập", icon: KeyRound },
 ];
@@ -27,6 +29,7 @@ export function MemberWorkspace() {
   const [profile, setProfile] = useState<CrewMember | null>(null);
   const [works, setWorks] = useState<WorkProject[]>([]);
   const [crew, setCrew] = useState<CrewMember[]>([]);
+  const [partnerOrganizations, setPartnerOrganizations] = useState<PartnerOrganization[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [savedSnapshot, setSavedSnapshot] = useState("");
   const [loading, setLoading] = useState(true);
@@ -52,6 +55,7 @@ export function MemberWorkspace() {
         setProfile(result.profile as CrewMember);
         setWorks(result.works as WorkProject[]);
         setCrew(result.crew as CrewMember[]);
+        setPartnerOrganizations(result.partnerOrganizations as PartnerOrganization[]);
         setUpdatedAt(result.updatedAt as string | null);
         setSavedSnapshot(JSON.stringify(result.profile));
       })
@@ -145,7 +149,7 @@ export function MemberWorkspace() {
         </header>
 
         <div className="grid items-start gap-5">
-          <nav aria-label="Công cụ profile" className="grid min-w-0 grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-obsidian-surface p-2 sm:grid-cols-4 lg:sticky lg:top-5">
+          <nav aria-label="Công cụ profile" className="grid min-w-0 grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-obsidian-surface p-2 sm:grid-cols-3 xl:grid-cols-5 lg:sticky lg:top-5">
             {sections.map((item) => {
               const Icon = item.icon;
               const active = item.id === section;
@@ -165,7 +169,7 @@ export function MemberWorkspace() {
                 </button>
               );
             })}
-            <p className="hidden border-t border-white/10 px-3 pt-3 text-xs leading-relaxed text-ivory-subtle sm:col-span-4 lg:block">Chỉnh nội dung rồi bấm <b className="text-ivory">Lưu thay đổi</b> để cập nhật trang công khai.</p>
+            <p className="hidden border-t border-white/10 px-3 pt-3 text-xs leading-relaxed text-ivory-subtle sm:col-span-3 xl:col-span-5 lg:block">Chỉnh nội dung rồi bấm <b className="text-ivory">Lưu thay đổi</b> để cập nhật trang công khai.</p>
           </nav>
 
           <section className="min-w-0 space-y-5">
@@ -223,7 +227,9 @@ export function MemberWorkspace() {
               </section>
             </div> : null}
 
-            {section === "projects" ? <MemberProjectsEditor member={profile} works={works} crew={crew} signatureEndpoint="/api/member/cloudinary-signature" onChange={update} /> : null}
+            {section === "projects" ? <MemberProjectsEditor member={profile} works={works} crew={crew} partnerOrganizations={[...partnerOrganizations, ...(profile.partnerOrganizations ?? [])]} signatureEndpoint="/api/member/cloudinary-signature" onChange={update} /> : null}
+
+            {section === "partners" ? <MemberPartnerOrganizationsEditor member={profile} signatureEndpoint="/api/member/cloudinary-signature" onChange={update} /> : null}
 
             {section === "orders" ? <MemberOrdersTool /> : null}
 

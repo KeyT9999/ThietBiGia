@@ -2,19 +2,21 @@
 
 import { useState } from "react";
 import { Images, Info, ListChecks, Trash2, Users } from "lucide-react";
-import type { CrewMember, ProjectCredit, WorkProject } from "@/data/schema";
+import type { CrewMember, PartnerOrganization, ProjectCredit, WorkProject } from "@/data/schema";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
 import { AdminDriveFolderField, AdminField, AdminImageField, AdminMultiImageField, AdminStringListField } from "./AdminFields";
 
 export function ProjectEditor({
   work,
   crew,
+  partnerOrganizations,
   canDelete,
   onChange,
   onDelete,
 }: {
   work: WorkProject;
   crew: CrewMember[];
+  partnerOrganizations: PartnerOrganization[];
   canDelete: boolean;
   onChange: (patch: Partial<WorkProject>) => void;
   onDelete: () => void;
@@ -55,7 +57,7 @@ export function ProjectEditor({
           { id: "basic", label: "Thông tin", detail: "Tên, thứ tự, tóm tắt", icon: Info },
           { id: "media", label: "Ảnh & video", detail: "Ảnh bìa, album, YouTube", icon: Images },
           { id: "details", label: "Hậu trường", detail: "Ghi chú và thiết bị", icon: ListChecks },
-          { id: "crew", label: "Ekip", detail: `${work.credits.length} thành viên tham gia`, icon: Users },
+          { id: "crew", label: "Ekip & đối tác", detail: `${work.credits.length} thành viên · ${(work.partnerIds ?? []).length} đơn vị`, icon: Users },
         ] as const).map((item) => {
           const Icon = item.icon;
           return <button key={item.id} type="button" onClick={() => setSection(item.id)} aria-current={section === item.id ? "page" : undefined} className={"flex min-w-0 items-start gap-3 rounded-xl border px-3 py-3 text-left transition sm:px-4 " + (section === item.id ? "border-rec/60 bg-rec/10" : "border-white/10 bg-obsidian/50 hover:border-white/25")}>
@@ -107,6 +109,7 @@ export function ProjectEditor({
       </section> : null}
 
       {section === "crew" ? (
+      <div className="space-y-5">
       <section className="space-y-3 rounded-2xl border border-white/10 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -136,6 +139,30 @@ export function ProjectEditor({
           </div>
         ))}
       </section>
+      <section className="space-y-3 rounded-2xl border border-white/10 p-4">
+        <div>
+          <h3 className="font-display text-lg font-bold">Đơn vị đồng hành</h3>
+          <p className="text-xs text-ivory-muted">Chọn các đối tác đã tạo ở công cụ “Đơn vị đồng hành”.</p>
+        </div>
+        {partnerOrganizations.length ? (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {partnerOrganizations.map((organization) => {
+              const checked = (work.partnerIds ?? []).includes(organization.id);
+              return <label key={organization.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${checked ? "border-rec/50 bg-rec/[0.07]" : "border-white/10 bg-obsidian/50 hover:border-white/20"}`}>
+                <input type="checkbox" checked={checked} onChange={(event) => {
+                  const next = new Set(work.partnerIds ?? []);
+                  if (event.target.checked) next.add(organization.id);
+                  else next.delete(organization.id);
+                  onChange({ partnerIds: partnerOrganizations.filter((item) => next.has(item.id)).map((item) => item.id) });
+                }} className="accent-[#ff4d00]" />
+                {organization.logo ? <img src={organization.logo} alt="" className="h-9 w-9 shrink-0 rounded-md border border-white/10 bg-white object-contain p-1" /> : <span className="h-9 w-9 shrink-0 rounded-md border border-white/10 bg-white/5" />}
+                <span className="min-w-0"><span className="block truncate text-sm font-semibold text-ivory">{organization.name}</span>{organization.description ? <span className="mt-0.5 block truncate text-[10px] text-ivory-subtle">{organization.description}</span> : null}</span>
+              </label>;
+            })}
+          </div>
+        ) : <p className="rounded-xl border border-dashed border-white/15 p-4 text-sm text-ivory-subtle">Chưa có đơn vị đồng hành. Tạo đơn vị ở tab riêng trong công cụ admin trước.</p>}
+      </section>
+      </div>
       ) : null}
     </div>
   );

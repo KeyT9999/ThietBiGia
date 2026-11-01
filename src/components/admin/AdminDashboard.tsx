@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, Check, Clapperboard, Home, Images, LogOut, Plus, Save, Search, Settings2, ShoppingBag, Users } from "lucide-react";
+import { ArrowDown, ArrowUp, Building2, Check, Clapperboard, Home, Images, ListChecks, LogOut, Plus, Save, Search, Settings2, ShoppingBag, Users } from "lucide-react";
 import type { CrewMember, WorkProject } from "@/data/schema";
 import type { SiteContent } from "@/lib/content-schema";
 import { useSetSiteContent } from "@/lib/store";
@@ -13,13 +13,17 @@ import { GearManager, GroupMomentsManager } from "./AboutToolsEditor";
 import { MemberEditor } from "./MemberEditor";
 import { ProjectEditor } from "./ProjectEditor";
 import { AdminOrdersTool } from "./AdminOrdersTool";
+import { ContactServicesManager } from "./ContactServicesManager";
+import { PartnerOrganizationsManager } from "./PartnerOrganizationsManager";
 import { moveCrewMemberToBadgeNumber, normalizeCrewOrder } from "@/lib/crew-order";
 
-type Tab = "home" | "members" | "projects" | "about" | "orders" | "settings";
+type Tab = "home" | "members" | "projects" | "services" | "partners" | "about" | "orders" | "settings";
 const tabs = [
   { id: "home", label: "Trang chủ", description: "Lời giới thiệu & media", icon: Home },
   { id: "members", label: "Thành viên", description: "Hồ sơ & tài khoản", icon: Users },
   { id: "projects", label: "Dự án", description: "Nội dung & thứ tự", icon: Clapperboard },
+  { id: "services", label: "Dịch vụ Contact", description: "Hạng mục khách đặt", icon: ListChecks },
+  { id: "partners", label: "Đơn vị đồng hành", description: "Hồ sơ & liên kết dự án", icon: Building2 },
   { id: "about", label: "About & kho ảnh", description: "Câu chuyện & tư liệu", icon: Images },
   { id: "orders", label: "Đơn hàng", description: "Phân công & theo dõi", icon: ShoppingBag },
   { id: "settings", label: "Cài đặt website", description: "Thương hiệu & liên hệ", icon: Settings2 },
@@ -191,7 +195,7 @@ export function AdminDashboard() {
       year: String(new Date().getFullYear()), durationTimecode: "00:00:00:00",
       showOnHome3D: false,
       coverImage: "/media/works/work-01.jpg", accentColor: "#FF4D00", cameraSpec: "",
-      summary: "", galleryImages: [], btsNotes: [], gearUsed: [], credits: [],
+      summary: "", galleryImages: [], btsNotes: [], gearUsed: [], credits: [], partnerIds: [],
     };
     setContent({ ...content, works: [...content.works, newWork] });
     setWorkId(newWork.id);
@@ -246,6 +250,25 @@ export function AdminDashboard() {
         : current.crew;
       return { ...current, works, crew };
     });
+    setNotice("");
+  }
+
+  function deletePartnerOrganization(organizationId: string) {
+    setContent((current) => current ? {
+      ...current,
+      partnerOrganizations: current.partnerOrganizations.filter((item) => item.id !== organizationId),
+      crew: current.crew.map((member) => ({
+        ...member,
+        showcase: member.showcase.map((item) => ({
+          ...item,
+          partnerIds: (item.partnerIds ?? []).filter((id) => id !== organizationId),
+        })),
+      })),
+      works: current.works.map((item) => ({
+        ...item,
+        partnerIds: (item.partnerIds ?? []).filter((id) => id !== organizationId),
+      })),
+    } : current);
     setNotice("");
   }
 
@@ -401,7 +424,7 @@ export function AdminDashboard() {
                     {filteredMembers.length === 0 ? <p className="rounded-lg px-3 py-4 text-sm text-ivory-subtle">Không tìm thấy thành viên.</p> : null}
                   </div>
                 </div>
-                {member ? <MemberEditor member={member} memberCount={content.crew.length} works={content.works} crew={content.crew} canDelete={content.crew.length > 1} accountCanManage={savedMemberIds.includes(member.id)} onChange={(patch) => updateMember(member.id, patch)} onDelete={deleteMember} /> : null}
+                {member ? <MemberEditor member={member} memberCount={content.crew.length} works={content.works} crew={content.crew} partnerOrganizations={content.partnerOrganizations} canDelete={content.crew.length > 1} accountCanManage={savedMemberIds.includes(member.id)} onChange={(patch) => updateMember(member.id, patch)} onDelete={deleteMember} /> : null}
               </div>
             ) : null}
 
@@ -438,9 +461,13 @@ export function AdminDashboard() {
                     {filteredWorks.length === 0 ? <p className="rounded-lg px-3 py-4 text-sm text-ivory-subtle">Không tìm thấy dự án.</p> : null}
                   </div>
                 </div>
-                {work ? <ProjectEditor work={work} crew={content.crew} canDelete={content.works.length > 1} onChange={(patch) => updateWork(work.id, patch)} onDelete={deleteWork} /> : null}
+                {work ? <ProjectEditor work={work} crew={content.crew} partnerOrganizations={content.partnerOrganizations} canDelete={content.works.length > 1} onChange={(patch) => updateWork(work.id, patch)} onDelete={deleteWork} /> : null}
               </div>
             ) : null}
+
+            {tab === "services" ? <ContactServicesManager services={content.contactServices} onChange={(contactServices) => update("contactServices", contactServices)} /> : null}
+
+            {tab === "partners" ? <PartnerOrganizationsManager organizations={content.partnerOrganizations} works={content.works} crew={content.crew} onChange={(partnerOrganizations) => update("partnerOrganizations", partnerOrganizations)} onDelete={deletePartnerOrganization} /> : null}
 
             {tab === "about" ? (
               <div className="space-y-5">

@@ -46,6 +46,17 @@ export async function POST(req: Request) {
 
   const data = parsed.data;
   const siteContent = await getPublicSiteContent();
+  const requestedServiceIds = Array.from(new Set(data.services));
+  const selectedServices = requestedServiceIds
+    .map((id) => siteContent.contactServices.find((service) => service.id === id))
+    .filter((service): service is NonNullable<typeof service> => Boolean(service));
+  if (selectedServices.length !== requestedServiceIds.length) {
+    return NextResponse.json(
+      { ok: false, error: "Một dịch vụ bạn chọn đã thay đổi. Hãy tải lại trang rồi gửi lại phiếu." },
+      { status: 409 }
+    );
+  }
+
   const uniqueSlugs = Array.from(new Set(data.crewSlugs));
   const selectedCrew = uniqueSlugs
     .map((slug) => siteContent.crew.find((member) => member.slug === slug))
@@ -79,7 +90,7 @@ export async function POST(req: Request) {
       .filter(Boolean)
       .join(" • "),
     dateInfo: data.dateInfo || "Chưa ấn định",
-    services: data.services,
+    services: selectedServices.map((service) => service.label),
     crewSlugs: selectedCrew.map((m) => m.slug),
     squadNames: selectedCrew.map((m) => m.name),
     projectRef: refWork ? refWork.title : data.projectRef || null,
@@ -206,37 +217,50 @@ export async function POST(req: Request) {
     );
   }
 
-  if (resendApiKey && bookingFromEmail && bookingNotificationEmail) {
-    dispatches.push(
-      fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: bookingFromEmail,
-          to: [bookingNotificationEmail],
-          subject: `Đặt lịch mới ${referenceCode} — ${record.name}`,
-          text: summaryText,
-        }),
-      })
-        .then(async (response) => {
-          if (response.ok) {
-            channelsNotified.push("email");
-            return;
-          }
+  if (resendApiKey && bookingFromEmail) {
+    const emailRecipients = new Map<string, "admin-email" | "member-email">();
+    if (bookingNotificationEmail) {
+      emailRecipients.set(bookingNotificationEmail.trim().toLowerCase(), "admin-email");
+    }
+    for (const member of selectedCrew) {
+      const address = member.socials.email?.trim().toLowerCase();
+      if (address && !emailRecipients.has(address)) emailRecipients.set(address, "member-email");
+    }
 
-          const errorText = await response.text();
-          console.error(
-            `[booking] Resend notification failed (${response.status}):`,
-            errorText.slice(0, 1000)
-          );
+    for (const [recipient, notificationType] of emailRecipients) {
+      dispatches.push(
+        fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resendApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: bookingFromEmail,
+            to: [recipient],
+            subject: notificationType === "member-email"
+              ? `Khách đã chỉ định bạn vào đơn ${referenceCode}`
+              : `Đặt lịch mới ${referenceCode} — ${record.name}`,
+            text: summaryText,
+          }),
         })
-        .catch((error: unknown) => {
-          console.error("[booking] Resend notification request failed:", error);
-        })
-    );
+          .then(async (response) => {
+            if (response.ok) {
+              channelsNotified.push(notificationType);
+              return;
+            }
+
+            const errorText = await response.text();
+            console.error(
+              `[booking] Resend ${notificationType} failed (${response.status}):`,
+              errorText.slice(0, 1000)
+            );
+          })
+          .catch((error: unknown) => {
+            console.error(`[booking] Resend ${notificationType} request failed:`, error);
+          })
+      );
+    }
   }
 
   if (dispatches.length > 0) {

@@ -23,15 +23,6 @@ import { soundEngine } from "@/lib/sound";
 import { getCombinedRoleBadge, getRoleMeta, type RoleCategory } from "@/lib/utils";
 import { useSiteContent } from "@/lib/store";
 
-const SERVICE_OPTIONS = [
-  "Trọn gói Ekip Quay & Chụp",
-  "Photographer (Thời trang / Sự kiện / Sản phẩm)",
-  "Quay MV / TVC / Phim ngắn (DOP & Cam)",
-  "Dựng Video, Color Grading & Same-Day Edit",
-  "Key Visual, 3D Motion & Thiết kế Sân khấu",
-  "Hỗ trợ Lighting, Gaffer & Thiết bị",
-];
-
 type RoleFilter = "all" | RoleCategory;
 
 function getSocialHref(value: string, platform: "instagram" | "facebook") {
@@ -58,9 +49,9 @@ export default function ContactBookingPage() {
   ].filter((item) => item.href);
   const crewMembers = siteContent.crew;
   const workProjects = siteContent.works;
-  const [selectedServices, setSelectedServices] = useState<string[]>([
-    "Trọn gói Ekip Quay & Chụp",
-  ]);
+  const [selectedServices, setSelectedServices] = useState<string[]>(() =>
+    siteContent.contactServices[0] ? [siteContent.contactServices[0].id] : []
+  );
   const [selectedCrewSlugs, setSelectedCrewSlugs] = useState<string[]>([]);
   const [crewFilter, setCrewFilter] = useState<RoleFilter>("all");
   const [projectRef, setProjectRef] = useState<string>("");
@@ -80,6 +71,15 @@ export default function ContactBookingPage() {
   } | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedRef, setCopiedRef] = useState(false);
+
+  useEffect(() => {
+    const availableIds = new Set(siteContent.contactServices.map((service) => service.id));
+    setSelectedServices((current) => {
+      const valid = current.filter((id) => availableIds.has(id));
+      if (valid.length > 0) return valid;
+      return siteContent.contactServices[0] ? [siteContent.contactServices[0].id] : [];
+    });
+  }, [siteContent.contactServices]);
 
   // Hydrate pre-selected crew or referenced project from URL query (?crew=slug1,slug2&project=slug)
   useEffect(() => {
@@ -402,23 +402,24 @@ export default function ContactBookingPage() {
                 1. Hạng mục bạn cần Thiết Bị Gia đồng hành
               </label>
               <div className="flex flex-wrap gap-2">
-                {SERVICE_OPTIONS.map((opt) => {
-                  const active = selectedServices.includes(opt);
+                {siteContent.contactServices.map((service) => {
+                  const active = selectedServices.includes(service.id);
                   return (
                     <button
-                      key={opt}
+                      key={service.id}
                       type="button"
-                      onClick={() => toggleService(opt)}
+                      onClick={() => toggleService(service.id)}
                       className={`px-3.5 py-2 rounded-xl text-xs font-medium border transition-all ${
                         active
                           ? "bg-rec text-obsidian border-rec font-bold"
                           : "bg-obsidian border-obsidian-border text-ivory-muted hover:text-ivory"
                       }`}
                     >
-                      {opt}
+                      {service.label}
                     </button>
                   );
                 })}
+                {siteContent.contactServices.length === 0 ? <p className="rounded-xl border border-obsidian-border px-3.5 py-3 text-xs text-ivory-subtle">Hiện chưa có dịch vụ khả dụng. Vui lòng liên hệ trực tiếp với Thiết Bị Gia.</p> : null}
               </div>
             </div>
 
@@ -655,7 +656,7 @@ export default function ContactBookingPage() {
             ) : (
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || selectedServices.length === 0}
                 className="w-full py-3.5 px-6 rounded-xl bg-rec hover:bg-rec-glow disabled:opacity-60 text-obsidian font-mono font-bold text-sm flex items-center justify-center gap-2 transition-colors shadow-[0_8px_28px_rgba(255,77,0,0.35)] cursor-pointer"
               >
                 {isSubmitting ? (

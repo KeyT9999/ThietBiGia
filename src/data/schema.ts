@@ -14,10 +14,19 @@ export const BentoItemSchema = z.object({
   galleryDriveFolderUrl: z.string().optional(),
   description: z.string().optional(),
   projectSlug: z.string().optional(),
+  partnerIds: z.array(z.string()).optional(),
   durationOrSpec: z.string(),
   exifSpec: z.string().optional(),
   videoUrl: z.string().optional(),
   externalUrl: z.string().optional(),
+});
+
+export const PartnerOrganizationSchema = z.object({
+  id: z.string(),
+  name: z.string().trim().min(1).max(180),
+  logo: z.string().max(2000).optional().default(""),
+  website: z.string().max(2000).optional().default(""),
+  description: z.string().max(2000).optional().default(""),
 });
 
 export const CrewMemberSchema = z.object({
@@ -43,6 +52,7 @@ export const CrewMemberSchema = z.object({
     email: z.string().optional(),
   }),
   showcase: z.array(BentoItemSchema),
+  partnerOrganizations: z.array(PartnerOrganizationSchema).max(100).optional(),
   profileSharedWorkIds: z.array(z.string()).optional(),
   profileProjectOrder: z.array(z.string()).optional(),
 });
@@ -75,9 +85,11 @@ export const WorkProjectSchema = z.object({
   btsNotes: z.array(z.string()),
   gearUsed: z.array(z.string()),
   credits: z.array(ProjectCreditSchema),
+  partnerIds: z.array(z.string()).optional(),
 });
 
 export type CrewMember = z.infer<typeof CrewMemberSchema>;
 export type BentoItem = z.infer<typeof BentoItemSchema>;
 export type WorkProject = z.infer<typeof WorkProjectSchema>;
 export type ProjectCredit = z.infer<typeof ProjectCreditSchema>;
+export type PartnerOrganization = z.infer<typeof PartnerOrganizationSchema>;

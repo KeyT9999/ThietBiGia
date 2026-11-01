@@ -486,6 +486,7 @@ export interface UnifiedMemberProject {
   span?: BentoItem["span"];
   videoUrl?: string;
   externalUrl?: string;
+  partnerIds?: string[];
   coCreators: CrewMember[];
   totalCrewCount: number;
 }
@@ -539,6 +540,7 @@ export function getUnifiedProjectsForMember(
       galleryDriveFolderUrl: w.galleryDriveFolderUrl,
       workSlug: w.slug,
       videoUrl: w.videoEmbedUrl ?? w.videoUrl,
+      partnerIds: w.partnerIds ?? [],
       coCreators,
       totalCrewCount: w.credits.length,
     };
@@ -572,6 +574,7 @@ export function getUnifiedProjectsForMember(
       galleryDriveFolderUrl: item.galleryDriveFolderUrl,
       showcaseItemId: item.id,
       workSlug: item.projectSlug,
+      partnerIds: item.partnerIds ?? [],
       kind: item.kind,
       span: item.span,
       videoUrl: item.videoUrl,

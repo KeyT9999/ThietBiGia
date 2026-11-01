@@ -1,5 +1,19 @@
 import { z } from "zod";
-import { CrewMemberSchema, WorkProjectSchema } from "@/data/schema";
+import { CrewMemberSchema, PartnerOrganizationSchema, WorkProjectSchema } from "@/data/schema";
+
+export const DEFAULT_CONTACT_SERVICES = [
+  { id: "tron-goi-ekip-quay-chup", label: "Trọn gói Ekip Quay & Chụp" },
+  { id: "photographer", label: "Photographer (Thời trang / Sự kiện / Sản phẩm)" },
+  { id: "quay-mv-tvc-phim-ngan", label: "Quay MV / TVC / Phim ngắn (DOP & Cam)" },
+  { id: "dung-video-color-grading", label: "Dựng Video, Color Grading & Same-Day Edit" },
+  { id: "key-visual-3d-motion", label: "Key Visual, 3D Motion & Thiết kế Sân khấu" },
+  { id: "lighting-gaffer-thiet-bi", label: "Hỗ trợ Lighting, Gaffer & Thiết bị" },
+];
+
+export const ContactServiceSchema = z.object({
+  id: z.string().min(1).max(120),
+  label: z.string().trim().min(1).max(240),
+});
 
 const GearItemSchema = z.object({
   name: z.string(),
@@ -65,6 +79,8 @@ export const SiteSettingsSchema = z.object({
 export const SiteContentSchema = z.object({
   crew: z.array(CrewMemberSchema).min(1).max(100),
   works: z.array(WorkProjectSchema).min(1).max(500),
+  contactServices: z.array(ContactServiceSchema).max(100).default(DEFAULT_CONTACT_SERVICES),
+  partnerOrganizations: z.array(PartnerOrganizationSchema).max(300).default([]),
   gear: z.array(GearCategorySchema).max(100),
   moments: z.array(GroupMomentSchema).max(1000),
   homepage: HomeIntroSchema,
@@ -76,3 +92,4 @@ export type SiteContent = z.infer<typeof SiteContentSchema>;
 export type HomeIntroContent = z.infer<typeof HomeIntroSchema>;
 export type AboutContent = z.infer<typeof AboutContentSchema>;
 export type SiteSettings = z.infer<typeof SiteSettingsSchema>;
+export type ContactService = z.infer<typeof ContactServiceSchema>;
