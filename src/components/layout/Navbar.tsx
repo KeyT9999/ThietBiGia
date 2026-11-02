@@ -70,7 +70,7 @@ export function Navbar() {
     {
       id: "partners",
       href: "/partners",
-      label: "PARTNERS [" + partnerCount + "]",
+      label: (settings.navPartnersLabel || "ĐƠN VỊ ĐỒNG HÀNH") + " [" + partnerCount + "]",
       match: (p: string) => p.startsWith("/partners"),
     },
     { id: "about", href: "/about", label: settings.navAboutLabel || "ABOUT & GEAR", match: (p: string) => p.startsWith("/about") },
@@ -105,7 +105,7 @@ export function Navbar() {
             className="flex items-center gap-2.5 group"
           >
             <BrandLogo />
-            <span className="hidden lg:inline-block text-xs font-mono tracking-[0.18em] text-ivory-muted uppercase truncate">
+            <span className="hidden min-[1760px]:inline-block max-w-[260px] text-xs font-mono tracking-[0.18em] text-ivory-muted uppercase truncate">
               {settings.brandSubtitle || "Creative Media & Design Collective"}
             </span>
           </Link>
@@ -120,8 +120,8 @@ export function Navbar() {
         </Link>
 
         {/* Right Nav + Sound + Live Time */}
-        <div className="flex items-center gap-1 sm:gap-2 xl:gap-5 shrink-0">
-          <nav className="hidden lg:flex items-center gap-1">
+        <div className="flex items-center gap-1 sm:gap-2 xl:gap-2 2xl:gap-4 shrink-0">
+          <nav className="hidden xl:flex items-center gap-0.5 2xl:gap-1">
             {navItems.map((item) => {
               const active = item.match(pathname);
               return (
@@ -129,7 +129,7 @@ export function Navbar() {
                   key={item.href}
                   href={item.href}
                   onMouseEnter={() => soundEngine.playHover()}
-                  className={`relative px-2.5 py-1.5 text-xs font-mono tracking-wider transition-colors rounded-md xl:px-3 ${
+                  className={`relative px-2 py-1.5 text-xs font-mono tracking-wider whitespace-nowrap transition-colors rounded-md 2xl:px-3 ${
                     active
                       ? "text-ivory font-semibold bg-white/[0.06]"
                       : "text-ivory-muted hover:text-ivory"
@@ -144,7 +144,7 @@ export function Navbar() {
             })}
           </nav>
 
-          <div className="h-4 w-[1px] bg-obsidian-border hidden lg:block" />
+          <div className="h-4 w-[1px] bg-obsidian-border hidden xl:block" />
 
           {loggedInMember ? (
             <Link
@@ -202,10 +202,10 @@ export function Navbar() {
             }`}
           >
             {soundMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-rec" />}
-            <span className="hidden xl:inline">{soundMuted ? "MUTED" : "SFX ON"}</span>
+            <span className="hidden 2xl:inline">{soundMuted ? "MUTED" : "SFX ON"}</span>
           </button>
 
-          <div className="hidden xl:flex items-center gap-1.5 text-xs font-mono text-ivory-muted">
+          <div className="hidden 2xl:flex items-center gap-1.5 text-xs font-mono text-ivory-muted">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span>{liveTime}</span>
           </div>
@@ -213,7 +213,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => setMobileOpen((v) => !v)}
-            className="lg:hidden min-w-10 min-h-10 flex items-center justify-center p-1.5 rounded-lg border border-obsidian-border text-ivory"
+            className="xl:hidden min-w-10 min-h-10 flex items-center justify-center p-1.5 rounded-lg border border-obsidian-border text-ivory"
             aria-label="Menu"
           >
             {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -223,7 +223,7 @@ export function Navbar() {
 
       {/* Mobile Dropdown */}
       {mobileOpen && (
-        <div className="lg:hidden mt-2 rounded-xl border border-obsidian-border bg-obsidian-surface/95 backdrop-blur-xl p-3 flex flex-col gap-1 shadow-2xl">
+        <div className="xl:hidden mt-2 rounded-xl border border-obsidian-border bg-obsidian-surface/95 backdrop-blur-xl p-3 flex flex-col gap-1 shadow-2xl">
           {navItems.map((item) => {
             const active = item.match(pathname);
             return (

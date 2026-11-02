@@ -65,6 +65,7 @@ const initialSiteContent: SiteContent = {
     navTimelineLabel: "TIMELINE 3D",
     navProjectsLabel: "PROJECTS",
     navCrewLabel: "CREW",
+    navPartnersLabel: "ĐƠN VỊ ĐỒNG HÀNH",
     navOrder: [...DEFAULT_NAVIGATION_ORDER],
     navAboutLabel: "ABOUT & GEAR",
     navContactLabel: "CONTACT",

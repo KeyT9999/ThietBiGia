@@ -566,6 +566,7 @@ export function AdminDashboard() {
                   <AdminField label="Trang chủ" value={content.settings.navTimelineLabel} onChange={(navTimelineLabel) => update("settings", { ...content.settings, navTimelineLabel })} />
                   <AdminField label="Dự án" value={content.settings.navProjectsLabel} onChange={(navProjectsLabel) => update("settings", { ...content.settings, navProjectsLabel })} />
                   <AdminField label="Thành viên" value={content.settings.navCrewLabel} onChange={(navCrewLabel) => update("settings", { ...content.settings, navCrewLabel })} />
+                  <AdminField label="Đơn vị đồng hành" value={content.settings.navPartnersLabel} onChange={(navPartnersLabel) => update("settings", { ...content.settings, navPartnersLabel })} />
                   <AdminField label="About" value={content.settings.navAboutLabel} onChange={(navAboutLabel) => update("settings", { ...content.settings, navAboutLabel })} />
                   <AdminField label="Liên hệ" value={content.settings.navContactLabel} onChange={(navContactLabel) => update("settings", { ...content.settings, navContactLabel })} />
                 </div></details>

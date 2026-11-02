@@ -136,7 +136,7 @@ export function CommandPalette() {
         group: "THAO TÁC NHANH",
         title: `Giới thiệu ${partnerCount} đơn vị đồng hành`,
         subtitle: "Xem hồ sơ đối tác và các dự án liên quan",
-        badge: "PARTNERS",
+        badge: "ĐƠN VỊ ĐỒNG HÀNH",
         href: "/partners",
         searchBlob: normalizeVi("danh sach don vi dong hanh doi tac partner thuong hieu"),
       },
