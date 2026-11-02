@@ -20,6 +20,25 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+@media (min-width: 768px) {
+  /* Keep the 1600px content alignment while extending the tracked 3D view to the left edge. */
+  .member-profile-layout {
+    grid-template-columns:
+      minmax(0, 1fr)
+      min(41.666666667%, 666.666666667px)
+      min(58.333333333%, 933.333333333px)
+      minmax(0, 1fr);
+  }
+
+  .member-profile-badge {
+    grid-column: 1 / 3;
+  }
+
+  .member-profile-content {
+    grid-column: 3 / 4;
+  }
+}
+
 button,
 a,
 input,

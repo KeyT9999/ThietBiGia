@@ -326,9 +326,9 @@ export function MemberSpotlightView({
       </div>
 
       {/* Two-Column Split Layout: Left 3D Physics Lanyard Badge (sticky from 768px+) + Right Bento Showcase */}
-      <div className="max-w-[1600px] w-full mx-auto flex-1 grid grid-cols-1 md:grid-cols-12 md:items-start">
-        {/* LEFT COLUMN (41.6%): 3D Hanging Holographic Press Pass */}
-        <div className="md:col-span-5 relative border-b md:border-b-0 md:border-r border-obsidian-border/80 flex flex-col justify-between h-[420px] sm:h-[460px] md:h-[calc(100dvh-120px)] md:sticky md:top-[120px] touch-pan-y">
+      <div className="member-profile-layout w-full flex-1 grid grid-cols-1 md:items-start">
+        {/* The 3D view includes the desktop left gutter; the editorial column stays aligned. */}
+        <div className="member-profile-badge min-w-0 relative border-b md:border-b-0 md:border-r border-obsidian-border/80 flex flex-col justify-between h-[420px] sm:h-[460px] md:h-[calc(100dvh-120px)] md:sticky md:top-[120px] touch-pan-y">
           {!isModal && (
             <div
               className="pointer-events-none absolute inset-0 z-0 opacity-30"
@@ -373,7 +373,7 @@ export function MemberSpotlightView({
         </div>
 
         {/* RIGHT COLUMN (58.3%): Editorial Bio + Bento Media Showcase + Đồng Đội Cùng Ekip */}
-        <div className="md:col-span-7 relative z-20 bg-obsidian p-5 sm:p-8 lg:p-10 pb-24 space-y-10">
+        <div className="member-profile-content min-w-0 relative z-20 bg-obsidian p-5 sm:p-8 lg:p-10 pb-24 space-y-10">
           {/* Member Intro & Gear Spec */}
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
