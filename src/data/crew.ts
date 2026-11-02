@@ -1,5 +1,87 @@
-import { CrewMemberSchema, type CrewMember } from "./schema";
+import { CrewMemberSchema, type BentoItem, type CrewMember } from "./schema";
 export type { CrewMember };
+
+export const KEYT_NINI_SHOWCASE_ITEM: BentoItem = {
+  id: "tkt-nini",
+  title: "Nini",
+  subtitle: "Editorial Fashion & Architectural Portrait • 7 Khung Hình",
+  year: "2026",
+  kind: "photo",
+  span: "wide",
+  image: "/media/keyt/nini-02.jpg",
+  gallery: [
+    "/media/keyt/nini-02.jpg",
+    "/media/keyt/nini-01.jpg",
+    "/media/keyt/nini-06.jpg",
+    "/media/keyt/nini-04.jpg",
+    "/media/keyt/nini-05.jpg",
+    "/media/keyt/nini-03.jpg",
+    "/media/keyt/nini-07.jpg",
+  ],
+  description:
+    "Bộ ảnh chân dung thời trang cá nhân thực hiện cùng Nini giữa không gian kiến trúc cột đá thô mộc — kết hợp sắc độ đối lập Đen–Trắng, khung hình đơn sắc 135mm giàu nhịp điệu và ánh sáng tự nhiên chiều muộn.",
+  durationOrSpec: "7 FRAMES • EDITORIAL PORTRAIT",
+  exifSpec:
+    "CANON EOS 7D • EF-S 55-250MM F/4-5.6 IS STM • 55–135mm • f/4.0–5.0 • 1/160s • ISO 160–640",
+};
+
+export const KEYT_SU_KIEN_SHOWCASE_ITEM: BentoItem = {
+  id: "tkt-su-kien",
+  title: "Sự Kiện — Liveshow \"Gom Hoa Gửi Nàng\"",
+  subtitle: "Event & Acoustic Liveshow Coverage • 7 Khung Hình",
+  year: "2026",
+  kind: "photo",
+  span: "normal",
+  image: "/media/keyt/sukien-05.jpg",
+  gallery: [
+    "/media/keyt/sukien-05.jpg",
+    "/media/keyt/sukien-06.jpg",
+    "/media/keyt/sukien-01.jpg",
+    "/media/keyt/sukien-03.jpg",
+    "/media/keyt/sukien-04.jpg",
+    "/media/keyt/sukien-02.jpg",
+    "/media/keyt/sukien-07.jpg",
+  ],
+  description:
+    "Ghi hình trọn vẹn không khí ấm áp của đêm Workshop & Acoustic Liveshow \"Gom Hoa Gửi Nàng\" — từ khu vực check-in ngập sắc hoa, cảm xúc khán phòng đến khoảnh khắc thăng hoa của ban nhạc trên sân khấu.",
+  durationOrSpec: "7 FRAMES • EVENT & LIVESHOW",
+  exifSpec:
+    "SONY A9 (ILCE-9) • E 28-75MM F2.8 • 28–53mm • f/4.0–5.6 • 1/125–1/160s • ISO 400–2500",
+};
+
+export const KEYT_TU_THIEN_SHOWCASE_ITEM: BentoItem = {
+  id: "tkt-tu-thien",
+  title: "Từ Thiện — Nụ Cười Vùng Cao La Lay",
+  subtitle: "Humanitarian & Documentary Portrait • 4 Khung Hình",
+  year: "2026",
+  kind: "photo",
+  span: "normal",
+  image: "/media/keyt/tuthien-01.jpg",
+  gallery: [
+    "/media/keyt/tuthien-01.jpg",
+    "/media/keyt/tuthien-03.jpg",
+    "/media/keyt/tuthien-04.jpg",
+    "/media/keyt/tuthien-02.jpg",
+  ],
+  description:
+    "Những lát cắt chân thực và hồn nhiên trong hành trình thiện nguyện tại vùng cao La Lay — lưu giữ nụ cười trong veo của trẻ thơ và nét đẹp văn hóa thổ cẩm truyền thống.",
+  durationOrSpec: "4 FRAMES • DOCUMENTARY & CHARITY",
+  exifSpec:
+    "CANON EOS 7D • EF-S 55-250MM F/4-5.6 IS STM • 61–135mm • f/4.0–5.0 • 1/320–1/500s • ISO 250–400",
+};
+
+export const KEYT_DANAFF_GALLERY: string[] = [
+  "/media/keyt/danaff-03.jpg",
+  "/media/keyt/danaff-07.jpg",
+  "/media/keyt/danaff-08.jpg",
+  "/media/keyt/danaff-06.jpg",
+  "/media/keyt/danaff-10.jpg",
+  "/media/keyt/danaff-09.jpg",
+  "/media/keyt/danaff-04.jpg",
+  "/media/keyt/danaff-02.jpg",
+  "/media/keyt/danaff-01.jpg",
+  "/media/keyt/danaff-05.jpg",
+];
 
 export const CREW_MEMBERS: CrewMember[] = [
   {
@@ -758,10 +840,10 @@ export const CREW_MEMBERS: CrewMember[] = [
     avatar: "/media/keyt/keyt-portrait-02.jpg",
     avatarAlt: "/media/keyt/keyt-portrait-01.jpg",
     favoriteGear: [
+      "Sony A9",
       "Sony A6400",
       "Sigma 18-50mm F2.8",
       "Canon EOS 7D",
-      "WebGL / Next.js",
     ],
     yearsActive: "THIẾT BỊ GIA",
     location: "ĐÀ NẴNG • VIỆT NAM",
@@ -770,6 +852,9 @@ export const CREW_MEMBERS: CrewMember[] = [
       email: "kimthang@thietbigia.vn",
     },
     showcase: [
+      KEYT_NINI_SHOWCASE_ITEM,
+      KEYT_SU_KIEN_SHOWCASE_ITEM,
+      KEYT_TU_THIEN_SHOWCASE_ITEM,
       {
         id: "tkt-1",
         title: "Phùng Khánh Linh — Live Stage Concert",
@@ -792,22 +877,16 @@ export const CREW_MEMBERS: CrewMember[] = [
       {
         id: "tkt-2",
         title: "Liên Hoan Phim Châu Á (DANAFF)",
-        subtitle: "Red Carpet Press & Celebrity",
+        subtitle: "Red Carpet Press & Celebrity • 10 Khung Hình",
         kind: "poster",
         span: "tall",
         image: "/media/keyt/danaff-03.jpg",
-        gallery: [
-          "/media/keyt/danaff-03.jpg",
-          "/media/keyt/danaff-04.jpg",
-          "/media/keyt/danaff-02.jpg",
-          "/media/keyt/danaff-01.jpg",
-          "/media/keyt/danaff-05.jpg",
-        ],
+        gallery: KEYT_DANAFF_GALLERY,
         description:
-          "Tác nghiệp thảm đỏ sự kiện Liên Hoan Phim Châu Á Đà Nẵng (DANAFF) — bắt trọn thần thái sang trọng và khoảnh khắc giao lưu trước ống kính báo chí.",
+          "Tác nghiệp thảm đỏ sự kiện Liên Hoan Phim Châu Á Đà Nẵng (DANAFF) — bắt trọn thần thái sang trọng, đội ngũ truyền thông báo chí và khoảnh khắc giao lưu rực sáng ánh đèn flash.",
         projectSlug: "lien-hoan-phim-chau-a-danaff",
-        durationOrSpec: "5 FRAMES • RED CARPET",
-        exifSpec: "SONY ILCE-6400 • SIGMA 18-50MM F2.8 DC DN • 34–50mm • f/4 • 1/200s • ISO 500",
+        durationOrSpec: "10 FRAMES • RED CARPET",
+        exifSpec: "SONY ILCE-6400 • SIGMA 18-50MM F2.8 DC DN • 18–50mm • f/3.5–5.6 • 1/100–1/200s • ISO 100–640",
       },
       {
         id: "tkt-3",
