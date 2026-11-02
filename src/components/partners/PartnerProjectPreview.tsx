@@ -50,7 +50,7 @@ export function PartnerProjectPreview({
         }}
         className="h-full w-full object-contain"
       /> : <div className="flex h-full w-full min-h-12 items-center justify-center text-ivory-subtle" role="img" aria-label={`Chưa có ảnh xem trước: ${title}`}><Clapperboard className="h-6 w-6" /></div>}
-      {youtubeThumbnail && src ? <span className="pointer-events-none absolute bottom-1.5 right-1.5 grid h-5 w-7 place-items-center rounded-md bg-[#ff0033] shadow-md" aria-hidden="true"><Play className="h-3 w-3 fill-white text-white" /></span> : null}
+      {youtubeThumbnail && src ? <span className="pointer-events-none absolute left-1/2 top-1/2 grid h-5 w-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-md bg-[#ff0033] shadow-md" aria-hidden="true"><Play className="h-3 w-3 fill-white text-white" /></span> : null}
     </div>
   );
 }
