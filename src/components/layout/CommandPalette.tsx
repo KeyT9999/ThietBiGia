@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 
+import { getCuratedPersonalArchiveProjects } from "@/data/works";
 import { soundEngine } from "@/lib/sound";
 import { useAppStore, useSiteContent } from "@/lib/store";
 import { getCombinedRoleBadge } from "@/lib/utils";
@@ -182,6 +183,32 @@ export function CommandPalette() {
       ),
     }));
 
+    const personalWorkItems: PaletteItem[] = getCuratedPersonalArchiveProjects(
+      crewMembers,
+      workProjects
+    ).map(({ id, owner, project }) => ({
+      id: `palette-${id}`,
+      group: "DỰ ÁN & BỘ ẢNH",
+      title: project.title,
+      subtitle: `${owner.nickname ? `${owner.name} (${owner.nickname})` : owner.name} • ${project.subtitle}`,
+      badge: `CÁ NHÂN • ${project.year}`,
+      avatar: project.coverImage,
+      href: project.showcaseItemId
+        ? `/works?member=${encodeURIComponent(owner.slug)}&showcase=${encodeURIComponent(project.showcaseItemId)}`
+        : `/works?member=${encodeURIComponent(owner.slug)}`,
+      searchBlob: normalizeVi(
+        [
+          project.title,
+          project.subtitle,
+          project.category,
+          project.summary,
+          project.exifSpec ?? "",
+          owner.name,
+          owner.nickname ?? "",
+        ].join(" ")
+      ),
+    }));
+
     const gearItems: PaletteItem[] = gearArsenal.flatMap((cat) =>
       cat.items.map((g, idx) => ({
         id: `gear-${cat.id}-${idx}`,
@@ -194,7 +221,7 @@ export function CommandPalette() {
       }))
     );
 
-    return [...crewItems, ...workItems, ...quickItems, ...gearItems];
+    return [...crewItems, ...workItems, ...personalWorkItems, ...quickItems, ...gearItems];
   }, [crewMembers, gearArsenal, partnerCount, workProjects]);
 
   const filteredItems = useMemo(() => {

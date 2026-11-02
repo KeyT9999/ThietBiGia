@@ -8,6 +8,7 @@ import { TimecodePreloader } from "@/components/layout/TimecodePreloader";
 import { CustomCursor } from "@/components/layout/CustomCursor";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { getPublicSiteContent } from "@/lib/site-content";
+import { getMemberSession } from "@/lib/member-auth";
 import { getSiteUrl } from "@/lib/site-url";
 
 const fontDisplay = Space_Grotesk({
@@ -67,14 +68,20 @@ export default async function RootLayout({
   children: React.ReactNode;
   modal: React.ReactNode;
 }>) {
-  const initialContent = await getPublicSiteContent();
+  const [initialContent, memberSession] = await Promise.all([
+    getPublicSiteContent(),
+    getMemberSession(),
+  ]);
   return (
     <html
       lang="vi"
       className={fontDisplay.variable + " " + fontSans.variable + " " + fontMono.variable}
     >
       <body className="font-sans bg-obsidian text-ivory selection:bg-rec selection:text-obsidian">
-        <SmoothScrollProvider initialContent={initialContent}>
+        <SmoothScrollProvider
+          initialContent={initialContent}
+          initialMemberId={memberSession?.memberId ?? null}
+        >
           <TimecodePreloader />
           <CustomCursor />
           <CommandPalette />

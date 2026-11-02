@@ -212,7 +212,7 @@ export default function AboutGearPage() {
         </div>
       </section>
 
-      {/* 35mm Kodak Portra 400 Film Strip Contact Sheet (12 Key Collective Frames) */}
+      {/* 35mm Kodak Portra 400 Film Strip Contact Sheet (Full Collective Archive) */}
       <FilmStripArchive />
 
       {/* Full Categorized & Crew-Tagged Collective Photo Wall (36 Group Photos) */}

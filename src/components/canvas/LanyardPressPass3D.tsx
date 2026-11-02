@@ -1,7 +1,15 @@
 "use client";
 
 import * as THREE from "three";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
   Environment,
@@ -700,6 +708,11 @@ function PhysicsBadgeAssembly({
               soundEngine.playTick(0.6);
               setDragOffset(null);
             }}
+            onPointerCancel={(e) => {
+              e.stopPropagation();
+              (e.target as Element)?.releasePointerCapture?.(e.pointerId);
+              setDragOffset(null);
+            }}
           >
             {/* Metal Lobster Clasp Hardware */}
             <mesh position={[0, 1.42, 0]}>
@@ -766,14 +779,72 @@ function PhysicsBadgeAssembly({
   );
 }
 
+function CameraSlotSync({
+  viewRef,
+  slotRef,
+}: {
+  viewRef: RefObject<HTMLElement | THREE.Group | null>;
+  slotRef?: RefObject<HTMLDivElement | null>;
+}) {
+  const lastSig = useRef("");
+
+  useFrame((state) => {
+    const cam = state.camera as THREE.PerspectiveCamera;
+    if (!cam.isPerspectiveCamera) return;
+    const viewNode = viewRef.current;
+    const slotEl = slotRef?.current;
+    if (!(viewNode instanceof HTMLElement) || !slotEl) {
+      if (cam.view?.enabled) {
+        cam.clearViewOffset();
+        cam.zoom = 1;
+        cam.updateProjectionMatrix();
+        lastSig.current = "";
+      }
+      return;
+    }
+
+    const viewRect = viewNode.getBoundingClientRect();
+    const slotRect = slotEl.getBoundingClientRect();
+    const viewW = viewRect.width;
+    const viewH = viewRect.height;
+    const slotW = slotRect.width;
+    const slotH = slotRect.height;
+    if (viewW < 1 || viewH < 1 || slotW < 1 || slotH < 1) return;
+
+    const slotCenterX = slotRect.left - viewRect.left + slotW * 0.5;
+    const slotCenterY = slotRect.top - viewRect.top + slotH * 0.5;
+    const offsetX = viewW * 0.5 - slotCenterX;
+    const offsetY = viewH * 0.5 - slotCenterY;
+    const nextZoom = slotH / viewH;
+    const nextAspect = viewW / viewH;
+
+    const sig = `${viewW.toFixed(1)}:${viewH.toFixed(1)}:${offsetX.toFixed(1)}:${offsetY.toFixed(1)}:${nextZoom.toFixed(4)}`;
+    if (
+      sig !== lastSig.current ||
+      Math.abs(cam.aspect - nextAspect) > 1e-4 ||
+      !cam.view?.enabled
+    ) {
+      lastSig.current = sig;
+      cam.aspect = nextAspect;
+      cam.zoom = nextZoom;
+      cam.setViewOffset(viewW, viewH, offsetX, offsetY, viewW, viewH);
+      cam.updateProjectionMatrix();
+    }
+  });
+
+  return null;
+}
+
 export function LanyardPressPass3DView({
   member,
   flipped = false,
   onToggleFlip,
+  slotRef,
 }: {
   member: CrewMember;
   flipped?: boolean;
   onToggleFlip?: () => void;
+  slotRef?: RefObject<HTMLDivElement | null>;
 }) {
   const siteContent = useSiteContent();
   const unifiedCount = getUnifiedProjectsForMember(
@@ -781,10 +852,69 @@ export function LanyardPressPass3DView({
     siteContent.works,
     siteContent.crew
   ).length;
+  const viewRef = useRef<HTMLElement | THREE.Group>(null);
+  const [bleedStyle, setBleedStyle] = useState<{
+    left: number;
+    width: number;
+  } | null>(null);
+
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const updateBleed = () => {
+      const slotEl = slotRef?.current;
+      const parentEl =
+        (viewRef.current instanceof HTMLElement
+          ? (viewRef.current.offsetParent as HTMLElement | null)
+          : null) ?? slotEl?.parentElement;
+      if (!parentEl) return;
+
+      const parentRect = parentEl.getBoundingClientRect();
+      const scroller = parentEl.closest("[data-modal-scroll]") as HTMLElement | null;
+      const scrollerLeft = scroller ? scroller.getBoundingClientRect().left : 0;
+      const viewportW = scroller
+        ? scroller.clientWidth
+        : document.documentElement.clientWidth || window.innerWidth;
+
+      const nextLeft = scrollerLeft - parentRect.left;
+      const nextWidth = viewportW;
+
+      setBleedStyle((prev) =>
+        prev &&
+        Math.abs(prev.left - nextLeft) < 0.5 &&
+        Math.abs(prev.width - nextWidth) < 0.5
+          ? prev
+          : { left: nextLeft, width: nextWidth }
+      );
+    };
+
+    updateBleed();
+    const ro = new ResizeObserver(updateBleed);
+    ro.observe(document.documentElement);
+    if (slotRef?.current) ro.observe(slotRef.current);
+    if (slotRef?.current?.parentElement) ro.observe(slotRef.current.parentElement);
+    window.addEventListener("resize", updateBleed, { passive: true });
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", updateBleed);
+    };
+  }, [slotRef]);
 
   return (
-    <View index={2} className="w-full h-full">
+    <View
+      ref={viewRef}
+      index={2}
+      className={slotRef ? "absolute inset-y-0 z-10" : "w-full h-full"}
+      style={
+        slotRef
+          ? bleedStyle
+            ? { left: `${bleedStyle.left}px`, width: `${bleedStyle.width}px` }
+            : { left: 0, width: "100%" }
+          : undefined
+      }
+    >
       <PerspectiveCamera makeDefault position={[0, 0, 6.6]} fov={34} />
+      <CameraSlotSync viewRef={viewRef} slotRef={slotRef} />
       <ambientLight intensity={1.15} />
       <directionalLight position={[4, 6, 5]} intensity={1.8} />
       <directionalLight position={[-4, 2, 3]} intensity={0.9} color="#FF6A2B" />

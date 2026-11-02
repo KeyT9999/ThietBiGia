@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Volume2, VolumeX, Menu, X, Search, UserRound } from "lucide-react";
-import { useAppStore, useSiteContent } from "@/lib/store";
+import { getTotalArchiveProjectCount } from "@/data/works";
+import { useAppStore, useAuthenticatedMemberId, useSiteContent } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
 import { normalizeNavigationOrder } from "@/lib/navigation-order";
 import { BrandLogo } from "./BrandLogo";
@@ -12,6 +13,10 @@ import { BrandLogo } from "./BrandLogo";
 export function Navbar() {
   const pathname = usePathname();
   const siteContent = useSiteContent();
+  const authenticatedMemberId = useAuthenticatedMemberId();
+  const loggedInMember = authenticatedMemberId
+    ? siteContent.crew.find((member) => member.id === authenticatedMemberId) ?? null
+    : null;
   const settings = siteContent.settings;
   const partnerCount = new Set([
     ...siteContent.partnerOrganizations.map((organization) => organization.id),
@@ -53,7 +58,7 @@ export function Navbar() {
     {
       id: "projects",
       href: "/works",
-      label: (settings.navProjectsLabel || "PROJECTS") + " [" + siteContent.works.length + "]",
+      label: (settings.navProjectsLabel || "PROJECTS") + " [" + getTotalArchiveProjectCount(siteContent.works, siteContent.crew) + "]",
       match: (p: string) => p.startsWith("/works"),
     },
     {
@@ -141,9 +146,37 @@ export function Navbar() {
 
           <div className="h-4 w-[1px] bg-obsidian-border hidden lg:block" />
 
-          <Link href="/member/login" title="Đăng nhập dành cho thành viên" className="hidden xl:inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-obsidian-border bg-obsidian/70 px-2.5 py-1.5 text-[10px] font-mono text-ivory-muted transition-colors hover:border-rec/60 hover:text-ivory">
-            <UserRound className="h-3.5 w-3.5 text-rec" /> MEMBER
-          </Link>
+          {loggedInMember ? (
+            <Link
+              href="/member/profile"
+              prefetch={false}
+              title={`Mở Member Studio của ${loggedInMember.name}`}
+              className="hidden sm:inline-flex min-h-10 items-center gap-2 rounded-lg border border-emerald-400/40 bg-emerald-400/10 px-2.5 py-1.5 text-[10px] font-mono font-semibold text-ivory transition-colors hover:border-rec hover:bg-rec/15"
+            >
+              {loggedInMember.avatar ? (
+                <img
+                  src={loggedInMember.avatar}
+                  alt=""
+                  className="h-5 w-5 rounded-full border border-emerald-400/60 object-cover"
+                />
+              ) : (
+                <UserRound className="h-3.5 w-3.5 text-emerald-400" />
+              )}
+              <span className="max-w-[115px] truncate uppercase">
+                {(loggedInMember.nickname ?? loggedInMember.name.split(" ").slice(-1)[0]).toUpperCase()} • STUDIO
+              </span>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            </Link>
+          ) : (
+            <Link
+              href="/member"
+              prefetch={false}
+              title="Đăng nhập dành cho thành viên"
+              className="hidden xl:inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-obsidian-border bg-obsidian/70 px-2.5 py-1.5 text-[10px] font-mono text-ivory-muted transition-colors hover:border-rec/60 hover:text-ivory"
+            >
+              <UserRound className="h-3.5 w-3.5 text-rec" /> MEMBER
+            </Link>
+          )}
 
           <button
             type="button"
@@ -206,7 +239,27 @@ export function Navbar() {
               </Link>
             );
           })}
-          <Link href="/member/login" onClick={() => setMobileOpen(false)} className="mt-1 inline-flex min-h-11 items-center gap-2 rounded-lg border border-rec/20 bg-rec/[0.06] px-3 py-2.5 text-xs font-mono text-ivory hover:border-rec"><UserRound className="h-4 w-4 text-rec" />ĐĂNG NHẬP MEMBER</Link>
+          {loggedInMember ? (
+            <Link
+              href="/member/profile"
+              prefetch={false}
+              onClick={() => setMobileOpen(false)}
+              className="mt-1 inline-flex min-h-11 items-center gap-2 rounded-lg border border-emerald-400/35 bg-emerald-400/10 px-3 py-2.5 text-xs font-mono font-semibold text-ivory hover:border-rec"
+            >
+              <UserRound className="h-4 w-4 text-emerald-400" />
+              <span>MEMBER STUDIO ({loggedInMember.nickname ?? loggedInMember.name})</span>
+            </Link>
+          ) : (
+            <Link
+              href="/member"
+              prefetch={false}
+              onClick={() => setMobileOpen(false)}
+              className="mt-1 inline-flex min-h-11 items-center gap-2 rounded-lg border border-rec/20 bg-rec/[0.06] px-3 py-2.5 text-xs font-mono text-ivory hover:border-rec"
+            >
+              <UserRound className="h-4 w-4 text-rec" />
+              <span>ĐĂNG NHẬP MEMBER</span>
+            </Link>
+          )}
         </div>
       )}
       </header>

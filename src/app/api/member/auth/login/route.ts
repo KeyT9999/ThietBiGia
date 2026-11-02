@@ -66,7 +66,7 @@ export async function POST(request: Request) {
 
     attempts.delete(key);
     const member = content.data.crew.find((item) => item.id === account.member_id)!;
-    const response = NextResponse.json({ ok: true, member: { name: member.name, slug: member.slug } });
+    const response = NextResponse.json({ ok: true, member: { id: member.id, name: member.name, slug: member.slug } });
     return setMemberSessionCookie(response, account.member_id, Number(account.session_version));
   } catch (error) {
     console.error("Member login failed:", error);
