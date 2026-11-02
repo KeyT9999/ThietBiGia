@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Volume2, VolumeX, Menu, X, Search, UserRound } from "lucide-react";
 import { useAppStore, useSiteContent } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
+import { normalizeNavigationOrder } from "@/lib/navigation-order";
 import { BrandLogo } from "./BrandLogo";
 
 export function Navbar() {
@@ -42,30 +43,37 @@ export function Navbar() {
     return () => clearInterval(id);
   }, []);
 
-  const navItems = [
+  const allNavItems = [
     {
+      id: "timeline",
       href: "/",
       label: settings.navTimelineLabel || "TIMELINE 3D",
       match: (p: string) => p === "/",
     },
     {
+      id: "projects",
       href: "/works",
       label: (settings.navProjectsLabel || "PROJECTS") + " [" + siteContent.works.length + "]",
       match: (p: string) => p.startsWith("/works"),
     },
     {
+      id: "crew",
       href: "/crew",
       label: (settings.navCrewLabel || "CREW") + " [" + siteContent.crew.length + "]",
       match: (p: string) => p.startsWith("/crew"),
     },
     {
+      id: "partners",
       href: "/partners",
       label: "PARTNERS [" + partnerCount + "]",
       match: (p: string) => p.startsWith("/partners"),
     },
-    { href: "/about", label: settings.navAboutLabel || "ABOUT & GEAR", match: (p: string) => p.startsWith("/about") },
-    { href: "/contact", label: settings.navContactLabel || "CONTACT", match: (p: string) => p.startsWith("/contact") },
+    { id: "about", href: "/about", label: settings.navAboutLabel || "ABOUT & GEAR", match: (p: string) => p.startsWith("/about") },
+    { id: "contact", href: "/contact", label: settings.navContactLabel || "CONTACT", match: (p: string) => p.startsWith("/contact") },
   ];
+  const navItems = normalizeNavigationOrder(settings.navOrder)
+    .map((id) => allNavItems.find((item) => item.id === id))
+    .filter((item): item is (typeof allNavItems)[number] => Boolean(item));
 
   if (pathname.startsWith("/admin") || pathname.startsWith("/member")) return null;
 

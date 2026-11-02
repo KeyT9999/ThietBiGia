@@ -10,6 +10,10 @@ export const DEFAULT_CONTACT_SERVICES = [
   { id: "lighting-gaffer-thiet-bi", label: "Hỗ trợ Lighting, Gaffer & Thiết bị" },
 ];
 
+export const NAVIGATION_ITEM_IDS = ["timeline", "projects", "crew", "partners", "about", "contact"] as const;
+export const DEFAULT_NAVIGATION_ORDER = [...NAVIGATION_ITEM_IDS];
+export const NavigationItemIdSchema = z.enum(NAVIGATION_ITEM_IDS);
+
 export const ContactServiceSchema = z.object({
   id: z.string().min(1).max(120),
   label: z.string().trim().min(1).max(240),
@@ -72,6 +76,7 @@ export const SiteSettingsSchema = z.object({
   navTimelineLabel: z.string().max(80),
   navProjectsLabel: z.string().max(80),
   navCrewLabel: z.string().max(80),
+  navOrder: z.array(NavigationItemIdSchema).max(NAVIGATION_ITEM_IDS.length).default(DEFAULT_NAVIGATION_ORDER),
   navAboutLabel: z.string().max(80),
   navContactLabel: z.string().max(80),
 });
@@ -93,3 +98,4 @@ export type HomeIntroContent = z.infer<typeof HomeIntroSchema>;
 export type AboutContent = z.infer<typeof AboutContentSchema>;
 export type SiteSettings = z.infer<typeof SiteSettingsSchema>;
 export type ContactService = z.infer<typeof ContactServiceSchema>;
+export type NavigationItemId = z.infer<typeof NavigationItemIdSchema>;

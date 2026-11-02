@@ -7,7 +7,6 @@ import { Flip } from "gsap/Flip";
 import {
   ArrowUpRight,
   ArrowDownUp,
-  Camera,
   ChevronDown,
   Film,
   IdCard,
@@ -44,6 +43,8 @@ function WorkArchiveCard({
 }) {
   const [isPortraitFrame, setIsPortraitFrame] = useState(false);
   const [isVideoHovered, setIsVideoHovered] = useState(false);
+  const [showAllCredits, setShowAllCredits] = useState(false);
+  const [showAllPartners, setShowAllPartners] = useState(false);
   const coverSrc = work.coverImage?.trim() ?? "";
   const videoUrl = work.videoEmbedUrl || work.videoUrl || "";
   const shouldPlayVideoCover = shouldUseYoutubeCoverPreview(videoUrl, coverSrc);
@@ -142,10 +143,7 @@ function WorkArchiveCard({
           )}
           <div className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-t from-obsidian/92 via-transparent to-obsidian/25" />
 
-          <div className="pointer-events-none absolute top-3 left-3 right-3 z-30 flex items-center justify-between gap-2">
-            <span className="px-2.5 py-1 rounded-md bg-obsidian/80 backdrop-blur-md border border-white/15 text-xs font-mono text-ivory/90">
-              {work.galleryDriveFolderUrl ? "ALBUM DRIVE BÊN DƯỚI" : work.durationTimecode}
-            </span>
+          <div className="pointer-events-none absolute top-3 right-3 z-30 flex items-center justify-between gap-2">
             <span className="px-2.5 py-1 rounded-md bg-obsidian/85 backdrop-blur-md border border-white/15 group-hover:bg-rec group-hover:border-rec group-hover:text-obsidian text-xs font-mono font-bold text-ivory inline-flex items-center gap-1 transition-colors">
               <span>{shouldPlayVideoCover ? "XEM VIDEO" : "MỞ DỰ ÁN"}</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -164,28 +162,23 @@ function WorkArchiveCard({
 
       </div>
 
-      {/* Footer: Summary, Camera Spec & Clickable Ekip Member Filter Chips */}
+      {/* Footer: Summary, Ekip Member Filter Chips & Partners */}
       <div className="p-4 sm:p-5 border-t border-obsidian-border/80 space-y-3.5">
         <p className="text-xs sm:text-sm text-ivory/80 line-clamp-2 leading-relaxed">
           {work.summary}
         </p>
-
-        <div className="flex items-center gap-1.5 text-xs font-mono text-ivory-muted truncate">
-          <Camera className="w-3.5 h-3.5 text-rec shrink-0" />
-          <span className="truncate">{work.cameraSpec}</span>
-        </div>
 
         {/* Interactive Ekip Credits: Click any member chip to filter all projects by that member! */}
         <div className="pt-2.5 border-t border-obsidian-border/70 space-y-2">
           <div className="flex items-center justify-between text-xs font-mono text-ivory-subtle">
             <span className="inline-flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-rec" />
-              <span>EKIP THỰC HIỆN ({work.credits.length}) — BẤM TÊN ĐỂ LỌC:</span>
+              <span>EKIP THỰC HIỆN ({work.credits.length}):</span>
             </span>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
-            {work.credits.slice(0, 5).map((credit) => {
+            {(showAllCredits ? work.credits : work.credits.slice(0, 3)).map((credit) => {
               const m = crewMembers.find((member) => member.slug === credit.memberSlug);
               if (!m) return null;
               const isSelected = selectedMemberSlug === m.slug;
@@ -212,14 +205,15 @@ function WorkArchiveCard({
                 </button>
               );
             })}
-            {work.credits.length > 5 && (
-              <Link
-                href={`/works/${work.slug}`}
-                scroll={false}
+            {work.credits.length > 3 && (
+              <button
+                type="button"
+                onClick={() => setShowAllCredits((current) => !current)}
+                aria-expanded={showAllCredits}
                 className="px-2.5 py-1 rounded-full text-xs font-mono border border-obsidian-border bg-obsidian text-rec hover:border-rec transition-colors"
               >
-                +{work.credits.length - 5} anh em
-              </Link>
+                {showAllCredits ? "Thu gọn" : `+${work.credits.length - 3} anh em`}
+              </button>
             )}
           </div>
         </div>
@@ -227,10 +221,13 @@ function WorkArchiveCard({
         {linkedPartners.length ? <div className="space-y-2 border-t border-obsidian-border/70 pt-2.5">
           <p className="text-[10px] font-mono text-ivory-subtle">ĐƠN VỊ ĐỒNG HÀNH</p>
           <div className="flex flex-wrap gap-1.5">
-            {linkedPartners.map((organization) => <span key={organization.id} title={organization.description || organization.name} className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-white/10 bg-obsidian px-2.5 py-1 text-[11px] text-ivory-muted">
+            {(showAllPartners ? linkedPartners : linkedPartners.slice(0, 3)).map((organization) => <span key={organization.id} title={organization.description || organization.name} className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-white/10 bg-obsidian px-2.5 py-1 text-[11px] text-ivory-muted">
               {organization.logo ? <img src={organization.logo} alt="" className="h-5 w-5 rounded-full bg-white object-contain p-0.5" /> : null}
               <span className="max-w-[180px] truncate">{organization.name}</span>
             </span>)}
+            {linkedPartners.length > 3 ? <button type="button" onClick={() => setShowAllPartners((current) => !current)} aria-expanded={showAllPartners} className="inline-flex items-center rounded-full border border-obsidian-border bg-obsidian px-2.5 py-1 text-[11px] text-rec transition-colors hover:border-rec">
+              {showAllPartners ? "Thu gọn" : `+${linkedPartners.length - 3} đơn vị`}
+            </button> : null}
           </div>
         </div> : null}
       </div>

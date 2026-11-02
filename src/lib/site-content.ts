@@ -4,8 +4,9 @@ import { CREW_MEMBERS } from "@/data/crew";
 import { WORKS_DATA } from "@/data/works";
 import { GEAR_ARSENAL } from "@/data/gear";
 import { GROUP_MOMENTS } from "@/data/moments";
-import { DEFAULT_CONTACT_SERVICES, SiteContentSchema, type SiteContent } from "@/lib/content-schema";
+import { DEFAULT_CONTACT_SERVICES, DEFAULT_NAVIGATION_ORDER, SiteContentSchema, type SiteContent } from "@/lib/content-schema";
 import { normalizeCrewOrder } from "@/lib/crew-order";
+import { normalizeNavigationOrder } from "@/lib/navigation-order";
 
 export const DEFAULT_SITE_CONTENT: SiteContent = {
   crew: normalizeCrewOrder(structuredClone(CREW_MEMBERS)),
@@ -45,6 +46,7 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
     navTimelineLabel: "TIMELINE 3D",
     navProjectsLabel: "PROJECTS",
     navCrewLabel: "CREW",
+    navOrder: [...DEFAULT_NAVIGATION_ORDER],
     navAboutLabel: "ABOUT & GEAR",
     navContactLabel: "CONTACT",
   },
@@ -91,6 +93,10 @@ export function parseSiteContent(input: unknown) {
     data: {
       ...parsed.data,
       crew: normalizeCrewOrder(parsed.data.crew),
+      settings: {
+        ...parsed.data.settings,
+        navOrder: normalizeNavigationOrder(parsed.data.settings.navOrder),
+      },
     },
   };
 }

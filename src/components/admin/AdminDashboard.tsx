@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, Building2, Check, Clapperboard, Home, Images, ListChecks, LogOut, Plus, Save, Search, Settings2, ShoppingBag, Users } from "lucide-react";
 import type { CrewMember, WorkProject } from "@/data/schema";
-import type { SiteContent } from "@/lib/content-schema";
+import type { NavigationItemId, SiteContent } from "@/lib/content-schema";
 import { useSetSiteContent } from "@/lib/store";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
@@ -16,6 +16,7 @@ import { AdminOrdersTool } from "./AdminOrdersTool";
 import { ContactServicesManager } from "./ContactServicesManager";
 import { PartnerOrganizationsManager } from "./PartnerOrganizationsManager";
 import { moveCrewMemberToBadgeNumber, normalizeCrewOrder } from "@/lib/crew-order";
+import { normalizeNavigationOrder } from "@/lib/navigation-order";
 
 type Tab = "home" | "members" | "projects" | "services" | "partners" | "about" | "orders" | "settings";
 const tabs = [
@@ -28,6 +29,15 @@ const tabs = [
   { id: "orders", label: "Đơn hàng", description: "Phân công & theo dõi", icon: ShoppingBag },
   { id: "settings", label: "Cài đặt website", description: "Thương hiệu & liên hệ", icon: Settings2 },
 ];
+
+const navigationLabels: Record<NavigationItemId, { label: string; path: string }> = {
+  timeline: { label: "Trang chủ / Timeline 3D", path: "/" },
+  projects: { label: "Dự án", path: "/works" },
+  crew: { label: "Thành viên", path: "/crew" },
+  partners: { label: "Đơn vị đồng hành", path: "/partners" },
+  about: { label: "Thông tin", path: "/about" },
+  contact: { label: "Liên hệ", path: "/contact" },
+};
 
 export function AdminDashboard() {
   const router = useRouter();
@@ -147,6 +157,20 @@ export function AdminDashboard() {
         ...current,
         crew: moveCrewMemberToBadgeNumber(orderedCrew, memberId, String(toIndex + 1)),
       };
+    });
+    setNotice("");
+  }
+
+  function moveNavigationItem(itemId: NavigationItemId, direction: -1 | 1) {
+    setContent((current) => {
+      if (!current) return current;
+      const navOrder = normalizeNavigationOrder(current.settings.navOrder);
+      const fromIndex = navOrder.indexOf(itemId);
+      const toIndex = fromIndex + direction;
+      if (fromIndex < 0 || toIndex < 0 || toIndex >= navOrder.length) return current;
+      const nextOrder = [...navOrder];
+      [nextOrder[fromIndex], nextOrder[toIndex]] = [nextOrder[toIndex], nextOrder[fromIndex]];
+      return { ...current, settings: { ...current.settings, navOrder: nextOrder } };
     });
     setNotice("");
   }
@@ -517,6 +541,27 @@ export function AdminDashboard() {
                     </div>
                   </section>
                 </div>
+                <section className="space-y-3 rounded-2xl border border-white/10 bg-obsidian/35 p-4 sm:p-5" aria-label="Sắp xếp thanh điều hướng">
+                  <div>
+                    <h3 className="text-sm font-semibold">Thứ tự thanh điều hướng</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-ivory-subtle">Dùng mũi tên để đổi vị trí các mục trên thanh menu máy tính và menu điện thoại, sau đó bấm Lưu thay đổi.</p>
+                  </div>
+                  <ol className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                    {normalizeNavigationOrder(content.settings.navOrder).map((itemId, index, order) => (
+                      <li key={itemId} className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-obsidian/65 p-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-rec/10 font-mono text-xs font-bold text-rec">{String(index + 1).padStart(2, "0")}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-ivory">{navigationLabels[itemId].label}</p>
+                          <p className="truncate font-mono text-[10px] text-ivory-subtle">{navigationLabels[itemId].path}</p>
+                        </div>
+                        <div className="flex shrink-0 gap-1">
+                          <button type="button" onClick={() => moveNavigationItem(itemId, -1)} disabled={index === 0} aria-label={`Đưa ${navigationLabels[itemId].label} lên`} className="rounded-lg border border-white/10 p-2 text-ivory-muted transition hover:border-rec hover:text-rec disabled:cursor-not-allowed disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
+                          <button type="button" onClick={() => moveNavigationItem(itemId, 1)} disabled={index === order.length - 1} aria-label={`Đưa ${navigationLabels[itemId].label} xuống`} className="rounded-lg border border-white/10 p-2 text-ivory-muted transition hover:border-rec hover:text-rec disabled:cursor-not-allowed disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
                 <details className="rounded-xl border border-white/10 p-4"><summary className="cursor-pointer text-sm font-semibold">Nhãn điều hướng</summary><div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <AdminField label="Trang chủ" value={content.settings.navTimelineLabel} onChange={(navTimelineLabel) => update("settings", { ...content.settings, navTimelineLabel })} />
                   <AdminField label="Dự án" value={content.settings.navProjectsLabel} onChange={(navProjectsLabel) => update("settings", { ...content.settings, navProjectsLabel })} />

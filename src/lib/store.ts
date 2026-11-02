@@ -4,7 +4,7 @@ import { CREW_MEMBERS } from "@/data/crew";
 import { WORKS_DATA } from "@/data/works";
 import { GEAR_ARSENAL } from "@/data/gear";
 import { FILM_STRIP_MOMENTS, GROUP_MOMENTS } from "@/data/moments";
-import { DEFAULT_CONTACT_SERVICES, type SiteContent } from "@/lib/content-schema";
+import { DEFAULT_CONTACT_SERVICES, DEFAULT_NAVIGATION_ORDER, type SiteContent } from "@/lib/content-schema";
 import { normalizeCrewOrder } from "@/lib/crew-order";
 import { getHome3DWorks } from "@/lib/home-3d-works";
 import { soundEngine } from "./sound";
@@ -65,6 +65,7 @@ const initialSiteContent: SiteContent = {
     navTimelineLabel: "TIMELINE 3D",
     navProjectsLabel: "PROJECTS",
     navCrewLabel: "CREW",
+    navOrder: [...DEFAULT_NAVIGATION_ORDER],
     navAboutLabel: "ABOUT & GEAR",
     navContactLabel: "CONTACT",
   },
