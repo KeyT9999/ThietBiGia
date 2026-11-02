@@ -259,6 +259,12 @@ export function MemberProjectCard({
                 }`}
               />
               <img
+                ref={(el) => {
+                  if (el?.complete && el.naturalWidth > 0) {
+                    const nextPortrait = el.naturalHeight > el.naturalWidth * 1.05;
+                    if (nextPortrait !== isPortraitFrame) setIsPortraitFrame(nextPortrait);
+                  }
+                }}
                 src={currentSrc}
                 alt={`${project.title} — Frame ${activeFrame + 1}`}
                 onLoad={(e) => {
@@ -282,6 +288,12 @@ export function MemberProjectCard({
               />
 
               <img
+                ref={(el) => {
+                  if (el?.complete && el.naturalWidth > 0) {
+                    const nextPortrait = el.naturalHeight > el.naturalWidth * 1.05;
+                    if (nextPortrait !== isPortraitFrame) setIsPortraitFrame(nextPortrait);
+                  }
+                }}
                 src={currentSrc}
                 alt={`${project.title} — Frame ${activeFrame + 1}`}
                 onLoad={(e) => {

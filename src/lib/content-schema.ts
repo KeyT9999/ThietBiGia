@@ -86,6 +86,7 @@ export const SiteContentSchema = z.object({
   homepage: HomeIntroSchema,
   about: AboutContentSchema,
   settings: SiteSettingsSchema,
+  seededMigrations: z.array(z.string()).max(200).optional(),
 });
 
 export type SiteContent = z.infer<typeof SiteContentSchema>;

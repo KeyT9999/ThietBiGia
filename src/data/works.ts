@@ -104,11 +104,16 @@ export const WORKS_DATA: WorkProject[] = [
     coverImage: "/media/keyt/danaff-03.jpg",
     accentColor: "#F43F5E",
     cameraSpec: "SONY A6400 • SIGMA 18-50MM F2.8 • TTL BOUNCE FLASH",
-    exifSpec: "SONY ILCE-6400 • SIGMA 18-50MM F2.8 DC DN • 33–50mm • f/4 • 1/200s • ISO 500",
+    exifSpec: "SONY ILCE-6400 • SIGMA 18-50MM F2.8 DC DN • 18–50mm • f/3.5–5.6 • 1/100–1/200s • ISO 100–640",
     summary:
       "Loạt ảnh tác nghiệp báo chí & chân dung nghệ sĩ trên thảm đỏ Liên Hoan Phim Châu Á Đà Nẵng (DANAFF) — bắt trọn khoảnh khắc giao lưu rạng rỡ, thanh lịch với độ trong trẻo và sắc độ da chuẩn xác.",
     galleryImages: [
       "/media/keyt/danaff-03.jpg",
+      "/media/keyt/danaff-07.jpg",
+      "/media/keyt/danaff-08.jpg",
+      "/media/keyt/danaff-06.jpg",
+      "/media/keyt/danaff-10.jpg",
+      "/media/keyt/danaff-09.jpg",
       "/media/keyt/danaff-04.jpg",
       "/media/keyt/danaff-02.jpg",
       "/media/keyt/danaff-01.jpg",
