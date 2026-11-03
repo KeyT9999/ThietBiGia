@@ -43,7 +43,12 @@ export function getYoutubeThumbnailUrl(input: string) {
   return videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
 }
 
-export function getYoutubePreviewUrl(input: string, autoPlay: boolean, muted = true) {
+export function getYoutubePreviewUrl(
+  input: string,
+  autoPlay: boolean,
+  muted = true,
+  controls = false
+) {
   const embedUrl = toYoutubeEmbedUrl(input);
   if (!embedUrl) return null;
   const videoId = embedUrl.split("/").pop();
@@ -51,7 +56,7 @@ export function getYoutubePreviewUrl(input: string, autoPlay: boolean, muted = t
   if (autoPlay) {
     params.set("autoplay", "1");
     params.set("mute", muted ? "1" : "0");
-    params.set("controls", "0");
+    params.set("controls", controls ? "1" : "0");
     params.set("loop", "1");
     if (videoId) params.set("playlist", videoId);
   }

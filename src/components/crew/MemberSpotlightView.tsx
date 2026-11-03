@@ -26,6 +26,7 @@ import {
 
 import { type CrewMember } from "@/data/schema";
 import { extractGoogleDriveFolderId } from "@/lib/google-drive";
+import { shouldUseYoutubeCoverPreview, toYoutubeEmbedUrl } from "@/lib/youtube";
 import {
   getTeammatesForMember,
   getUnifiedProjectsForMember,
@@ -173,6 +174,17 @@ export function MemberSpotlightView({
   const activeLightboxPhotoIdx = Math.min(
     lightboxPhotoIdx,
     Math.max(0, lightboxGallery.length - 1)
+  );
+  const lightboxYoutubeEmbed = lightboxProject?.videoUrl
+    ? toYoutubeEmbedUrl(lightboxProject.videoUrl)
+    : null;
+  const showLightboxVideo = Boolean(
+    lightboxProject?.videoUrl &&
+      lightboxYoutubeEmbed &&
+      shouldUseYoutubeCoverPreview(
+        lightboxProject.videoUrl,
+        lightboxProject.coverImage
+      )
   );
 
   useEffect(() => {
@@ -715,21 +727,33 @@ export function MemberSpotlightView({
                     <div
                       className={`relative bg-obsidian flex-1 min-h-0 flex items-center justify-center p-3 ${lightboxZoomed ? "overflow-auto" : "overflow-hidden"}`}
                     >
-                      <img
-                        src={lightboxGallery[activeLightboxPhotoIdx]}
-                        alt=""
-                        className="pointer-events-none absolute inset-0 w-full h-full object-cover blur-2xl opacity-25 scale-110"
-                      />
-                      <img
-                        src={lightboxGallery[activeLightboxPhotoIdx]}
-                        alt={lightboxProject.title}
-                        onClick={() => setLightboxZoomed((z) => !z)}
-                        className={`relative z-10 rounded-lg shadow-2xl transition-transform duration-300 ${
-                          lightboxZoomed
-                            ? "max-h-none w-auto scale-150 cursor-zoom-out sm:scale-[1.85]"
-                            : "max-h-full w-auto max-w-full cursor-zoom-in object-contain"
-                        }`}
-                      />
+                      {showLightboxVideo && lightboxYoutubeEmbed ? (
+                        <iframe
+                          src={`${lightboxYoutubeEmbed}?autoplay=1&mute=0&controls=1&playsinline=1&rel=0`}
+                          title={lightboxProject.title}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                          allowFullScreen
+                          className="relative z-10 h-full w-full max-w-5xl rounded-xl border border-obsidian-border shadow-2xl"
+                        />
+                      ) : (
+                        <>
+                          <img
+                            src={lightboxGallery[activeLightboxPhotoIdx]}
+                            alt=""
+                            className="pointer-events-none absolute inset-0 w-full h-full object-cover blur-2xl opacity-25 scale-110"
+                          />
+                          <img
+                            src={lightboxGallery[activeLightboxPhotoIdx]}
+                            alt={lightboxProject.title}
+                            onClick={() => setLightboxZoomed((z) => !z)}
+                            className={`relative z-10 rounded-lg shadow-2xl transition-transform duration-300 ${
+                              lightboxZoomed
+                                ? "max-h-none w-auto scale-150 cursor-zoom-out sm:scale-[1.85]"
+                                : "max-h-full w-auto max-w-full cursor-zoom-in object-contain"
+                            }`}
+                          />
+                        </>
+                      )}
 
                       {lightboxGallery.length > 1 && (
                         <>

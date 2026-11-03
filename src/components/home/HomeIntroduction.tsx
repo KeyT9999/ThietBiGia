@@ -4,7 +4,11 @@ import Link from "next/link";
 import { ArrowDown, ArrowRight, Film, Volume2, VolumeX } from "lucide-react";
 import { useState } from "react";
 import { useSiteContent } from "@/lib/store";
-import { getYoutubeThumbnailUrl, toYoutubeEmbedUrl } from "@/lib/youtube";
+import {
+  getYoutubePreviewUrl,
+  getYoutubeThumbnailUrl,
+  toYoutubeEmbedUrl,
+} from "@/lib/youtube";
 import { YouTubePreview } from "@/components/works/YouTubePreview";
 
 export function HomeIntroduction() {
@@ -16,6 +20,9 @@ export function HomeIntroduction() {
     homepage.heroMediaType === "youtube"
       ? toYoutubeEmbedUrl(homepage.heroMediaUrl)
       : null;
+  const audiblePreviewUrl = audioEnabled
+    ? getYoutubePreviewUrl(homepage.heroMediaUrl, true, false, true)
+    : null;
 
   return (
     <section className="relative isolate overflow-hidden bg-obsidian px-3 pb-8 pt-20 min-[390px]:px-3.5 sm:px-6 sm:pb-12 sm:pt-24 lg:px-8 lg:pb-24 lg:pt-32">
@@ -74,17 +81,41 @@ export function HomeIntroduction() {
                   alt={homepage.heroMediaAlt || homepage.title}
                   className="absolute inset-0 h-full w-full object-cover"
                 />
-                <YouTubePreview videoUrl={homepage.heroMediaUrl} title={homepage.heroMediaAlt || homepage.title} isHovered muted={!audioEnabled} />
+                {audioEnabled && audiblePreviewUrl ? (
+                  <iframe
+                    src={audiblePreviewUrl}
+                    title={homepage.heroMediaAlt || homepage.title}
+                    className="absolute inset-0 z-10 h-full w-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                  />
+                ) : (
+                  <YouTubePreview
+                    videoUrl={homepage.heroMediaUrl}
+                    title={homepage.heroMediaAlt || homepage.title}
+                    isHovered
+                    muted
+                  />
+                )}
+                {audioEnabled && (
+                  <span
+                    role="status"
+                    className="pointer-events-none absolute bottom-2.5 left-2.5 z-20 rounded-full bg-obsidian/85 px-2.5 py-1.5 text-[8px] font-mono text-ivory shadow-lg backdrop-blur min-[640px]:bottom-4 min-[640px]:left-4 min-[640px]:text-[10px]"
+                  >
+                    Nếu chưa phát, chạm ▶ trong video
+                  </span>
+                )}
                 <button
                   type="button"
-                  aria-label={audioEnabled ? "Tắt âm thanh video" : "Bật âm thanh video"}
+                  aria-label={audioEnabled ? "Tắt âm thanh video" : "Phát video có tiếng"}
                   aria-pressed={audioEnabled}
-                  title={audioEnabled ? "Tắt âm thanh" : "Bật âm thanh"}
+                  title={audioEnabled ? "Tắt âm thanh" : "Phát video có tiếng"}
                   onClick={() => setAudioEnabled((enabled) => !enabled)}
                   className="absolute bottom-2.5 right-2.5 z-20 inline-flex min-h-9 items-center gap-1.5 rounded-full border border-white/20 bg-obsidian/85 px-3 py-2 text-[9px] font-mono font-bold text-ivory shadow-lg backdrop-blur transition hover:border-rec hover:text-rec min-[640px]:bottom-4 min-[640px]:right-4 min-[640px]:min-h-10 min-[640px]:gap-2 min-[640px]:px-3.5 min-[640px]:text-[10px]"
                 >
                   {audioEnabled ? <Volume2 className="h-3.5 w-3.5 text-rec" /> : <VolumeX className="h-3.5 w-3.5" />}
-                  {audioEnabled ? "TẮT TIẾNG" : "BẬT TIẾNG"}
+                  {audioEnabled ? "TẮT TIẾNG" : "PHÁT CÓ TIẾNG"}
                 </button>
               </>
             ) : (

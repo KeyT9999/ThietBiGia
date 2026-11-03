@@ -1439,9 +1439,9 @@ export function WorksArchiveGrid() {
                     >
                       {showLightboxVideo && lightboxYoutubeEmbed ? (
                         <iframe
-                          src={`${lightboxYoutubeEmbed}?autoplay=1&playsinline=1&rel=0`}
+                          src={`${lightboxYoutubeEmbed}?autoplay=1&mute=0&controls=1&playsinline=1&rel=0`}
                           title={lightboxEntry.project.title}
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                           allowFullScreen
                           className="w-full h-full max-w-4xl aspect-video rounded-xl border border-obsidian-border shadow-2xl"
                         />
