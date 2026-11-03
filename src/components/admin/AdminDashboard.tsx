@@ -9,7 +9,7 @@ import { useSetSiteContent } from "@/lib/store";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
 import { AdminField, AdminImageField } from "./AdminFields";
-import { GearManager, GroupMomentsManager } from "./AboutToolsEditor";
+import { AboutPageEditor, GearManager, GroupMomentsManager } from "./AboutToolsEditor";
 import { MemberEditor } from "./MemberEditor";
 import { ProjectEditor } from "./ProjectEditor";
 import { AdminOrdersTool } from "./AdminOrdersTool";
@@ -694,7 +694,7 @@ export function AdminDashboard() {
               <div className="space-y-5">
                 <div className="grid gap-2 sm:grid-cols-3" role="tablist" aria-label="Nội dung About">
                   {([
-                    { id: "story", title: "Câu chuyện", detail: "Giới thiệu nhóm" },
+                    { id: "story", title: "Nội dung trang", detail: "Toàn bộ phần About" },
                     { id: "gear", title: "Kho thiết bị", detail: `${content.gear.length} nhóm thiết bị` },
                     { id: "moments", title: "Album kỷ niệm", detail: `${content.moments.length} ảnh` },
                   ] as const).map((item) => (
@@ -704,13 +704,7 @@ export function AdminDashboard() {
                     </button>
                   ))}
                 </div>
-                {aboutPanel === "story" ? <div className="grid gap-4 rounded-3xl border border-white/10 bg-obsidian-surface p-5 sm:p-7">
-                  <h2 className="font-display text-2xl font-bold">Nội dung About</h2>
-                  <AdminField label="Tiêu đề" value={content.about.title} onChange={(title) => update("about", { ...content.about, title })} />
-                  <AdminField label="Giới thiệu" value={content.about.introduction} multiline rows={4} onChange={(introduction) => update("about", { ...content.about, introduction })} />
-                  <AdminField label="Tiêu đề câu chuyện" value={content.about.storyTitle} onChange={(storyTitle) => update("about", { ...content.about, storyTitle })} />
-                  <AdminField label="Câu chuyện" value={content.about.storyBody} multiline rows={4} onChange={(storyBody) => update("about", { ...content.about, storyBody })} />
-                </div> : null}
+                {aboutPanel === "story" ? <AboutPageEditor about={content.about} onChange={(about) => update("about", about)} /> : null}
                 {aboutPanel === "gear" ? <GearManager categories={content.gear} onChange={(gear) => update("gear", gear)} /> : null}
                 {aboutPanel === "moments" ? <GroupMomentsManager moments={content.moments} crew={content.crew} onChange={(moments) => update("moments", moments)} /> : null}
               </div>

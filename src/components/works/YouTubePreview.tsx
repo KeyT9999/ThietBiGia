@@ -6,12 +6,14 @@ export function YouTubePreview({
   videoUrl,
   title,
   isHovered,
+  muted = true,
 }: {
   videoUrl: string;
   title: string;
   isHovered: boolean;
+  muted?: boolean;
 }) {
-  const src = getYoutubePreviewUrl(videoUrl, isHovered);
+  const src = getYoutubePreviewUrl(videoUrl, isHovered, muted);
   if (!src || !isHovered) return null;
 
   return (

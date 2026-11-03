@@ -4,7 +4,7 @@ import { CREW_MEMBERS } from "@/data/crew";
 import { WORKS_DATA } from "@/data/works";
 import { GEAR_ARSENAL } from "@/data/gear";
 import { FILM_STRIP_MOMENTS, GROUP_MOMENTS } from "@/data/moments";
-import { DEFAULT_CONTACT_SERVICES, DEFAULT_NAVIGATION_ORDER, type SiteContent } from "@/lib/content-schema";
+import { DEFAULT_ABOUT_CONTENT, DEFAULT_CONTACT_SERVICES, DEFAULT_NAVIGATION_ORDER, type SiteContent } from "@/lib/content-schema";
 import { normalizeCrewOrder } from "@/lib/crew-order";
 import { getHome3DWorks } from "@/lib/home-3d-works";
 import { soundEngine } from "./sound";
@@ -44,14 +44,7 @@ const initialSiteContent: SiteContent = {
     heroMediaUrl: "/anhchungtbg.jpg",
     heroMediaAlt: "Đại gia đình Thiết Bị Gia",
   },
-  about: {
-    title: "Một đội ngũ, nhiều góc nhìn",
-    introduction:
-      "Thiết Bị Gia kết nối những người yêu hình ảnh, phim ảnh và công nghệ để cùng tạo nên các sản phẩm sáng tạo.",
-    storyTitle: "Cùng nhau tạo nên câu chuyện",
-    storyBody:
-      "Từ ý tưởng, ghi hình đến hậu kỳ, mỗi thành viên góp một góc nhìn và một kỹ năng để hoàn thiện dự án.",
-  },
+  about: structuredClone(DEFAULT_ABOUT_CONTENT),
   settings: {
     brandName: "THIẾT BỊ GIA",
     brandSubtitle: "Creative Media & Design Collective",

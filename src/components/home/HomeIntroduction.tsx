@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDown, ArrowRight, Film } from "lucide-react";
+import { ArrowDown, ArrowRight, Film, Volume2, VolumeX } from "lucide-react";
+import { useState } from "react";
 import { useSiteContent } from "@/lib/store";
 import { getYoutubeThumbnailUrl, toYoutubeEmbedUrl } from "@/lib/youtube";
 import { YouTubePreview } from "@/components/works/YouTubePreview";
 
 export function HomeIntroduction() {
   const homepage = useSiteContent().homepage;
+  const [audioEnabled, setAudioEnabled] = useState(false);
   const brandName = homepage.title.match(/Thiết Bị Gia/i);
   const brandStart = brandName?.index ?? -1;
   const embedUrl =
@@ -72,7 +74,18 @@ export function HomeIntroduction() {
                   alt={homepage.heroMediaAlt || homepage.title}
                   className="absolute inset-0 h-full w-full object-cover"
                 />
-                <YouTubePreview videoUrl={homepage.heroMediaUrl} title={homepage.heroMediaAlt || homepage.title} isHovered />
+                <YouTubePreview videoUrl={homepage.heroMediaUrl} title={homepage.heroMediaAlt || homepage.title} isHovered muted={!audioEnabled} />
+                <button
+                  type="button"
+                  aria-label={audioEnabled ? "Tắt âm thanh video" : "Bật âm thanh video"}
+                  aria-pressed={audioEnabled}
+                  title={audioEnabled ? "Tắt âm thanh" : "Bật âm thanh"}
+                  onClick={() => setAudioEnabled((enabled) => !enabled)}
+                  className="absolute bottom-2.5 right-2.5 z-20 inline-flex min-h-9 items-center gap-1.5 rounded-full border border-white/20 bg-obsidian/85 px-3 py-2 text-[9px] font-mono font-bold text-ivory shadow-lg backdrop-blur transition hover:border-rec hover:text-rec min-[640px]:bottom-4 min-[640px]:right-4 min-[640px]:min-h-10 min-[640px]:gap-2 min-[640px]:px-3.5 min-[640px]:text-[10px]"
+                >
+                  {audioEnabled ? <Volume2 className="h-3.5 w-3.5 text-rec" /> : <VolumeX className="h-3.5 w-3.5" />}
+                  {audioEnabled ? "TẮT TIẾNG" : "BẬT TIẾNG"}
+                </button>
               </>
             ) : (
               <img

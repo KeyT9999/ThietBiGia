@@ -25,6 +25,7 @@ export function CollectiveAlbumWall() {
   const siteContent = useSiteContent();
   const moments = siteContent.moments;
   const crewMembers = siteContent.crew;
+  const about = siteContent.about;
   const [activeCategory, setActiveCategory] = useState<
     "all" | GroupMomentCategory
   >("all");
@@ -116,13 +117,13 @@ export function CollectiveAlbumWall() {
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 text-xs font-mono text-rec uppercase tracking-widest">
             <Camera className="w-3.5 h-3.5" />
-            <span>COLLECTIVE PHOTO ARCHIVE // TỪ THƯ MỤC ẢNH NHÓM TBG</span>
+            <span>{about.albumEyebrow}</span>
           </div>
           <h2 className="font-display text-3xl sm:text-5xl font-bold text-ivory tracking-tight">
-            KHO ẢNH CHUNG ĐẠI GIA ĐÌNH THIẾT BỊ GIA
+            {about.albumTitle}
           </h2>
           <p className="text-sm sm:text-base text-ivory-muted max-w-3xl leading-relaxed">
-            Tuyển chọn {moments.length} khung hình tập thể giàu cảm xúc nhất từ hơn 310 bức ảnh chung của Thiết Bị Gia — từ những buổi hội quân đông đủ 30+ anh chị em, hậu trường set đèn, sân khấu lớn cho đến những đêm lửa trại và dã ngoại bên nhau.
+            {about.albumDescription.replaceAll("{count}", String(moments.length))}
           </p>
         </div>
 

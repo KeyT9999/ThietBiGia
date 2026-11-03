@@ -68,6 +68,7 @@ function FilmFrameImage({ src, alt }: { src: string; alt: string }) {
 
 export function FilmStripArchive() {
   const siteContent = useSiteContent();
+  const about = siteContent.about;
   // Display the entire collective group photo archive on the 35mm contact roll
   const moments = siteContent.moments.filter((moment) =>
     Boolean(moment.src?.trim())
@@ -218,17 +219,14 @@ export function FilmStripArchive() {
           <div className="inline-flex items-center gap-2 text-xs font-mono text-rec uppercase tracking-widest">
             <Film className="w-3.5 h-3.5" />
             <span>
-              35MM CONTACT SHEET // TRỌN BỘ {moments.length} ẢNH CHUNG TẬP THỂ
+              {about.filmStripEyebrow.replaceAll("{count}", String(moments.length))}
             </span>
           </div>
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-ivory">
-            CUỘN PHIM KỶ NIỆM ANH EM THIẾT BỊ GIA
+            {about.filmStripTitle}
           </h2>
           <p className="text-sm text-ivory-muted max-w-2xl">
-            Lướt ngang hoặc kéo trực tiếp dải phim nhựa 35mm gồm đầy đủ{" "}
-            <span className="text-ivory font-semibold">{moments.length}</span>{" "}
-            khoảnh khắc tập thể của anh em Thiết Bị Gia — nhấn vào từng frame để
-            xem rõ toàn màn hình.
+            {about.filmStripDescription.replaceAll("{count}", String(moments.length))}
           </p>
         </div>
 

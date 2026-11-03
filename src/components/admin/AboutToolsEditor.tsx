@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import type { CrewMember } from "@/data/schema";
 import type { SiteContent } from "@/lib/content-schema";
 import { AdminField, AdminImageField, AdminStringListField } from "./AdminFields";
@@ -21,6 +21,175 @@ function moveItem<T>(items: T[], from: number, to: number) {
   const [item] = next.splice(from, 1);
   next.splice(to, 0, item);
   return next;
+}
+
+type AboutPageContent = SiteContent["about"];
+type AboutMetric = AboutPageContent["metrics"][number];
+type AboutPillar = AboutPageContent["pillars"][number];
+
+export function AboutPageEditor({
+  about,
+  onChange,
+}: {
+  about: AboutPageContent;
+  onChange: (about: AboutPageContent) => void;
+}) {
+  function updateHeroBanner(patch: Partial<AboutPageContent["heroBanner"]>) {
+    onChange({ ...about, heroBanner: { ...about.heroBanner, ...patch } });
+  }
+
+  function updatePipeline(patch: Partial<AboutPageContent["pipeline"]>) {
+    onChange({ ...about, pipeline: { ...about.pipeline, ...patch } });
+  }
+
+  function updateBottomCta(patch: Partial<AboutPageContent["bottomCta"]>) {
+    onChange({ ...about, bottomCta: { ...about.bottomCta, ...patch } });
+  }
+
+  function updateMetric(index: number, patch: Partial<AboutMetric>) {
+    onChange({
+      ...about,
+      metrics: about.metrics.map((metric, metricIndex) => metricIndex === index ? { ...metric, ...patch } : metric),
+    });
+  }
+
+  function updatePillar(index: number, patch: Partial<AboutPillar>) {
+    onChange({
+      ...about,
+      pillars: about.pillars.map((pillar, pillarIndex) => pillarIndex === index ? { ...pillar, ...patch } : pillar),
+    });
+  }
+
+  return (
+    <section className="space-y-4 rounded-3xl border border-white/10 bg-obsidian-surface p-5 sm:p-7">
+      <div>
+        <h2 className="font-display text-2xl font-bold">Nội dung trang About</h2>
+        <p className="mt-1 text-sm text-ivory-muted">Chỉnh nội dung, ảnh chủ đạo, số liệu, năng lực, kho ảnh, thiết bị và lời kêu gọi. Thay đổi được lưu cùng nút “Lưu thay đổi”.</p>
+      </div>
+
+      <div className="grid gap-4 rounded-2xl border border-white/10 bg-obsidian/40 p-4 sm:p-5">
+        <div className="flex items-center gap-2">
+          <span className="grid h-7 w-7 place-items-center rounded-lg bg-rec/10 font-mono text-xs font-bold text-rec">01</span>
+          <h3 className="font-semibold">Giới thiệu và câu chuyện</h3>
+        </div>
+        <AdminField label="Dòng nhãn phía trên" value={about.eyebrow} onChange={(eyebrow) => onChange({ ...about, eyebrow })} />
+        <AdminField label="Tiêu đề chính" value={about.title} onChange={(title) => onChange({ ...about, title })} />
+        <AdminField label="Đoạn giới thiệu" value={about.introduction} multiline rows={3} onChange={(introduction) => onChange({ ...about, introduction })} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <AdminField label="Tiêu đề câu chuyện" value={about.storyTitle} onChange={(storyTitle) => onChange({ ...about, storyTitle })} />
+          <AdminField label="Nội dung câu chuyện" value={about.storyBody} multiline rows={3} onChange={(storyBody) => onChange({ ...about, storyBody })} />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <AdminField label="Nhãn nút mở kho ảnh" value={about.archiveJumpLabel} hint="Dùng {count} để tự hiện số ảnh." onChange={(archiveJumpLabel) => onChange({ ...about, archiveJumpLabel })} />
+          <AdminField label="Nhãn nút mở danh sách thành viên" value={about.crewJumpLabel} hint="Dùng {count} để tự hiện số thành viên." onChange={(crewJumpLabel) => onChange({ ...about, crewJumpLabel })} />
+        </div>
+      </div>
+
+      <details className="rounded-2xl border border-white/10 bg-obsidian/40">
+        <summary className="cursor-pointer list-none p-4 font-semibold marker:hidden">02 · Ảnh bìa và banner tập thể</summary>
+        <div className="space-y-4 border-t border-white/10 p-4 sm:p-5">
+          <AdminImageField label="Ảnh banner About" value={about.heroBanner.imageUrl} folder="thiet-bi-gia/site" onChange={(imageUrl) => updateHeroBanner({ imageUrl })} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <AdminField label="Mô tả ảnh" value={about.heroBanner.imageAlt} onChange={(imageAlt) => updateHeroBanner({ imageAlt })} />
+            <AdminField label="Nhãn trên ảnh" value={about.heroBanner.label} onChange={(label) => updateHeroBanner({ label })} />
+            <AdminField label="Thẻ nổi bật" value={about.heroBanner.badge} onChange={(badge) => updateHeroBanner({ badge })} />
+            <AdminField label="Địa điểm / dòng nhỏ" value={about.heroBanner.location} onChange={(location) => updateHeroBanner({ location })} />
+          </div>
+          <AdminField label="Tiêu đề banner" value={about.heroBanner.title} onChange={(title) => updateHeroBanner({ title })} />
+          <AdminField label="Giới thiệu trên banner" value={about.heroBanner.description} multiline rows={3} onChange={(description) => updateHeroBanner({ description })} />
+          <AdminField label="Nhãn nút mở kho ảnh" value={about.heroBanner.archiveButtonLabel} onChange={(archiveButtonLabel) => updateHeroBanner({ archiveButtonLabel })} />
+        </div>
+      </details>
+
+      <details className="rounded-2xl border border-white/10 bg-obsidian/40">
+        <summary className="cursor-pointer list-none p-4 font-semibold">03 · Số liệu và pipeline</summary>
+        <div className="space-y-5 border-t border-white/10 p-4 sm:p-5">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold">Các thẻ số liệu ({about.metrics.length})</h3>
+              <button type="button" disabled={about.metrics.length >= 6} onClick={() => onChange({ ...about, metrics: [...about.metrics, { id: newId("about-metric"), value: "", label: "" }] })} className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-xs text-ivory hover:border-rec disabled:opacity-40"><Plus className="h-3.5 w-3.5 text-rec" /> THÊM SỐ LIỆU</button>
+            </div>
+            {about.metrics.map((metric, index) => (
+              <div key={metric.id} className="grid gap-3 rounded-xl border border-white/10 p-3 sm:grid-cols-[minmax(0,0.7fr)_minmax(0,1.2fr)_auto] sm:items-end">
+                <AdminField label="Giá trị" value={metric.value} onChange={(value) => updateMetric(index, { value })} />
+                <AdminField label="Nhãn" value={metric.label} onChange={(label) => updateMetric(index, { label })} />
+                <div className="flex gap-1">
+                  <button type="button" disabled={index === 0} onClick={() => onChange({ ...about, metrics: moveItem(about.metrics, index, index - 1) })} aria-label="Đưa số liệu lên" className="rounded-lg border border-white/10 p-2 text-ivory-muted hover:border-rec disabled:opacity-35"><ArrowUp className="h-4 w-4" /></button>
+                  <button type="button" disabled={index === about.metrics.length - 1} onClick={() => onChange({ ...about, metrics: moveItem(about.metrics, index, index + 1) })} aria-label="Đưa số liệu xuống" className="rounded-lg border border-white/10 p-2 text-ivory-muted hover:border-rec disabled:opacity-35"><ArrowDown className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => onChange({ ...about, metrics: about.metrics.filter((_, metricIndex) => metricIndex !== index) })} aria-label="Xóa số liệu" className="rounded-lg border border-red-400/20 p-2 text-red-300 hover:bg-red-400/10"><Trash2 className="h-4 w-4" /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="grid gap-4 border-t border-white/10 pt-4 sm:grid-cols-2">
+            <AdminField label="Nhãn pipeline" value={about.pipeline.eyebrow} onChange={(eyebrow) => updatePipeline({ eyebrow })} />
+            <AdminField label="Nội dung pipeline" value={about.pipeline.title} onChange={(title) => updatePipeline({ title })} />
+            <AdminField label="Nhãn nút booking" value={about.pipeline.bookingLabel} onChange={(bookingLabel) => updatePipeline({ bookingLabel })} />
+          </div>
+        </div>
+      </details>
+
+      <details className="rounded-2xl border border-white/10 bg-obsidian/40">
+        <summary className="cursor-pointer list-none p-4 font-semibold">04 · Kho ảnh chung và cuộn phim</summary>
+        <div className="grid gap-4 border-t border-white/10 p-4 sm:p-5 sm:grid-cols-2">
+          <AdminField label="Dòng nhãn cuộn phim" value={about.filmStripEyebrow} hint="Dùng {count} để tự hiện số ảnh." onChange={(filmStripEyebrow) => onChange({ ...about, filmStripEyebrow })} />
+          <AdminField label="Tiêu đề cuộn phim" value={about.filmStripTitle} onChange={(filmStripTitle) => onChange({ ...about, filmStripTitle })} />
+          <AdminField label="Mô tả cuộn phim" value={about.filmStripDescription} multiline rows={3} hint="Dùng {count} để tự hiện số ảnh." onChange={(filmStripDescription) => onChange({ ...about, filmStripDescription })} />
+          <AdminField label="Dòng nhãn album ảnh" value={about.albumEyebrow} onChange={(albumEyebrow) => onChange({ ...about, albumEyebrow })} />
+          <AdminField label="Tiêu đề album ảnh" value={about.albumTitle} onChange={(albumTitle) => onChange({ ...about, albumTitle })} />
+          <AdminField label="Mô tả album ảnh" value={about.albumDescription} multiline rows={3} onChange={(albumDescription) => onChange({ ...about, albumDescription })} />
+        </div>
+      </details>
+
+      <details className="rounded-2xl border border-white/10 bg-obsidian/40">
+        <summary className="cursor-pointer list-none p-4 font-semibold">05 · Các nhóm chuyên môn</summary>
+        <div className="space-y-4 border-t border-white/10 p-4 sm:p-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <AdminField label="Dòng nhãn" value={about.disciplinesEyebrow} onChange={(disciplinesEyebrow) => onChange({ ...about, disciplinesEyebrow })} />
+            <AdminField label="Tiêu đề khu vực" value={about.disciplinesTitle} onChange={(disciplinesTitle) => onChange({ ...about, disciplinesTitle })} />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold">Thẻ chuyên môn ({about.pillars.length})</h3>
+            <button type="button" disabled={about.pillars.length >= 12} onClick={() => onChange({ ...about, pillars: [...about.pillars, { id: newId("about-pillar"), icon: "aperture", code: "", title: "", description: "" }] })} className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-xs text-ivory hover:border-rec disabled:opacity-40"><Plus className="h-3.5 w-3.5 text-rec" /> THÊM NHÓM</button>
+          </div>
+          {about.pillars.map((pillar, index) => (
+            <div key={pillar.id} className="space-y-3 rounded-xl border border-white/10 p-3 sm:p-4">
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,0.7fr)_minmax(0,1fr)_minmax(0,1.3fr)_auto] sm:items-end">
+                <label className="block space-y-1.5"><span className="block text-xs font-mono font-semibold uppercase tracking-wide text-ivory-muted">Biểu tượng</span><select value={pillar.icon} onChange={(event) => updatePillar(index, { icon: event.target.value as AboutPillar["icon"] })} className="w-full rounded-xl border border-white/10 bg-obsidian px-3 py-3 text-sm text-ivory"><option value="aperture">Nhiếp ảnh</option><option value="clapperboard">Quay phim</option><option value="layers">Hậu kỳ</option><option value="cpu">Thiết kế / 3D</option></select></label>
+                <AdminField label="Mã nhóm" value={pillar.code} onChange={(code) => updatePillar(index, { code })} />
+                <AdminField label="Tên nhóm" value={pillar.title} onChange={(title) => updatePillar(index, { title })} />
+                <div className="flex gap-1">
+                  <button type="button" disabled={index === 0} onClick={() => onChange({ ...about, pillars: moveItem(about.pillars, index, index - 1) })} aria-label="Đưa nhóm chuyên môn lên" className="rounded-lg border border-white/10 p-2 text-ivory-muted hover:border-rec disabled:opacity-35"><ArrowUp className="h-4 w-4" /></button>
+                  <button type="button" disabled={index === about.pillars.length - 1} onClick={() => onChange({ ...about, pillars: moveItem(about.pillars, index, index + 1) })} aria-label="Đưa nhóm chuyên môn xuống" className="rounded-lg border border-white/10 p-2 text-ivory-muted hover:border-rec disabled:opacity-35"><ArrowDown className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => onChange({ ...about, pillars: about.pillars.filter((_, pillarIndex) => pillarIndex !== index) })} aria-label="Xóa nhóm chuyên môn" className="rounded-lg border border-red-400/20 p-2 text-red-300 hover:bg-red-400/10"><Trash2 className="h-4 w-4" /></button>
+                </div>
+              </div>
+              <AdminField label="Mô tả nhóm" value={pillar.description} multiline rows={3} onChange={(description) => updatePillar(index, { description })} />
+            </div>
+          ))}
+        </div>
+      </details>
+
+      <details className="rounded-2xl border border-white/10 bg-obsidian/40">
+        <summary className="cursor-pointer list-none p-4 font-semibold">06 · Kho thiết bị và lời kêu gọi</summary>
+        <div className="space-y-5 border-t border-white/10 p-4 sm:p-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <AdminField label="Dòng nhãn kho thiết bị" value={about.gearEyebrow} onChange={(gearEyebrow) => onChange({ ...about, gearEyebrow })} />
+            <AdminField label="Tiêu đề kho thiết bị" value={about.gearTitle} onChange={(gearTitle) => onChange({ ...about, gearTitle })} />
+          </div>
+          <div className="grid gap-4 border-t border-white/10 pt-4 sm:grid-cols-2">
+            <AdminField label="Nhãn khu vực cuối trang" value={about.bottomCta.eyebrow} onChange={(eyebrow) => updateBottomCta({ eyebrow })} />
+            <AdminField label="Tiêu đề cuối trang" value={about.bottomCta.title} onChange={(title) => updateBottomCta({ title })} />
+            <AdminField label="Mô tả cuối trang" value={about.bottomCta.description} multiline rows={3} onChange={(description) => updateBottomCta({ description })} />
+            <div className="grid gap-4">
+              <AdminField label="Nhãn nút booking" value={about.bottomCta.bookingLabel} onChange={(bookingLabel) => updateBottomCta({ bookingLabel })} />
+              <AdminField label="Nhãn nút timeline" value={about.bottomCta.timelineLabel} onChange={(timelineLabel) => updateBottomCta({ timelineLabel })} />
+            </div>
+          </div>
+        </div>
+      </details>
+    </section>
+  );
 }
 
 export function GearManager({

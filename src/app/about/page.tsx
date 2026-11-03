@@ -23,9 +23,16 @@ import { useSiteContent } from "@/lib/store";
 
 gsap.registerPlugin(ScrollTrigger);
 
+const DISCIPLINE_ICONS = {
+  aperture: Aperture,
+  clapperboard: Clapperboard,
+  layers: Layers,
+  cpu: Cpu,
+} as const;
+
 export default function AboutGearPage() {
   const siteContent = useSiteContent();
-  const { gear, crew, works, moments, about } = siteContent;
+  const { gear, crew, moments, about } = siteContent;
   const containerRef = useRef<HTMLDivElement>(null);
 
   useGSAP(
@@ -54,33 +61,6 @@ export default function AboutGearPage() {
     { scope: containerRef }
   );
 
-  const pillars = [
-    {
-      icon: Aperture,
-      code: "01 // PHOTOGRAPHY",
-      title: "Nhiếp Ảnh Thương Mại & Sự Kiện",
-      desc: "Từ Studio Lookbook 102MP Medium Format, kiến trúc Tilt-Shift đến đại nhạc hội hàng chục nghìn khán giả trả ảnh realtime.",
-    },
-    {
-      icon: Clapperboard,
-      code: "02 // CINEMATOGRAPHY",
-      title: "Quay Phim Điện Ảnh & FPV",
-      desc: "Làm chủ ngôn ngữ ống kính Anamorphic, hệ thống đèn CRMX công suất lớn, Car-Rig tốc độ cao và Drone FPV xuyên không gian.",
-    },
-    {
-      icon: Layers,
-      code: "03 // POST-PRODUCTION",
-      title: "Dựng Phim, Color Grading & Sound",
-      desc: "Quy trình hậu kỳ chuẩn ACEScct trên DaVinci Resolve, dựng Same-Day Edit thần tốc ngay tại hiện trường và thiết kế âm thanh.",
-    },
-    {
-      icon: Cpu,
-      code: "04 // DESIGN & 3D MOTION",
-      title: "Art Direction, Key Visual & VFX",
-      desc: "Xây dựng trọn vẹn bộ nhận diện chiến dịch, thiết kế sân khấu LED 8K, 3D CGI và poster chuẩn lưới đồ họa hiện đại.",
-    },
-  ];
-
   return (
     <div
       ref={containerRef}
@@ -92,7 +72,7 @@ export default function AboutGearPage() {
           <div className="lg:col-span-7 space-y-5">
             <div className="about-reveal inline-flex items-center gap-2 text-xs font-mono text-rec uppercase tracking-widest">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>MANIFESTO // GIỚI THIỆU ĐẠI GIA ĐÌNH THIẾT BỊ GIA</span>
+              <span>{about.eyebrow}</span>
             </div>
             <h1 className="about-reveal font-display text-4xl sm:text-6xl font-bold text-ivory leading-[1.06] tracking-tight">
 {about.title || "NƠI NHỮNG NGƯỜI CẦM MÁY & LÀM HÌNH HỌP THÀNH MỘT GIA ĐÌNH."}
@@ -111,7 +91,7 @@ export default function AboutGearPage() {
                 className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-rec hover:bg-rec-glow text-obsidian font-mono font-bold text-xs transition-colors"
               >
                 <Camera className="w-4 h-4" />
-                <span>XEM KHO ẢNH CHUNG [{moments.length}] ↓</span>
+                <span>{about.archiveJumpLabel.replaceAll("{count}", String(moments.length))}</span>
               </a>
               <Link
                 href="/crew"
@@ -119,41 +99,27 @@ export default function AboutGearPage() {
                 className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border border-obsidian-border bg-obsidian-surface hover:border-rec/50 text-ivory font-mono text-xs transition-colors"
               >
                 <Users className="w-4 h-4 text-rec" />
-                <span>GẶP {crew.length} THÀNH VIÊN →</span>
+                <span>{about.crewJumpLabel.replaceAll("{count}", String(crew.length))}</span>
               </Link>
             </div>
           </div>
 
-          <div className="lg:col-span-5 grid grid-cols-3 gap-3.5">
-            <div className="about-reveal rounded-2xl border border-obsidian-border bg-obsidian-surface p-4 sm:p-5">
-              <div className="font-display text-3xl sm:text-4xl font-bold text-rec">
-                {crew.length}+
+          <div className="lg:col-span-5 grid grid-cols-2 sm:grid-cols-3 gap-3.5">
+            {about.metrics.map((metric, index) => (
+              <div key={metric.id} className="about-reveal rounded-2xl border border-obsidian-border bg-obsidian-surface p-4 sm:p-5">
+                <div className={`font-display text-3xl sm:text-4xl font-bold ${index === 0 ? "text-rec" : "text-ivory"}`}>
+                  {metric.value}
+                </div>
+                <div className="mt-1 text-[11px] font-mono uppercase text-ivory-muted">
+                  {metric.label}
+                </div>
               </div>
-              <div className="text-[11px] font-mono text-ivory-muted mt-1 uppercase">
-                Thành viên ekip
-              </div>
-            </div>
-            <div className="about-reveal rounded-2xl border border-obsidian-border bg-obsidian-surface p-4 sm:p-5">
-              <div className="font-display text-3xl sm:text-4xl font-bold text-ivory">
-                310+
-              </div>
-              <div className="text-[11px] font-mono text-ivory-muted mt-1 uppercase">
-                Ảnh chung lưu trữ
-              </div>
-            </div>
-            <div className="about-reveal rounded-2xl border border-obsidian-border bg-obsidian-surface p-4 sm:p-5">
-              <div className="font-display text-3xl sm:text-4xl font-bold text-ivory">
-                {works.length}0+
-              </div>
-              <div className="text-[11px] font-mono text-ivory-muted mt-1 uppercase">
-                Set quay &amp; Sự kiện
-              </div>
-            </div>
-            <div className="about-reveal col-span-3 rounded-2xl border border-obsidian-border bg-obsidian-surface p-5 flex items-center justify-between gap-4">
+            ))}
+            <div className="about-reveal col-span-2 rounded-2xl border border-obsidian-border bg-obsidian-surface p-5 flex items-center justify-between gap-4 sm:col-span-3">
               <div>
-                <div className="text-xs font-mono text-rec">FULL PIPELINE</div>
+                <div className="text-xs font-mono text-rec">{about.pipeline.eyebrow}</div>
                 <div className="text-sm font-semibold text-ivory mt-0.5">
-                  Tiền kỳ → Hiện trường → Hậu kỳ 4K RAW &amp; Web 3D
+                  {about.pipeline.title}
                 </div>
               </div>
               <Link
@@ -161,7 +127,7 @@ export default function AboutGearPage() {
                 onClick={() => soundEngine.playShutter()}
                 className="shrink-0 px-3.5 py-2 rounded-lg bg-white/[0.06] hover:bg-rec hover:text-obsidian border border-obsidian-border text-ivory font-mono font-bold text-xs transition-colors"
               >
-                BOOKING →
+                {about.pipeline.bookingLabel}
               </Link>
             </div>
           </div>
@@ -171,8 +137,8 @@ export default function AboutGearPage() {
         <div className="about-reveal relative rounded-3xl border border-obsidian-border bg-obsidian-surface overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.55)]">
           <div className="relative aspect-[16/10] sm:aspect-[21/9] overflow-hidden">
             <img
-              src="/media/group/tbg-group-01.jpg"
-              alt="Đại Gia Đình Thiết Bị Gia FUDA Trên Đồi Hoàng Hôn"
+              src={about.heroBanner.imageUrl || "/anhchungtbg.jpg"}
+              alt={about.heroBanner.imageAlt}
               className="w-full h-full object-cover object-[50%_46%]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-obsidian/90 via-obsidian/20 to-transparent" />
@@ -180,23 +146,23 @@ export default function AboutGearPage() {
             <div className="absolute top-4 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 flex flex-wrap items-center justify-between gap-2">
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-obsidian/80 backdrop-blur-md border border-white/15 text-xs font-mono text-ivory">
                 <span className="w-2 h-2 rounded-full bg-rec animate-pulse" />
-                <span>COLLECTIVE MASTERFRAME // FUDA MASTERALBUM</span>
+                <span>{about.heroBanner.label}</span>
               </span>
               <span className="px-3 py-1 rounded-full bg-rec text-obsidian font-mono font-bold text-xs">
-                30+ ANH CHỊ EM TRONG KHUNG HÌNH
+                {about.heroBanner.badge}
               </span>
             </div>
 
             <div className="absolute bottom-4 left-4 right-4 sm:bottom-7 sm:left-7 sm:right-7 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div className="space-y-1 max-w-2xl">
                 <div className="text-xs font-mono text-amber-400 font-bold tracking-wider">
-                  ĐỒI HOÀNG HÔN • ĐÀ NẴNG
+                  {about.heroBanner.location}
                 </div>
                 <h2 className="font-display text-2xl sm:text-4xl font-bold text-ivory">
-                  ĐẠI GIA ĐÌNH THIẾT BỊ GIA — HƠN CẢ MỘT EKIP BẤM MÁY
+                  {about.heroBanner.title}
                 </h2>
                 <p className="text-xs sm:text-sm text-ivory/80">
-                  Từ giảng đường FUDA, phòng chụp studio đến những chuyến thiện nguyện vùng cao và sân khấu hàng nghìn khán giả.
+                  {about.heroBanner.description}
                 </p>
               </div>
 
@@ -205,7 +171,7 @@ export default function AboutGearPage() {
                 onClick={() => soundEngine.playShutter()}
                 className="self-start sm:self-auto px-4 py-2.5 rounded-xl bg-obsidian/85 hover:bg-rec hover:text-obsidian backdrop-blur-md border border-white/20 text-ivory font-mono font-bold text-xs transition-colors"
               >
-                KHÁM PHÁ TOÀN BỘ {moments.length} ẢNH CHUNG ↓
+                {about.heroBanner.archiveButtonLabel.replaceAll("{count}", String(moments.length))}
               </a>
             </div>
           </div>
@@ -222,29 +188,29 @@ export default function AboutGearPage() {
       <section className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl sm:text-3xl font-bold text-ivory">
-            BỐN MŨI NHỌN CỦA NHÓM
+            {about.disciplinesTitle}
           </h2>
           <span className="text-xs font-mono text-ivory-subtle hidden sm:inline">
-            DISCIPLINES // 01 — 04
+            {about.disciplinesEyebrow}
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {pillars.map((p) => {
-            const Icon = p.icon;
+          {about.pillars.map((pillar) => {
+            const Icon = DISCIPLINE_ICONS[pillar.icon];
             return (
               <div
-                key={p.code}
+                key={pillar.id}
                 className="gear-card rounded-2xl border border-obsidian-border bg-obsidian-surface p-6 space-y-4 hover:border-rec/60 transition-colors"
               >
                 <div className="w-11 h-11 rounded-xl bg-rec/12 border border-rec/30 flex items-center justify-center text-rec">
                   <Icon className="w-5 h-5" />
                 </div>
-                <div className="text-xs font-mono text-ivory-subtle">{p.code}</div>
+                <div className="text-xs font-mono text-ivory-subtle">{pillar.code}</div>
                 <h3 className="font-display text-xl font-bold text-ivory leading-snug">
-                  {p.title}
+                  {pillar.title}
                 </h3>
-                <p className="text-sm text-ivory-muted leading-relaxed">{p.desc}</p>
+                <p className="text-sm text-ivory-muted leading-relaxed">{pillar.description}</p>
               </div>
             );
           })}
@@ -255,10 +221,10 @@ export default function AboutGearPage() {
       <section className="space-y-8">
         <div className="space-y-2">
           <div className="text-xs font-mono text-rec uppercase tracking-widest">
-            EQUIPMENT LOCKER // VŨ KHÍ TÁC NGHIỆP
+          {about.gearEyebrow}
           </div>
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-ivory">
-            KHO THIẾT BỊ CHỦ LỰC CỦA THIẾT BỊ GIA
+            {about.gearTitle}
           </h2>
         </div>
 
@@ -303,13 +269,13 @@ export default function AboutGearPage() {
       <section className="rounded-3xl border border-rec/40 bg-gradient-to-r from-obsidian-surface via-obsidian-elevated to-obsidian-surface p-8 sm:p-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-2 max-w-xl">
           <div className="text-xs font-mono text-rec uppercase tracking-widest">
-            READY FOR SET
+            {about.bottomCta.eyebrow}
           </div>
           <h2 className="font-display text-2xl sm:text-3xl font-bold text-ivory">
-            Cần một Photographer riêng lẻ hay trọn gói cả Ekip Sản Xuất?
+            {about.bottomCta.title}
           </h2>
           <p className="text-sm text-ivory-muted">
-            Chọn đúng người hoặc để Thiết Bị Gia ráp đội hình phù hợp nhất cho dự án của bạn.
+            {about.bottomCta.description}
           </p>
         </div>
 
@@ -319,14 +285,14 @@ export default function AboutGearPage() {
             onClick={() => soundEngine.playShutter()}
             className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-rec hover:bg-rec-glow text-obsidian font-mono font-bold text-xs transition-colors"
           >
-            <span>ĐẶT LỊCH EKIP NGAY</span>
+            <span>{about.bottomCta.bookingLabel}</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
             href="/"
             className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl border border-obsidian-border bg-obsidian hover:border-ivory/40 text-ivory font-mono text-xs transition-colors"
           >
-            <span>XEM TIMELINE 3D</span>
+            <span>{about.bottomCta.timelineLabel}</span>
           </Link>
         </div>
       </section>
