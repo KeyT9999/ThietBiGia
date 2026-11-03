@@ -234,7 +234,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "KODAK PORTRA 400 • 35MM",
     "dateLabel": "MILESTONE",
     "category": "dai-gia-dinh",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 13,
     "memberSlugs": [
       "doan-phuoc-truong-hai",
@@ -295,7 +295,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "KODAK PORTRA 400 • 35MM",
     "dateLabel": "NIGHT SQUAD",
     "category": "dai-gia-dinh",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 10,
     "memberSlugs": [
       "doan-phuoc-truong-hai",
@@ -317,7 +317,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "KODAK PORTRA 400 • 35MM",
     "dateLabel": "STUDIO PORTRAIT",
     "category": "dai-gia-dinh",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 9,
     "memberSlugs": [
       "nam-trung-dao",
@@ -388,7 +388,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "CINESTILL 800T • ON-SET",
     "dateLabel": "FIELD CREW",
     "category": "hau-truong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 8,
     "memberSlugs": [
       "nam-trung-dao",
@@ -421,7 +421,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "CINESTILL 800T • ON-SET",
     "dateLabel": "EVENT CREW",
     "category": "hau-truong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 6,
     "memberSlugs": [
       "quoc-hi",
@@ -450,7 +450,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "CINESTILL 800T • ON-SET",
     "dateLabel": "STAGE WRAP",
     "category": "hau-truong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 7,
     "memberSlugs": [
       "tai-anh",
@@ -479,7 +479,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "CINESTILL 800T • ON-SET",
     "dateLabel": "AWARD SHOW",
     "category": "hau-truong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 7,
     "memberSlugs": [
       "tan-loc",
@@ -508,7 +508,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "CINESTILL 800T • ON-SET",
     "dateLabel": "LIVE SHOW",
     "category": "hau-truong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 6,
     "memberSlugs": [
       "nguyen-bao",
@@ -533,7 +533,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "CINESTILL 800T • ON-SET",
     "dateLabel": "CONCERT CREW",
     "category": "hau-truong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 7,
     "memberSlugs": [
       "tai-anh",
@@ -559,7 +559,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "CINESTILL 800T • ON-SET",
     "dateLabel": "LIGHTING SET",
     "category": "hau-truong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 6,
     "memberSlugs": [
       "doan-phuoc-truong-hai",
@@ -583,7 +583,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "CINESTILL 800T • ON-SET",
     "dateLabel": "OUTDOOR SHOOT",
     "category": "hau-truong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 4,
     "memberSlugs": [
       "doan-phuoc-truong-hai",
@@ -608,7 +608,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "CINESTILL 800T • ON-SET",
     "dateLabel": "BLUE HOUR SET",
     "category": "hau-truong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 4,
     "memberSlugs": [],
     "memberNames": [
@@ -627,7 +627,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "CINESTILL 800T • ON-SET",
     "dateLabel": "TETHER & CHECK",
     "category": "hau-truong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 3,
     "memberSlugs": [
       "thanh-le",
@@ -648,7 +648,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "CINESTILL 800T • ON-SET",
     "dateLabel": "GAFFER & DOP",
     "category": "hau-truong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 2,
     "memberSlugs": [],
     "memberNames": []
@@ -725,7 +725,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "FUJIFILM PRO 400H • CANDID",
     "dateLabel": "TWILIGHT CHILL",
     "category": "doi-thuong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 7,
     "memberSlugs": [
       "tai-anh",
@@ -751,7 +751,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "FUJIFILM PRO 400H • CANDID",
     "dateLabel": "FUN STUDIO",
     "category": "doi-thuong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 5,
     "memberSlugs": [
       "tai-anh",
@@ -778,7 +778,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "FUJIFILM PRO 400H • CANDID",
     "dateLabel": "TEAM SPIRIT",
     "category": "doi-thuong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 8,
     "memberSlugs": [
       "thanh-le",
@@ -806,7 +806,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "FUJIFILM PRO 400H • CANDID",
     "dateLabel": "BACKSTAGE",
     "category": "doi-thuong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 8,
     "memberSlugs": [
       "nguyen-pham-viet-thong",
@@ -831,7 +831,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "FUJIFILM PRO 400H • CANDID",
     "dateLabel": "COFFEE TALK",
     "category": "doi-thuong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 2,
     "memberSlugs": [],
     "memberNames": []
@@ -846,7 +846,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "FUJIFILM PRO 400H • CANDID",
     "dateLabel": "GOLDEN HOUR",
     "category": "doi-thuong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 6,
     "memberSlugs": [
       "doan-phuoc-truong-hai",
@@ -873,7 +873,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "FUJIFILM PRO 400H • CANDID",
     "dateLabel": "CAMPING TRIP",
     "category": "doi-thuong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 3,
     "memberSlugs": [
       "le-quang-vu",
@@ -895,7 +895,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "FUJIFILM PRO 400H • CANDID",
     "dateLabel": "YOUTH ENERGY",
     "category": "doi-thuong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 4,
     "memberSlugs": [
       "nguyen-pham-viet-thong"
@@ -917,7 +917,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "FUJIFILM PRO 400H • CANDID",
     "dateLabel": "STREAM SWIM",
     "category": "doi-thuong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 2,
     "memberSlugs": [
       "tai-anh",
@@ -938,7 +938,7 @@ export const GROUP_MOMENTS: GroupMoment[] = [
     "filmStock": "FUJIFILM PRO 400H • CANDID",
     "dateLabel": "WARM HEARTS",
     "category": "doi-thuong",
-    "onFilmStrip": false,
+    "onFilmStrip": true,
     "detectedFaceCount": 9,
     "memberSlugs": [
       "tran-kim-thang"
@@ -949,6 +949,4 @@ export const GROUP_MOMENTS: GroupMoment[] = [
   }
 ];
 
-export const FILM_STRIP_MOMENTS: GroupMoment[] = GROUP_MOMENTS.filter(
-  (m) => m.onFilmStrip
-);
+export const FILM_STRIP_MOMENTS: GroupMoment[] = [...GROUP_MOMENTS];

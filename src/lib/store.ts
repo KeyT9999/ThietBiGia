@@ -65,7 +65,7 @@ const initialSiteContent: SiteContent = {
     navTimelineLabel: "TIMELINE 3D",
     navProjectsLabel: "PROJECTS",
     navCrewLabel: "CREW",
-    navPartnersLabel: "PARTNERS",
+    navPartnersLabel: "ĐƠN VỊ ĐỒNG HÀNH",
     navOrder: [...DEFAULT_NAVIGATION_ORDER],
     navAboutLabel: "ABOUT & GEAR",
     navContactLabel: "CONTACT",
@@ -99,8 +99,10 @@ interface AppStoreState {
   soundMuted: boolean;
   cursorVariant: CursorVariant;
   cursorLabel: string;
+  authenticatedMemberId: string | null;
 
   setSiteContent: (content: SiteContent) => void;
+  setAuthenticatedMemberId: (memberId: string | null) => void;
   setTimelineMode: (mode: TimelineMode, initialIndex?: number) => void;
   setActiveWorkIndex: (index: number, snapMotion?: boolean) => void;
   stepWorkIndex: (delta: number) => void;
@@ -122,6 +124,9 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   soundMuted: false,
   cursorVariant: "default",
   cursorLabel: "",
+  authenticatedMemberId: null,
+
+  setAuthenticatedMemberId: (memberId) => set({ authenticatedMemberId: memberId }),
 
   setSiteContent: (content) => {
     replaceArray(CREW_MEMBERS, normalizeCrewOrder(content.crew));
@@ -130,7 +135,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     replaceArray(GROUP_MOMENTS, content.moments);
     replaceArray(
       FILM_STRIP_MOMENTS,
-      content.moments.filter((moment) => moment.onFilmStrip)
+      content.moments.filter((moment) => Boolean(moment.src?.trim()))
     );
 
     const current = get();
@@ -223,19 +228,37 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
 const SiteContentContext = createContext<SiteContent>(initialSiteContent);
 const SetSiteContentContext = createContext<(content: SiteContent) => void>(() => {});
+const MemberSessionContext = createContext<string | null>(null);
 
 export function SiteContentProvider({
   initialContent,
+  initialMemberId = null,
   children,
 }: {
   initialContent: SiteContent;
+  initialMemberId?: string | null;
   children: ReactNode;
 }) {
   const [content, setContent] = useState(initialContent);
+  const [memberId, setMemberId] = useState<string | null>(initialMemberId);
+
   useEffect(() => setContent(initialContent), [initialContent]);
   useEffect(() => {
     useAppStore.getState().setSiteContent(content);
   }, [content]);
+
+  useEffect(() => {
+    setMemberId(initialMemberId);
+    useAppStore.getState().setAuthenticatedMemberId(initialMemberId);
+  }, [initialMemberId]);
+
+  useEffect(() => {
+    return useAppStore.subscribe((state, prevState) => {
+      if (state.authenticatedMemberId !== prevState.authenticatedMemberId) {
+        setMemberId(state.authenticatedMemberId);
+      }
+    });
+  }, []);
 
   const updateContent = useCallback((next: SiteContent) => {
     setContent(next);
@@ -243,9 +266,13 @@ export function SiteContentProvider({
   }, []);
 
   return createElement(
-    SetSiteContentContext.Provider,
-    { value: updateContent },
-    createElement(SiteContentContext.Provider, { value: content }, children)
+    MemberSessionContext.Provider,
+    { value: memberId },
+    createElement(
+      SetSiteContentContext.Provider,
+      { value: updateContent },
+      createElement(SiteContentContext.Provider, { value: content }, children)
+    )
   );
 }
 
@@ -255,4 +282,8 @@ export function useSiteContent() {
 
 export function useSetSiteContent() {
   return useContext(SetSiteContentContext);
+}
+
+export function useAuthenticatedMemberId() {
+  return useContext(MemberSessionContext);
 }

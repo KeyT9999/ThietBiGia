@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Check, Clapperboard, Home, Images, ListChecks, LogOut, Plus, Save, Search, Settings2, ShoppingBag, Users } from "lucide-react";
+import { ArrowDown, ArrowUp, Building2, Check, Clapperboard, GripVertical, Home, Images, ListChecks, LogOut, Plus, Save, Search, Settings2, ShoppingBag, Users } from "lucide-react";
 import type { CrewMember, WorkProject } from "@/data/schema";
 import type { NavigationItemId, SiteContent } from "@/lib/content-schema";
 import { useSetSiteContent } from "@/lib/store";
@@ -15,9 +15,10 @@ import { ProjectEditor } from "./ProjectEditor";
 import { AdminOrdersTool } from "./AdminOrdersTool";
 import { ContactServicesManager } from "./ContactServicesManager";
 import { PartnerOrganizationsManager } from "./PartnerOrganizationsManager";
+import { OrderBadgeInput, useListDragReorder, type DropPlacement } from "./OrderControls";
 import { moveCrewMemberToBadgeNumber, normalizeCrewOrder } from "@/lib/crew-order";
 import { normalizeNavigationOrder } from "@/lib/navigation-order";
-import { usePointerReorder } from "./use-pointer-reorder";
+import { moveItemToPosition, moveWorkToPosition, reorderArrayByDrop, resequenceWorks } from "@/lib/work-order";
 
 type Tab = "home" | "members" | "projects" | "services" | "partners" | "about" | "orders" | "settings";
 const tabs = [
@@ -87,7 +88,9 @@ export function AdminDashboard() {
   }, [router]);
 
   const member = useMemo(() => content?.crew.find((item) => item.id === memberId) ?? null, [content, memberId]);
+  const memberOrderIndex = content?.crew.findIndex((item) => item.id === memberId) ?? -1;
   const work = useMemo(() => content?.works.find((item) => item.id === workId) ?? null, [content, workId]);
+  const workOrderIndex = content?.works.findIndex((item) => item.id === workId) ?? -1;
   const isDirty = Boolean(content && JSON.stringify(content) !== savedSnapshot);
   const filteredMembers = useMemo(() => {
     const query = memberSearch.trim().toLowerCase();
@@ -95,7 +98,7 @@ export function AdminDashboard() {
   }, [content, memberSearch]);
   const filteredWorks = useMemo(() => {
     const query = workSearch.trim().toLowerCase();
-    return (content?.works ?? []).filter((item) => !query || `${item.title} ${item.slug} ${item.clientOrSeries} ${item.category} ${item.year}`.toLowerCase().includes(query));
+    return (content?.works ?? []).filter((item) => !query || `${item.title} ${item.slug} ${item.clientOrSeries} ${item.category} ${item.year} ${item.indexLabel}`.toLowerCase().includes(query));
   }, [content, workSearch]);
 
   useEffect(() => {
@@ -146,37 +149,46 @@ export function AdminDashboard() {
     setNotice("");
   }
 
-  function moveMember(memberId: string, direction: -1 | 1) {
+  function moveMember(targetMemberId: string, direction: -1 | 1) {
     setContent((current) => {
       if (!current) return current;
       const orderedCrew = normalizeCrewOrder(current.crew);
-      const fromIndex = orderedCrew.findIndex((item) => item.id === memberId);
+      const fromIndex = orderedCrew.findIndex((item) => item.id === targetMemberId);
       const toIndex = fromIndex + direction;
       if (fromIndex < 0 || toIndex < 0 || toIndex >= orderedCrew.length) return current;
       return {
         ...current,
-        crew: moveCrewMemberToBadgeNumber(orderedCrew, memberId, String(toIndex + 1)),
+        crew: moveCrewMemberToBadgeNumber(orderedCrew, targetMemberId, String(toIndex + 1)),
       };
     });
     setNotice("");
   }
 
-  function reorderMember(draggedId: string, targetId: string) {
+  function moveMemberToOrderPosition(targetMemberId: string, targetPosition: number) {
     setContent((current) => {
       if (!current) return current;
-      const crew = normalizeCrewOrder(current.crew);
-      const fromIndex = crew.findIndex((item) => item.id === draggedId);
-      const toIndex = crew.findIndex((item) => item.id === targetId);
-      if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return current;
-      const [moved] = crew.splice(fromIndex, 1);
-      crew.splice(toIndex, 0, moved);
       return {
         ...current,
-        crew: crew.map((item, index) => ({ ...item, badgeNumber: String(index + 1).padStart(2, "0") })),
+        crew: moveCrewMemberToBadgeNumber(current.crew, targetMemberId, String(targetPosition)),
       };
     });
     setNotice("");
   }
+
+  const memberDrag = useListDragReorder((draggedId: string, targetId: string, placement: DropPlacement) => {
+    setContent((current) => {
+      if (!current) return current;
+      const orderedCrew = normalizeCrewOrder(current.crew);
+      const fromIndex = orderedCrew.findIndex((item) => item.id === draggedId);
+      const targetIndex = orderedCrew.findIndex((item) => item.id === targetId);
+      if (fromIndex < 0 || targetIndex < 0) return current;
+      const reordered = reorderArrayByDrop(orderedCrew, fromIndex, targetIndex, placement).map(
+        (item, index) => ({ ...item, badgeNumber: String(index + 1).padStart(2, "0") })
+      );
+      return { ...current, crew: reordered };
+    });
+    setNotice("");
+  });
 
   function moveNavigationItem(itemId: NavigationItemId, direction: -1 | 1) {
     setContent((current) => {
@@ -192,20 +204,40 @@ export function AdminDashboard() {
     setNotice("");
   }
 
-  function reorderNavigationItem(draggedId: string, targetId: string) {
+  function moveNavigationItemToPosition(itemId: NavigationItemId, targetPosition: number) {
     setContent((current) => {
       if (!current) return current;
-      const order = normalizeNavigationOrder(current.settings.navOrder);
-      const fromIndex = order.indexOf(draggedId as NavigationItemId);
-      const toIndex = order.indexOf(targetId as NavigationItemId);
-      if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return current;
-      const nextOrder = [...order];
-      const [moved] = nextOrder.splice(fromIndex, 1);
-      nextOrder.splice(toIndex, 0, moved);
-      return { ...current, settings: { ...current.settings, navOrder: nextOrder } };
+      const navOrder = normalizeNavigationOrder(current.settings.navOrder);
+      const fromIndex = navOrder.indexOf(itemId);
+      if (fromIndex < 0) return current;
+      return {
+        ...current,
+        settings: {
+          ...current.settings,
+          navOrder: moveItemToPosition(navOrder, fromIndex, targetPosition),
+        },
+      };
     });
     setNotice("");
   }
+
+  const navDrag = useListDragReorder((draggedId: string, targetId: string, placement: DropPlacement) => {
+    setContent((current) => {
+      if (!current) return current;
+      const navOrder = normalizeNavigationOrder(current.settings.navOrder);
+      const fromIndex = navOrder.indexOf(draggedId as NavigationItemId);
+      const targetIndex = navOrder.indexOf(targetId as NavigationItemId);
+      if (fromIndex < 0 || targetIndex < 0) return current;
+      return {
+        ...current,
+        settings: {
+          ...current.settings,
+          navOrder: reorderArrayByDrop(navOrder, fromIndex, targetIndex, placement),
+        },
+      };
+    });
+    setNotice("");
+  });
 
   function addMember() {
     if (!content) return;
@@ -253,65 +285,64 @@ export function AdminDashboard() {
       coverImage: "/media/works/work-01.jpg", accentColor: "#FF4D00", cameraSpec: "",
       summary: "", galleryImages: [], btsNotes: [], gearUsed: [], credits: [], partnerIds: [],
     };
-    setContent({ ...content, works: [...content.works, newWork] });
+    setContent({ ...content, works: resequenceWorks([...content.works, newWork]) });
     setWorkId(newWork.id);
     setNotice("");
   }
 
-  function moveWork(workId: string, direction: -1 | 1) {
+  function moveWork(targetWorkId: string, direction: -1 | 1) {
     setContent((current) => {
       if (!current) return current;
-      const fromIndex = current.works.findIndex((item) => item.id === workId);
+      const fromIndex = current.works.findIndex((item) => item.id === targetWorkId);
       const toIndex = fromIndex + direction;
       if (fromIndex < 0 || toIndex < 0 || toIndex >= current.works.length) return current;
-
-      const works = [...current.works];
-      [works[fromIndex], works[toIndex]] = [works[toIndex], works[fromIndex]];
       return {
         ...current,
-        works: works.map((item, index) => ({
-          ...item,
-          indexLabel: String(index + 1).padStart(2, "0"),
-        })),
+        works: moveWorkToPosition(current.works, targetWorkId, toIndex + 1),
       };
     });
     setNotice("");
   }
 
-  function reorderWork(draggedId: string, targetId: string) {
+  function moveWorkToOrderPosition(targetWorkId: string, targetPosition: number) {
     setContent((current) => {
       if (!current) return current;
-      const works = [...current.works];
-      const fromIndex = works.findIndex((item) => item.id === draggedId);
-      const toIndex = works.findIndex((item) => item.id === targetId);
-      if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return current;
-      const [moved] = works.splice(fromIndex, 1);
-      works.splice(toIndex, 0, moved);
       return {
         ...current,
-        works: works.map((item, index) => ({ ...item, indexLabel: String(index + 1).padStart(2, "0") })),
+        works: moveWorkToPosition(current.works, targetWorkId, targetPosition),
       };
     });
     setNotice("");
   }
 
-  const memberSorter = usePointerReorder(reorderMember);
-  const workSorter = usePointerReorder(reorderWork);
-  const navigationSorter = usePointerReorder(reorderNavigationItem);
+  const workDrag = useListDragReorder((draggedId: string, targetId: string, placement: DropPlacement) => {
+    setContent((current) => {
+      if (!current) return current;
+      const fromIndex = current.works.findIndex((item) => item.id === draggedId);
+      const targetIndex = current.works.findIndex((item) => item.id === targetId);
+      if (fromIndex < 0 || targetIndex < 0) return current;
+      return {
+        ...current,
+        works: resequenceWorks(reorderArrayByDrop(current.works, fromIndex, targetIndex, placement)),
+      };
+    });
+    setNotice("");
+  });
 
   function deleteWork() {
     if (!content || !work || content.works.length <= 1) return;
     if (!window.confirm("Xóa dự án " + work.title + "?")) return;
+    const remainingWorks = resequenceWorks(content.works.filter((item) => item.id !== work.id));
     setContent({
       ...content,
-      works: content.works.filter((item) => item.id !== work.id),
+      works: remainingWorks,
       crew: content.crew.map((item) => ({
         ...item,
         profileSharedWorkIds: item.profileSharedWorkIds?.filter((id) => id !== work.id),
         profileProjectOrder: item.profileProjectOrder?.filter((id) => id !== `work-${work.id}`),
       })),
     });
-    setWorkId(content.works.find((item) => item.id !== work.id)?.id ?? "");
+    setWorkId(remainingWorks[0]?.id ?? "");
   }
 
   function updateWork(workId: string, patch: Partial<WorkProject>) {
@@ -475,17 +506,76 @@ export function AdminDashboard() {
             ) : null}
 
             {tab === "members" ? (
-              <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
-                <div className="space-y-3 rounded-3xl border border-white/10 bg-obsidian-surface p-4">
+              <div className="grid gap-5 xl:grid-cols-[310px_minmax(0,1fr)]">
+                <div className="self-start space-y-3 rounded-3xl border border-white/10 bg-obsidian-surface p-4">
                   <div className="flex items-center justify-between gap-2"><h2 className="font-display text-xl font-bold">Thành viên ({content.crew.length})</h2><button type="button" onClick={addMember} className="rounded-lg bg-rec p-2 text-obsidian" title="Thêm thành viên"><Plus className="h-4 w-4" /></button></div>
-                  <p className="text-xs leading-relaxed text-ivory-subtle">Kéo tay nắm để sắp xếp thứ tự trên thẻ 3D. Số thẻ tự cập nhật; bấm Lưu thay đổi để áp dụng.</p>
-                  <label className="relative block"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ivory-subtle" /><input value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="Tìm tên, số thẻ, vai trò..." aria-label="Tìm thành viên" className="w-full rounded-xl border border-white/10 bg-obsidian py-2.5 pl-9 pr-3 text-sm text-ivory outline-none placeholder:text-ivory-subtle focus:border-rec" /></label>
-                  <div className="space-y-1">
+                  <p className="text-xs leading-relaxed text-ivory-subtle">Kéo thả thẻ hoặc bấm ô <span className="font-mono text-rec">#01</span> nhập số thứ tự rồi nhấn Enter để đổi nhanh vị trí trên thẻ 3D.</p>
+                  <div className="flex items-center gap-2 xl:hidden">
+                    <select aria-label="Chọn thành viên để chỉnh sửa" value={memberId} onChange={(event) => setMemberId(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-white/10 bg-obsidian px-3 py-3 text-sm text-ivory">
+                      {content.crew.map((item) => <option key={item.id} value={item.id}>#{item.badgeNumber} · {item.name}</option>)}
+                    </select>
+                    {memberOrderIndex >= 0 ? (
+                      <OrderBadgeInput
+                        size="md"
+                        position={memberOrderIndex + 1}
+                        total={content.crew.length}
+                        ariaLabel="Số thứ tự thành viên đang chọn"
+                        onMoveToPosition={(target) => moveMemberToOrderPosition(memberId, target)}
+                      />
+                    ) : null}
+                    <button type="button" disabled={memberOrderIndex <= 0} onClick={() => moveMember(memberId, -1)} aria-label="Đưa thành viên đang chọn lên" title="Đưa lên trước" className="h-11 rounded-xl border border-white/10 px-2.5 text-ivory-muted hover:border-rec hover:text-ivory disabled:cursor-not-allowed disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
+                    <button type="button" disabled={memberOrderIndex < 0 || memberOrderIndex >= content.crew.length - 1} onClick={() => moveMember(memberId, 1)} aria-label="Đưa thành viên đang chọn xuống" title="Đưa xuống sau" className="h-11 rounded-xl border border-white/10 px-2.5 text-ivory-muted hover:border-rec hover:text-ivory disabled:cursor-not-allowed disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
+                  </div>
+                  <label className="relative hidden xl:block"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ivory-subtle" /><input value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="Tìm tên, số thẻ, vai trò..." aria-label="Tìm thành viên" className="w-full rounded-xl border border-white/10 bg-obsidian py-2.5 pl-9 pr-3 text-sm text-ivory outline-none placeholder:text-ivory-subtle focus:border-rec" /></label>
+                  <div className="hidden space-y-1.5 xl:block">
                     {filteredMembers.map((item) => {
-                      return <div key={item.id} {...memberSorter.itemProps(item.id)} className="flex items-center gap-1 rounded-lg data-[admin-sortable-dragging=true]:opacity-60 data-[admin-sortable-dragging=true]:ring-1 data-[admin-sortable-dragging=true]:ring-rec">
-                        <button type="button" onClick={() => setMemberId(item.id)} className={"min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm " + (item.id === memberId ? "bg-white/10 text-ivory" : "text-ivory-muted hover:bg-white/5 hover:text-ivory")}><span className="font-mono text-[10px] text-rec">#{item.badgeNumber}</span><span className="ml-2 break-words">{item.name}</span></button>
-                        <button {...memberSorter.handleProps(item.id, item.name, (direction) => moveMember(item.id, direction))} />
-                      </div>;
+                      const orderIndex = content.crew.findIndex((candidate) => candidate.id === item.id);
+                      const { isDragging, activeDropPlacement, setInputFocused, rowProps } = memberDrag.getRowDragProps(item.id);
+                      return (
+                        <div
+                          key={item.id}
+                          {...rowProps}
+                          className={
+                            "group relative flex items-center gap-1.5 rounded-xl border p-2 transition " +
+                            (isDragging
+                              ? "border-dashed border-rec/60 opacity-45"
+                              : item.id === memberId
+                                ? "border-rec/45 bg-white/[0.08]"
+                                : "border-white/10 bg-obsidian/45 hover:border-white/20 hover:bg-white/[0.04]")
+                          }
+                        >
+                          {activeDropPlacement === "before" ? (
+                            <span aria-hidden="true" className="pointer-events-none absolute inset-x-2 -top-[5px] z-10 h-0.5 rounded-full bg-rec shadow-[0_0_8px_#ff4d00]" />
+                          ) : null}
+                          {activeDropPlacement === "after" ? (
+                            <span aria-hidden="true" className="pointer-events-none absolute inset-x-2 -bottom-[5px] z-10 h-0.5 rounded-full bg-rec shadow-[0_0_8px_#ff4d00]" />
+                          ) : null}
+                          <span
+                            title="Kéo thả để đổi vị trí"
+                            className="shrink-0 cursor-grab text-ivory-subtle transition group-hover:text-ivory-muted active:cursor-grabbing"
+                          >
+                            <GripVertical className="h-4 w-4" />
+                          </span>
+                          <OrderBadgeInput
+                            position={orderIndex + 1}
+                            total={content.crew.length}
+                            ariaLabel={`Thứ tự thành viên ${item.name}`}
+                            onMoveToPosition={(target) => moveMemberToOrderPosition(item.id, target)}
+                            onFocusChange={setInputFocused}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setMemberId(item.id)}
+                            className={"min-w-0 flex-1 rounded-lg px-2 py-1 text-left text-sm " + (item.id === memberId ? "font-semibold text-ivory" : "text-ivory-muted group-hover:text-ivory")}
+                          >
+                            <span className="break-words">{item.name}</span>
+                          </button>
+                          <div className="flex shrink-0 flex-col gap-1">
+                            <button type="button" disabled={orderIndex === 0} onClick={() => moveMember(item.id, -1)} aria-label={`Đưa ${item.name} lên trước`} title="Đưa lên trước" className="rounded border border-white/10 p-1 text-ivory-muted hover:border-rec hover:text-ivory disabled:cursor-not-allowed disabled:opacity-30"><ArrowUp className="h-3 w-3" /></button>
+                            <button type="button" disabled={orderIndex === content.crew.length - 1} onClick={() => moveMember(item.id, 1)} aria-label={`Đưa ${item.name} xuống sau`} title="Đưa xuống sau" className="rounded border border-white/10 p-1 text-ivory-muted hover:border-rec hover:text-ivory disabled:cursor-not-allowed disabled:opacity-30"><ArrowDown className="h-3 w-3" /></button>
+                          </div>
+                        </div>
+                      );
                     })}
                     {filteredMembers.length === 0 ? <p className="rounded-lg px-3 py-4 text-sm text-ivory-subtle">Không tìm thấy thành viên.</p> : null}
                   </div>
@@ -495,28 +585,104 @@ export function AdminDashboard() {
             ) : null}
 
             {tab === "projects" ? (
-              <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
-                <div className="space-y-3 rounded-3xl border border-white/10 bg-obsidian-surface p-4">
+              <div className="grid gap-5 xl:grid-cols-[310px_minmax(0,1fr)]">
+                <div className="self-start space-y-3 rounded-3xl border border-white/10 bg-obsidian-surface p-4">
                   <div className="flex items-center justify-between gap-2"><h2 className="font-display text-xl font-bold">Dự án chung ({content.works.length})</h2><button type="button" onClick={addWork} className="rounded-lg bg-rec p-2 text-obsidian" title="Thêm dự án chung"><Plus className="h-4 w-4" /></button></div>
-                  <p className="text-xs leading-relaxed text-ivory-subtle">Kéo tay nắm để đổi thứ tự xuất hiện trên trang dự án và timeline.</p>
-                  <label className="relative block"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ivory-subtle" /><input value={workSearch} onChange={(event) => setWorkSearch(event.target.value)} placeholder="Tìm tên, khách hàng, năm..." aria-label="Tìm dự án" className="w-full rounded-xl border border-white/10 bg-obsidian py-2.5 pl-9 pr-3 text-sm text-ivory outline-none placeholder:text-ivory-subtle focus:border-rec" /></label>
-                  <div className="max-h-[65vh] space-y-1 overflow-y-auto">
+                  <p className="text-xs leading-relaxed text-ivory-subtle">Kéo thả thẻ hoặc bấm ô <span className="font-mono text-rec">#01</span> nhập số thứ tự rồi nhấn Enter để đổi nhanh vị trí trên trang Dự án &amp; Timeline 3D.</p>
+                  <div className="flex items-center gap-2 xl:hidden">
+                    <select aria-label="Chọn dự án để chỉnh sửa" value={workId} onChange={(event) => setWorkId(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-white/10 bg-obsidian px-3 py-3 text-sm text-ivory">
+                      {content.works.map((item) => <option key={item.id} value={item.id}>#{item.indexLabel} · {item.title}{item.showOnHome3D === false ? " · Ẩn 3D" : " · Hiện 3D"}</option>)}
+                    </select>
+                    {workOrderIndex >= 0 ? (
+                      <OrderBadgeInput
+                        size="md"
+                        position={workOrderIndex + 1}
+                        total={content.works.length}
+                        ariaLabel="Số thứ tự dự án đang chọn"
+                        onMoveToPosition={(target) => moveWorkToOrderPosition(workId, target)}
+                      />
+                    ) : null}
+                    <button type="button" disabled={!work || content.works[0]?.id === workId} onClick={() => moveWork(workId, -1)} aria-label="Đưa dự án đang chọn lên" className="h-11 rounded-xl border border-white/10 px-2.5 text-ivory-muted hover:border-rec hover:text-ivory disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
+                    <button type="button" disabled={!work || content.works[content.works.length - 1]?.id === workId} onClick={() => moveWork(workId, 1)} aria-label="Đưa dự án đang chọn xuống" className="h-11 rounded-xl border border-white/10 px-2.5 text-ivory-muted hover:border-rec hover:text-ivory disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
+                  </div>
+                  <label className="relative hidden xl:block"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ivory-subtle" /><input value={workSearch} onChange={(event) => setWorkSearch(event.target.value)} placeholder="Tìm tên, khách hàng, năm..." aria-label="Tìm dự án" className="w-full rounded-xl border border-white/10 bg-obsidian py-2.5 pl-9 pr-3 text-sm text-ivory outline-none placeholder:text-ivory-subtle focus:border-rec" /></label>
+                  <div className="hidden space-y-1.5 xl:block">
                     {filteredWorks.map((item) => {
+                      const orderIndex = content.works.findIndex((candidate) => candidate.id === item.id);
+                      const { isDragging, activeDropPlacement, setInputFocused, rowProps } = workDrag.getRowDragProps(item.id);
                       return (
-                        <div key={item.id} {...workSorter.itemProps(item.id)} className="flex items-center gap-1 rounded-lg data-[admin-sortable-dragging=true]:opacity-60 data-[admin-sortable-dragging=true]:ring-1 data-[admin-sortable-dragging=true]:ring-rec">
-                          <button type="button" onClick={() => setWorkId(item.id)} className={"min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm " + (item.id === workId ? "bg-white/10 text-ivory" : "text-ivory-muted hover:bg-white/5 hover:text-ivory")}>
-                            <span className="font-mono text-[10px] text-rec">{item.indexLabel}</span>
-                            <span className="mt-1 line-clamp-2 leading-snug">{item.title}</span>
-                            <span className={"mt-1 block w-fit rounded px-1.5 py-0.5 text-[10px] font-mono " + (item.showOnHome3D === false ? "bg-white/5 text-ivory-subtle" : "bg-rec/15 text-rec")}>{item.showOnHome3D === false ? "ẨN KHỎI 3D" : "HIỆN 3D"}</span>
-                          </button>
-                          <button {...workSorter.handleProps(item.id, item.title, (direction) => moveWork(item.id, direction))} />
+                        <div
+                          key={item.id}
+                          {...rowProps}
+                          className={
+                            "group relative flex items-center gap-1.5 rounded-xl border p-2.5 transition " +
+                            (isDragging
+                              ? "border-dashed border-rec/60 opacity-45"
+                              : item.id === workId
+                                ? "border-rec/45 bg-white/[0.08]"
+                                : "border-white/10 bg-obsidian/45 hover:border-white/20 hover:bg-white/[0.04]")
+                          }
+                        >
+                          {activeDropPlacement === "before" ? (
+                            <span aria-hidden="true" className="pointer-events-none absolute inset-x-2 -top-[5px] z-10 h-0.5 rounded-full bg-rec shadow-[0_0_8px_#ff4d00]" />
+                          ) : null}
+                          {activeDropPlacement === "after" ? (
+                            <span aria-hidden="true" className="pointer-events-none absolute inset-x-2 -bottom-[5px] z-10 h-0.5 rounded-full bg-rec shadow-[0_0_8px_#ff4d00]" />
+                          ) : null}
+                          <span
+                            title="Kéo thả để đổi thứ tự"
+                            className="shrink-0 cursor-grab text-ivory-subtle transition group-hover:text-ivory-muted active:cursor-grabbing"
+                          >
+                            <GripVertical className="h-4 w-4" />
+                          </span>
+                          <div className="min-w-0 flex-1 space-y-1.5">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <OrderBadgeInput
+                                position={orderIndex + 1}
+                                total={content.works.length}
+                                ariaLabel={`Thứ tự dự án ${item.title}`}
+                                onMoveToPosition={(target) => moveWorkToOrderPosition(item.id, target)}
+                                onFocusChange={setInputFocused}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setWorkId(item.id)}
+                                className={"rounded px-1.5 py-0.5 text-[10px] font-mono " + (item.showOnHome3D === false ? "bg-white/5 text-ivory-subtle" : "bg-rec/15 text-rec")}
+                              >
+                                {item.showOnHome3D === false ? "ẨN KHỎI 3D" : "HIỆN 3D"}
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setWorkId(item.id)}
+                              className={"block w-full text-left text-sm leading-snug " + (item.id === workId ? "font-semibold text-ivory" : "text-ivory-muted group-hover:text-ivory")}
+                            >
+                              <span className="line-clamp-2">{item.title}</span>
+                            </button>
+                          </div>
+                          <div className="flex shrink-0 flex-col gap-1">
+                            <button type="button" disabled={orderIndex === 0} onClick={() => moveWork(item.id, -1)} aria-label={`Đưa dự án ${item.title} lên`} title="Đưa lên trước" className="rounded border border-white/10 p-1 text-ivory-muted hover:border-rec hover:text-ivory disabled:cursor-not-allowed disabled:opacity-30"><ArrowUp className="h-3 w-3" /></button>
+                            <button type="button" disabled={orderIndex === content.works.length - 1} onClick={() => moveWork(item.id, 1)} aria-label={`Đưa dự án ${item.title} xuống`} title="Đưa xuống sau" className="rounded border border-white/10 p-1 text-ivory-muted hover:border-rec hover:text-ivory disabled:cursor-not-allowed disabled:opacity-30"><ArrowDown className="h-3 w-3" /></button>
+                          </div>
                         </div>
                       );
                     })}
                     {filteredWorks.length === 0 ? <p className="rounded-lg px-3 py-4 text-sm text-ivory-subtle">Không tìm thấy dự án.</p> : null}
                   </div>
                 </div>
-                {work ? <ProjectEditor work={work} crew={content.crew} partnerOrganizations={content.partnerOrganizations} canDelete={content.works.length > 1} onChange={(patch) => updateWork(work.id, patch)} onDelete={deleteWork} /> : null}
+                {work ? (
+                  <ProjectEditor
+                    work={work}
+                    workPosition={workOrderIndex + 1}
+                    workCount={content.works.length}
+                    crew={content.crew}
+                    partnerOrganizations={content.partnerOrganizations}
+                    canDelete={content.works.length > 1}
+                    onChange={(patch) => updateWork(work.id, patch)}
+                    onMovePosition={(target) => moveWorkToOrderPosition(work.id, target)}
+                    onDelete={deleteWork}
+                  />
+                ) : null}
               </div>
             ) : null}
 
@@ -575,26 +741,59 @@ export function AdminDashboard() {
                 <section className="space-y-3 rounded-2xl border border-white/10 bg-obsidian/35 p-4 sm:p-5" aria-label="Sắp xếp thanh điều hướng">
                   <div>
                     <h3 className="text-sm font-semibold">Thứ tự thanh điều hướng</h3>
-                    <p className="mt-1 text-xs leading-relaxed text-ivory-subtle">Kéo tay nắm để đổi vị trí các mục trên thanh menu máy tính và điện thoại, sau đó bấm Lưu thay đổi.</p>
+                    <p className="mt-1 text-xs leading-relaxed text-ivory-subtle">Kéo thả, nhập số vào ô <span className="font-mono text-rec">#01</span> rồi nhấn Enter, hoặc dùng mũi tên để đổi vị trí các mục trên menu máy tính và điện thoại.</p>
                   </div>
                   <ol className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                    {normalizeNavigationOrder(content.settings.navOrder).map((itemId, index) => (
-                      <li key={itemId} {...navigationSorter.itemProps(itemId)} className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-obsidian/65 p-3 data-[admin-sortable-dragging=true]:opacity-60 data-[admin-sortable-dragging=true]:ring-1 data-[admin-sortable-dragging=true]:ring-rec">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-rec/10 font-mono text-xs font-bold text-rec">{String(index + 1).padStart(2, "0")}</span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-ivory">{navigationLabels[itemId].label}</p>
-                          <p className="truncate font-mono text-[10px] text-ivory-subtle">{navigationLabels[itemId].path}</p>
-                        </div>
-                        <button {...navigationSorter.handleProps(itemId, navigationLabels[itemId].label, (direction) => moveNavigationItem(itemId, direction))} />
-                      </li>
-                    ))}
+                    {normalizeNavigationOrder(content.settings.navOrder).map((itemId, index, order) => {
+                      const { isDragging, activeDropPlacement, setInputFocused, rowProps } = navDrag.getRowDragProps(itemId, "horizontal");
+                      return (
+                        <li
+                          key={itemId}
+                          {...rowProps}
+                          className={
+                            "group relative flex min-w-0 items-center gap-2.5 rounded-xl border bg-obsidian/65 p-3 transition " +
+                            (isDragging
+                              ? "border-dashed border-rec/60 opacity-45"
+                              : "border-white/10 hover:border-white/25")
+                          }
+                        >
+                          {activeDropPlacement === "before" ? (
+                            <span aria-hidden="true" className="pointer-events-none absolute inset-y-2 -left-[5px] z-10 w-0.5 rounded-full bg-rec shadow-[0_0_8px_#ff4d00]" />
+                          ) : null}
+                          {activeDropPlacement === "after" ? (
+                            <span aria-hidden="true" className="pointer-events-none absolute inset-y-2 -right-[5px] z-10 w-0.5 rounded-full bg-rec shadow-[0_0_8px_#ff4d00]" />
+                          ) : null}
+                          <span
+                            title="Kéo thả để đổi vị trí"
+                            className="shrink-0 cursor-grab text-ivory-subtle transition group-hover:text-ivory-muted active:cursor-grabbing"
+                          >
+                            <GripVertical className="h-4 w-4" />
+                          </span>
+                          <OrderBadgeInput
+                            position={index + 1}
+                            total={order.length}
+                            ariaLabel={`Thứ tự mục menu ${navigationLabels[itemId].label}`}
+                            onMoveToPosition={(target) => moveNavigationItemToPosition(itemId, target)}
+                            onFocusChange={setInputFocused}
+                          />
+                          <div className="min-w-0 flex-1 cursor-grab active:cursor-grabbing">
+                            <p className="truncate text-sm font-semibold text-ivory">{navigationLabels[itemId].label}</p>
+                            <p className="truncate font-mono text-[10px] text-ivory-subtle">{navigationLabels[itemId].path}</p>
+                          </div>
+                          <div className="flex shrink-0 gap-1">
+                            <button type="button" onClick={() => moveNavigationItem(itemId, -1)} disabled={index === 0} aria-label={`Đưa ${navigationLabels[itemId].label} lên`} className="rounded-lg border border-white/10 p-1.5 text-ivory-muted transition hover:border-rec hover:text-rec disabled:cursor-not-allowed disabled:opacity-30"><ArrowUp className="h-3.5 w-3.5" /></button>
+                            <button type="button" onClick={() => moveNavigationItem(itemId, 1)} disabled={index === order.length - 1} aria-label={`Đưa ${navigationLabels[itemId].label} xuống`} className="rounded-lg border border-white/10 p-1.5 text-ivory-muted transition hover:border-rec hover:text-rec disabled:cursor-not-allowed disabled:opacity-30"><ArrowDown className="h-3.5 w-3.5" /></button>
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ol>
                 </section>
-                <details className="rounded-xl border border-white/10 p-4"><summary className="cursor-pointer text-sm font-semibold">Đổi tên mục điều hướng</summary><div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <details className="rounded-xl border border-white/10 p-4"><summary className="cursor-pointer text-sm font-semibold">Nhãn điều hướng</summary><div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <AdminField label="Trang chủ" value={content.settings.navTimelineLabel} onChange={(navTimelineLabel) => update("settings", { ...content.settings, navTimelineLabel })} />
                   <AdminField label="Dự án" value={content.settings.navProjectsLabel} onChange={(navProjectsLabel) => update("settings", { ...content.settings, navProjectsLabel })} />
                   <AdminField label="Thành viên" value={content.settings.navCrewLabel} onChange={(navCrewLabel) => update("settings", { ...content.settings, navCrewLabel })} />
-                  <AdminField label="Partners" value={content.settings.navPartnersLabel} onChange={(navPartnersLabel) => update("settings", { ...content.settings, navPartnersLabel })} />
+                  <AdminField label="Đơn vị đồng hành" value={content.settings.navPartnersLabel} onChange={(navPartnersLabel) => update("settings", { ...content.settings, navPartnersLabel })} />
                   <AdminField label="About" value={content.settings.navAboutLabel} onChange={(navAboutLabel) => update("settings", { ...content.settings, navAboutLabel })} />
                   <AdminField label="Liên hệ" value={content.settings.navContactLabel} onChange={(navContactLabel) => update("settings", { ...content.settings, navContactLabel })} />
                 </div></details>

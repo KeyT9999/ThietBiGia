@@ -105,7 +105,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ ok: false, error: "Chỉ có thể chọn dự án chung đã gắn với profile này." }, { status: 400 });
     }
     const allowedOrderIds = new Set([
-      ...nextProfile.showcase.map((item) => item.id),
+      ...nextProfile.showcase.flatMap((item) => [item.id, `showcase-${item.id}`]),
       ...eligible.filter((work) => selectedIds.includes(work.id)).map((work) => `work-${work.id}`),
     ]);
     if (nextProfile.profileProjectOrder?.some((id) => !allowedOrderIds.has(id))) {

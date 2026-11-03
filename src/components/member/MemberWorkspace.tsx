@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Building2, Camera, Check, CircleUserRound, Images, KeyRound, LogOut, Save, ShieldCheck, ShoppingBag, UserRound } from "lucide-react";
 import type { CrewMember, PartnerOrganization, WorkProject } from "@/data/schema";
-import { useSetSiteContent } from "@/lib/store";
+import { useAppStore, useSetSiteContent } from "@/lib/store";
 import type { SiteContent } from "@/lib/content-schema";
 import { AdminField, AdminImageField, AdminStringListField } from "@/components/admin/AdminFields";
 import { MemberProjectsEditor } from "@/components/admin/MemberProjectsEditor";
@@ -44,6 +44,7 @@ export function MemberWorkspace() {
       .then(async (response) => {
         const result = await response.json();
         if (response.status === 401) {
+          useAppStore.getState().setAuthenticatedMemberId(null);
           router.replace("/member/login");
           return null;
         }
@@ -52,7 +53,9 @@ export function MemberWorkspace() {
       })
       .then((result) => {
         if (!alive || !result) return;
-        setProfile(result.profile as CrewMember);
+        const loadedProfile = result.profile as CrewMember;
+        setProfile(loadedProfile);
+        useAppStore.getState().setAuthenticatedMemberId(loadedProfile.id);
         setWorks(result.works as WorkProject[]);
         setCrew(result.crew as CrewMember[]);
         setPartnerOrganizations(result.partnerOrganizations as PartnerOrganization[]);
@@ -113,6 +116,7 @@ export function MemberWorkspace() {
 
   async function logout() {
     await fetch("/api/member/auth/logout", { method: "POST" });
+    useAppStore.getState().setAuthenticatedMemberId(null);
     router.replace("/member/login");
     router.refresh();
   }

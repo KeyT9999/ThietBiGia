@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 import { type CrewMember } from "@/data/schema";
+import { extractGoogleDriveFolderId } from "@/lib/google-drive";
 import {
   getTeammatesForMember,
   getUnifiedProjectsForMember,
@@ -34,7 +35,7 @@ import { getCombinedRoleBadge, getRoleMeta } from "@/lib/utils";
 import { DecoderText } from "@/components/layout/DecoderText";
 import { MemberProjectCard } from "./MemberProjectCard";
 import { soundEngine } from "@/lib/sound";
-import { useSiteContent } from "@/lib/store";
+import { useAuthenticatedMemberId, useSiteContent } from "@/lib/store";
 
 const LanyardPressPass3DView = dynamic(
   () =>
@@ -67,6 +68,8 @@ export function MemberSpotlightView({
   isModal?: boolean;
 }) {
   const siteContent = useSiteContent();
+  const authenticatedMemberId = useAuthenticatedMemberId();
+  const isOwnProfile = authenticatedMemberId === member.id;
   const crewMembers = siteContent.crew;
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -80,6 +83,7 @@ export function MemberSpotlightView({
   const [driveAlbumLoading, setDriveAlbumLoading] = useState(false);
   const [driveAlbumError, setDriveAlbumError] = useState("");
   const progressBarRef = useRef<HTMLDivElement>(null);
+  const badgeSlotRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -191,6 +195,8 @@ export function MemberSpotlightView({
     }
 
     const controller = new AbortController();
+    const folderId = extractGoogleDriveFolderId(lightboxProject.galleryDriveFolderUrl);
+    if (folderId) params.set("v", folderId);
     setDriveAlbumImages(null);
     setDriveAlbumLoading(true);
     setDriveAlbumError("");
@@ -254,15 +260,15 @@ export function MemberSpotlightView({
   };
 
   return (
-    <div className="relative min-h-[100dvh] w-full flex flex-col pt-[72px]">
+    <div className="relative min-h-[100dvh] w-full overflow-x-clip flex flex-col pt-[72px]">
       {/* Ambient Radial Studio Glow behind z-40 PersistentCanvas in Modal mode */}
       {isModal && mounted
         ? createPortal(
             <div
               aria-hidden="true"
-              className="pointer-events-none fixed top-[120px] bottom-0 left-0 w-full md:w-[42%] z-[35] opacity-30"
+              className="pointer-events-none fixed top-[120px] bottom-0 left-0 w-full md:w-[46%] z-[35] opacity-30"
               style={{
-                background: `radial-gradient(circle at 50% 45%, ${roleMeta.color}36 0%, transparent 68%)`,
+                background: `radial-gradient(closest-side at 50% 45%, ${roleMeta.color}36 0%, transparent 100%)`,
               }}
             />,
             document.body
@@ -326,29 +332,35 @@ export function MemberSpotlightView({
       </div>
 
       {/* Two-Column Split Layout: Left 3D Physics Lanyard Badge (sticky from 768px+) + Right Bento Showcase */}
-      <div className="member-profile-layout w-full flex-1 grid grid-cols-1 md:items-start">
-        {/* The 3D view includes the desktop left gutter; the editorial column stays aligned. */}
-        <div className="member-profile-badge min-w-0 relative border-b md:border-b-0 md:border-r border-obsidian-border/80 flex flex-col justify-between h-[420px] sm:h-[460px] md:h-[calc(100dvh-120px)] md:sticky md:top-[120px] touch-pan-y">
+      <div className="max-w-[1600px] w-full mx-auto flex-1 grid grid-cols-1 md:grid-cols-12 md:items-start">
+        {/* LEFT COLUMN (41.6%): 3D Hanging Holographic Press Pass */}
+        <div className="md:col-span-5 relative z-10 border-b md:border-b-0 md:border-r border-obsidian-border/80 flex flex-col justify-between h-[420px] sm:h-[460px] md:h-[calc(100dvh-120px)] md:sticky md:top-[120px] touch-pan-y">
           {!isModal && (
             <div
+              aria-hidden="true"
               className="pointer-events-none absolute inset-0 z-0 opacity-30"
               style={{
-                background: `radial-gradient(circle at 50% 45%, ${roleMeta.color}33 0%, transparent 68%)`,
+                background: `radial-gradient(closest-side at 50% 45%, ${roleMeta.color}33 0%, transparent 100%)`,
               }}
             />
           )}
 
-          {/* Tracked WebGL View Box (transparent so PersistentCanvas z-40 shines through cleanly) */}
-          <div className="relative z-10 flex-1 w-full min-h-0">
-            <LanyardPressPass3DView
-              member={member}
-              flipped={badgeFlipped}
-              onToggleFlip={() => setBadgeFlipped((f) => !f)}
-            />
-          </div>
+          {/* Optical reference slot for centering the 3D Press Pass inside the left column */}
+          <div
+            ref={badgeSlotRef}
+            className="pointer-events-none relative z-0 flex-1 w-full min-h-0"
+          />
+
+          {/* Full-bleed Tracked WebGL View Stage (extends across full viewport width so swinging card never clips!) */}
+          <LanyardPressPass3DView
+            member={member}
+            flipped={badgeFlipped}
+            onToggleFlip={() => setBadgeFlipped((f) => !f)}
+            slotRef={badgeSlotRef}
+          />
 
           {/* Bottom Drag Instruction Pill + 180° QR Flip Button */}
-          <div className="relative z-20 px-4 sm:px-5 pb-4 pt-2 flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-ivory-muted">
+          <div className="pointer-events-none relative z-20 px-4 sm:px-5 pb-4 pt-2 flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-ivory-muted">
             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-obsidian-border bg-obsidian-surface/85 backdrop-blur-md">
               <Hand className="w-3.5 h-3.5 text-rec" />
               <span>KÉO THẺ ĐUNG ĐƯA</span>
@@ -360,7 +372,7 @@ export function MemberSpotlightView({
                 soundEngine.playShutter();
                 setBadgeFlipped((f) => !f);
               }}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border font-bold transition-all cursor-pointer ${
+              className={`pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border font-bold transition-all cursor-pointer ${
                 badgeFlipped
                   ? "bg-rec text-obsidian border-rec shadow-[0_0_16px_rgba(255,77,0,0.45)]"
                   : "border-rec/45 bg-obsidian-surface/90 text-ivory hover:border-rec hover:text-rec"
@@ -373,7 +385,7 @@ export function MemberSpotlightView({
         </div>
 
         {/* RIGHT COLUMN (58.3%): Editorial Bio + Bento Media Showcase + Đồng Đội Cùng Ekip */}
-        <div className="member-profile-content min-w-0 relative z-20 bg-obsidian p-5 sm:p-8 lg:p-10 pb-24 space-y-10">
+        <div className="md:col-span-7 relative z-20 bg-obsidian md:bg-transparent p-5 sm:p-8 lg:p-10 pb-24 space-y-10">
           {/* Member Intro & Gear Spec */}
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -414,17 +426,31 @@ export function MemberSpotlightView({
                 </p>
               </div>
 
-              <Link
-                href={`/contact?crew=${member.slug}`}
-                onClick={() => soundEngine.playShutter()}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-rec hover:bg-rec-glow text-obsidian font-mono font-bold text-xs transition-colors"
-              >
-                <CalendarPlus className="w-3.5 h-3.5" />
-                <span>
-                  ĐẶT LỊCH CÙNG{" "}
-                  {(member.nickname ?? member.name.split(" ").slice(-2).join(" ")).toUpperCase()}
-                </span>
-              </Link>
+              <div className="flex flex-wrap items-center gap-2.5">
+                {isOwnProfile && (
+                  <Link
+                    href="/member/profile"
+                    prefetch={false}
+                    onClick={() => soundEngine.playTick(0.85)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-emerald-400/50 bg-emerald-400/10 hover:border-emerald-300 hover:bg-emerald-400/20 text-emerald-200 font-mono font-bold text-xs transition-colors"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>QUẢN LÝ &amp; SỬA PROFILE</span>
+                  </Link>
+                )}
+
+                <Link
+                  href={`/contact?crew=${member.slug}`}
+                  onClick={() => soundEngine.playShutter()}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-rec hover:bg-rec-glow text-obsidian font-mono font-bold text-xs transition-colors"
+                >
+                  <CalendarPlus className="w-3.5 h-3.5" />
+                  <span>
+                    ĐẶT LỊCH CÙNG{" "}
+                    {(member.nickname ?? member.name.split(" ").slice(-2).join(" ")).toUpperCase()}
+                  </span>
+                </Link>
+              </div>
             </div>
 
             <p className="text-sm sm:text-base text-ivory/85 leading-relaxed max-w-3xl whitespace-pre-line break-words">

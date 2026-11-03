@@ -15,6 +15,7 @@ import { getRoleMeta } from "@/lib/utils";
 import { useSiteContent } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
 import { shouldUseYoutubeCoverPreview } from "@/lib/youtube";
+import { extractGoogleDriveFolderId } from "@/lib/google-drive";
 import { YouTubePreview } from "@/components/works/YouTubePreview";
 import type { PartnerOrganization } from "@/data/schema";
 
@@ -54,6 +55,8 @@ export function MemberProjectCard({
       return "";
     }
     params.set("limit", "11");
+    const folderId = extractGoogleDriveFolderId(project.galleryDriveFolderUrl);
+    if (folderId) params.set("v", folderId);
     return `/api/works/gallery?${params.toString()}`;
   })();
   const personalPartners = siteContent.crew.find((member) => member.slug === memberSlug)?.partnerOrganizations ?? [];
@@ -111,9 +114,7 @@ export function MemberProjectCard({
     ? driveLoading || Boolean(driveError) || drivePreviewFrames.length > 0
     : frames.length > 1;
   const isWide = project.span ? project.span === "wide" : featured;
-  const cardSpan = project.span === "tall"
-    ? "col-span-12 xl:col-span-5"
-    : isWide
+  const cardSpan = isWide
     ? "col-span-12"
     : "col-span-12 xl:col-span-6";
   const stageAspect = project.span === "tall"
@@ -152,11 +153,10 @@ export function MemberProjectCard({
     <article
       className={`${
         cardSpan
-      } rounded-2xl border border-obsidian-border hover:border-rec/65 bg-obsidian-surface overflow-hidden flex flex-col justify-between transition-all shadow-[0_12px_36px_rgba(0,0,0,0.35)] group`}
+      } rounded-2xl border border-obsidian-border hover:border-rec/65 bg-obsidian-surface overflow-hidden flex flex-col transition-all shadow-[0_12px_36px_rgba(0,0,0,0.35)] group`}
     >
-      <div>
         {/* Top Camera Viewfinder Bar + Multi-Frame Segment Progress */}
-        <div className="px-4 pt-3 pb-2.5 bg-obsidian/90 border-b border-obsidian-border space-y-2">
+        <div className="shrink-0 px-4 pt-3 pb-2.5 bg-obsidian/90 border-b border-obsidian-border space-y-2">
           <div className="flex items-center justify-between gap-2 text-xs font-mono">
             <div className="flex items-center gap-2 min-w-0">
               <span
@@ -210,7 +210,7 @@ export function MemberProjectCard({
           )}
         </div>
 
-        {/* Main Cinema / Gallery Stage */}
+        {/* Main Cinema / Gallery Stage (grows cleanly to match taller grid siblings so zero empty black void ever forms) */}
         <div
           onPointerEnter={(event) => {
             setIsHovered(true);
@@ -224,7 +224,7 @@ export function MemberProjectCard({
           onClick={() => onOpenAlbum(project, toAlbumFrameIndex(activeFrame))}
           className={`relative ${
             stageAspect
-          } group/stage w-full bg-obsidian overflow-hidden cursor-pointer flex items-center justify-center`}
+          } grow group/stage w-full bg-obsidian overflow-hidden cursor-pointer`}
         >
           {shouldPlayVideoCover ? (
             <YouTubePreview
@@ -238,45 +238,55 @@ export function MemberProjectCard({
               <img
                 src={project.coverImage}
                 alt=""
-                className="pointer-events-none absolute inset-0 z-0 h-full w-full scale-110 object-cover blur-2xl opacity-35 transition-opacity duration-300 group-hover/stage:opacity-0"
+                className="pointer-events-none absolute inset-0 z-0 h-full w-full scale-110 object-cover blur-2xl opacity-45 transition-opacity duration-300 group-hover/stage:opacity-0"
               />
               <img
                 src={currentSrc}
                 alt=""
-                className="pointer-events-none absolute inset-0 z-0 h-full w-full scale-110 object-cover blur-2xl opacity-0 transition-opacity duration-300 group-hover/stage:opacity-35"
+                className="pointer-events-none absolute inset-0 z-0 h-full w-full scale-110 object-cover blur-2xl opacity-0 transition-opacity duration-300 group-hover/stage:opacity-45"
               />
-              <img
-                src={project.coverImage}
-                alt={`${project.title} — Ảnh bìa`}
-                onLoad={(e) => {
-                  const el = e.currentTarget;
-                  setIsCoverPortraitFrame(el.naturalHeight > el.naturalWidth * 1.05);
-                }}
-                className={`z-10 rounded-lg shadow-2xl transition-opacity duration-300 group-hover/stage:opacity-0 ${
-                  isCoverPortraitFrame
-                    ? "relative h-full w-auto max-w-full object-contain"
-                    : "relative h-full w-full object-cover object-[50%_20%]"
-                }`}
-              />
-              <img
-                ref={(el) => {
-                  if (el?.complete && el.naturalWidth > 0) {
-                    const nextPortrait = el.naturalHeight > el.naturalWidth * 1.05;
-                    if (nextPortrait !== isPortraitFrame) setIsPortraitFrame(nextPortrait);
+              <div className="absolute inset-0 z-10 flex items-center justify-center transition-opacity duration-300 group-hover/stage:opacity-0">
+                <img
+                  ref={(el) => {
+                    if (el?.complete && el.naturalWidth > 0) {
+                      const nextPortrait = el.naturalHeight > el.naturalWidth * 1.05;
+                      if (nextPortrait !== isCoverPortraitFrame) setIsCoverPortraitFrame(nextPortrait);
+                    }
+                  }}
+                  src={project.coverImage}
+                  alt={`${project.title} — Ảnh bìa`}
+                  onLoad={(e) => {
+                    const el = e.currentTarget;
+                    setIsCoverPortraitFrame(el.naturalHeight > el.naturalWidth * 1.05);
+                  }}
+                  className={
+                    isCoverPortraitFrame
+                      ? "h-full w-auto max-w-full object-contain drop-shadow-2xl"
+                      : "h-full w-full object-cover object-[50%_20%]"
                   }
-                }}
-                src={currentSrc}
-                alt={`${project.title} — Frame ${activeFrame + 1}`}
-                onLoad={(e) => {
-                  const el = e.currentTarget;
-                  setIsPortraitFrame(el.naturalHeight > el.naturalWidth * 1.05);
-                }}
-                className={`z-10 rounded-lg opacity-0 shadow-2xl transition-opacity duration-300 group-hover/stage:opacity-100 ${
-                  isPortraitFrame
-                    ? "absolute inset-y-0 left-1/2 h-full w-auto max-w-full -translate-x-1/2 object-contain"
-                    : "absolute inset-0 h-full w-full object-cover object-[50%_20%]"
-                }`}
-              />
+                />
+              </div>
+              <div className="absolute inset-0 z-10 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover/stage:opacity-100">
+                <img
+                  ref={(el) => {
+                    if (el?.complete && el.naturalWidth > 0) {
+                      const nextPortrait = el.naturalHeight > el.naturalWidth * 1.05;
+                      if (nextPortrait !== isPortraitFrame) setIsPortraitFrame(nextPortrait);
+                    }
+                  }}
+                  src={currentSrc}
+                  alt={`${project.title} — Frame ${activeFrame + 1}`}
+                  onLoad={(e) => {
+                    const el = e.currentTarget;
+                    setIsPortraitFrame(el.naturalHeight > el.naturalWidth * 1.05);
+                  }}
+                  className={
+                    isPortraitFrame
+                      ? "h-full w-auto max-w-full object-contain drop-shadow-2xl"
+                      : "h-full w-full object-cover object-[50%_20%]"
+                  }
+                />
+              </div>
             </>
           ) : (
             <>
@@ -284,28 +294,30 @@ export function MemberProjectCard({
               <img
                 src={currentSrc}
                 alt=""
-                className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-2xl opacity-35"
+                className="pointer-events-none absolute inset-0 h-full w-full scale-125 object-cover blur-3xl opacity-70"
               />
 
-              <img
-                ref={(el) => {
-                  if (el?.complete && el.naturalWidth > 0) {
-                    const nextPortrait = el.naturalHeight > el.naturalWidth * 1.05;
-                    if (nextPortrait !== isPortraitFrame) setIsPortraitFrame(nextPortrait);
+              <div className="absolute inset-0 z-10 flex items-center justify-center">
+                <img
+                  ref={(el) => {
+                    if (el?.complete && el.naturalWidth > 0) {
+                      const nextPortrait = el.naturalHeight > el.naturalWidth * 1.05;
+                      if (nextPortrait !== isPortraitFrame) setIsPortraitFrame(nextPortrait);
+                    }
+                  }}
+                  src={currentSrc}
+                  alt={`${project.title} — Frame ${activeFrame + 1}`}
+                  onLoad={(e) => {
+                    const el = e.currentTarget;
+                    setIsPortraitFrame(el.naturalHeight > el.naturalWidth * 1.05);
+                  }}
+                  className={
+                    isPortraitFrame
+                      ? "h-full w-auto max-w-full object-contain shadow-xl transition-transform duration-500 group-hover:scale-[1.02]"
+                      : "h-full w-full object-cover object-[50%_20%] transition-transform duration-500 group-hover:scale-[1.03]"
                   }
-                }}
-                src={currentSrc}
-                alt={`${project.title} — Frame ${activeFrame + 1}`}
-                onLoad={(e) => {
-                  const el = e.currentTarget;
-                  setIsPortraitFrame(el.naturalHeight > el.naturalWidth * 1.05);
-                }}
-                className={
-                  isPortraitFrame
-                    ? "relative z-10 h-full w-auto max-w-full object-contain drop-shadow-[0_12px_28px_rgba(0,0,0,0.75)] transition-transform duration-500 group-hover:scale-[1.02]"
-                    : "relative z-10 h-full w-full object-cover object-[50%_20%] transition-transform duration-500 group-hover:scale-[1.03]"
-                }
-              />
+                />
+              </div>
             </>
           )}
 
@@ -338,7 +350,7 @@ export function MemberProjectCard({
 
         {/* Contact Sheet Filmstrip Bar (Direct Visual Preview of Every Frame!) */}
         {showFrameStrip && (
-          <div className="px-3 py-2.5 bg-obsidian/85 border-t border-obsidian-border flex items-center gap-2 overflow-x-auto">
+          <div className="shrink-0 px-3 py-2.5 bg-obsidian/85 border-t border-obsidian-border flex items-center gap-2 overflow-x-auto">
             {driveLoading && (
               <span className="shrink-0 px-2 py-1 text-xs font-mono text-ivory-muted">
                 ĐANG TẢI ẢNH DRIVE…
@@ -386,10 +398,9 @@ export function MemberProjectCard({
             )}
           </div>
         )}
-      </div>
 
       {/* Card Editorial Footer: Summary, Camera Spec, Ekip Co-Creators & Case-Study Link */}
-      <div className="p-4 sm:p-5 border-t border-obsidian-border/80 space-y-3.5 bg-obsidian-surface">
+      <div className="shrink-0 p-4 sm:p-5 border-t border-obsidian-border/80 space-y-3.5 bg-obsidian-surface">
         <p className="text-xs sm:text-sm text-ivory/80 line-clamp-2 leading-relaxed">
           {project.summary}
         </p>

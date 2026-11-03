@@ -505,6 +505,7 @@ export function getUnifiedProjectsForMember(
   works: WorkProject[] = WORKS_DATA,
   crew: CrewMember[] = CREW_MEMBERS
 ): UnifiedMemberProject[] {
+  const existingWorkSlugs = new Set(works.map((w) => w.slug));
   const selectedWorkIds = new Set(getSharedWorkIdsForMember(member, works));
   const memberWorks = getWorksForMember(member.slug, works).filter((work) => selectedWorkIds.has(work.id));
   const seenWorkSlugs = new Set<string>();
@@ -553,10 +554,21 @@ export function getUnifiedProjectsForMember(
 
   const fromShowcase: UnifiedMemberProject[] = [];
   for (const item of member.showcase) {
-    if (item.projectSlug && seenWorkSlugs.has(item.projectSlug)) continue;
-    const itemFrames =
-      item.gallery && item.gallery.length > 0 ? item.gallery : [item.image];
-    if (!item.galleryDriveFolderUrl && itemFrames.length <= 1 && seenCoverImages.has(item.image)) continue;
+    const cleanCover = item.image?.trim() ?? "";
+    const cleanGallery = (item.gallery ?? []).map((img) => img.trim()).filter(Boolean);
+    const hasVideo = Boolean(item.videoUrl?.trim());
+    const hasDrive = Boolean(item.galleryDriveFolderUrl?.trim());
+    if (!cleanCover && cleanGallery.length === 0 && !hasVideo && !hasDrive) continue;
+
+    const resolvedWorkSlug =
+      item.projectSlug && existingWorkSlugs.has(item.projectSlug)
+        ? item.projectSlug
+        : undefined;
+    if (resolvedWorkSlug && seenWorkSlugs.has(resolvedWorkSlug)) continue;
+
+    const effectiveCover = cleanCover || cleanGallery[0] || "/media/works/work-01.jpg";
+    const itemFrames = cleanGallery.length > 0 ? cleanGallery : [effectiveCover];
+    if (!hasDrive && itemFrames.length <= 1 && seenCoverImages.has(effectiveCover)) continue;
 
     fromShowcase.push({
       id: `showcase-${item.id}`,
@@ -572,13 +584,13 @@ export function getUnifiedProjectsForMember(
       summary:
         item.description ??
         `${item.subtitle} — Thực hiện bởi ${member.name} (${member.roleTitle}).`,
-      coverImage: item.image,
-      frames: item.galleryDriveFolderUrl
-        ? [item.image, ...itemFrames.filter((image) => image !== item.image)]
+      coverImage: effectiveCover,
+      frames: hasDrive
+        ? [effectiveCover, ...itemFrames.filter((image) => image !== effectiveCover)]
         : itemFrames,
       galleryDriveFolderUrl: item.galleryDriveFolderUrl,
       showcaseItemId: item.id,
-      workSlug: item.projectSlug,
+      workSlug: resolvedWorkSlug,
       partnerIds: item.partnerIds ?? [],
       kind: item.kind,
       span: item.span,
@@ -617,6 +629,76 @@ export function getUnifiedProjectsForMember(
     return [project];
   });
   return [...savedOrder, ...defaultOrder.filter((project) => !seen.has(project.id))];
+}
+
+export interface PersonalArchiveProjectEntry {
+  id: string;
+  owner: CrewMember;
+  project: UnifiedMemberProject;
+}
+
+function isStockPlaceholderPath(src: string): boolean {
+  const path = src.trim().replace(/^https?:\/\/[^/]+/i, "").split(/[?#]/, 1)[0];
+  return !path || /^\/(?:media\/works\/work-\d+|anhchungtbg\d*)\.(?:jpe?g|png|webp)$/i.test(path);
+}
+
+/**
+ * Collects real standalone personal projects across all crew members for the `/works` archive
+ * (excluding collective `works` duplicates, untouched stock placeholders, and FUDA portrait bio cards).
+ */
+export function getCuratedPersonalArchiveProjects(
+  crew: CrewMember[] = CREW_MEMBERS,
+  works: WorkProject[] = WORKS_DATA
+): PersonalArchiveProjectEntry[] {
+  const existingWorkCovers = new Set(
+    works.map((w) => w.coverImage.trim()).filter(Boolean)
+  );
+  const entries: PersonalArchiveProjectEntry[] = [];
+
+  for (const member of crew) {
+    const unified = getUnifiedProjectsForMember(member, works, crew);
+    for (const project of unified) {
+      if (project.scope !== "personal") continue;
+      if (project.workSlug) continue;
+
+      const rawId = project.showcaseItemId ?? "";
+      const isFudaBioCard =
+        rawId.endsWith("-fuda") ||
+        rawId === "tkt-4" ||
+        /fuda masteralbum/i.test(project.title);
+      if (isFudaBioCard) continue;
+
+      const hasVideo = Boolean(project.videoUrl?.trim());
+      const hasDrive = Boolean(project.galleryDriveFolderUrl?.trim());
+      const allFramesStock =
+        isStockPlaceholderPath(project.coverImage) &&
+        project.frames.every((frame) => isStockPlaceholderPath(frame));
+      if (allFramesStock && !hasVideo && !hasDrive) continue;
+
+      if (
+        !hasDrive &&
+        project.frames.length <= 1 &&
+        existingWorkCovers.has(project.coverImage.trim())
+      ) {
+        continue;
+      }
+
+      entries.push({
+        id: `personal-${member.slug}-${project.id}`,
+        owner: member,
+        project,
+      });
+    }
+  }
+
+  return entries;
+}
+
+export function getTotalArchiveProjectCount(
+  works: WorkProject[] = WORKS_DATA,
+  crew: CrewMember[] = CREW_MEMBERS
+): number {
+  return works.length + getCuratedPersonalArchiveProjects(crew, works).length;
 }
 
 if (process.env.NODE_ENV !== "production") {

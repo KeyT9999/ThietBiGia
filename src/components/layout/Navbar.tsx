@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Volume2, VolumeX, Menu, X, Search, UserRound } from "lucide-react";
-import { useAppStore, useSiteContent } from "@/lib/store";
+import { getTotalArchiveProjectCount } from "@/data/works";
+import { useAppStore, useAuthenticatedMemberId, useSiteContent } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
 import { normalizeNavigationOrder } from "@/lib/navigation-order";
 import { BrandLogo } from "./BrandLogo";
@@ -12,6 +13,10 @@ import { BrandLogo } from "./BrandLogo";
 export function Navbar() {
   const pathname = usePathname();
   const siteContent = useSiteContent();
+  const authenticatedMemberId = useAuthenticatedMemberId();
+  const loggedInMember = authenticatedMemberId
+    ? siteContent.crew.find((member) => member.id === authenticatedMemberId) ?? null
+    : null;
   const settings = siteContent.settings;
   const partnerCount = new Set([
     ...siteContent.partnerOrganizations.map((organization) => organization.id),
@@ -53,7 +58,7 @@ export function Navbar() {
     {
       id: "projects",
       href: "/works",
-      label: (settings.navProjectsLabel || "PROJECTS") + " [" + siteContent.works.length + "]",
+      label: (settings.navProjectsLabel || "PROJECTS") + " [" + getTotalArchiveProjectCount(siteContent.works, siteContent.crew) + "]",
       match: (p: string) => p.startsWith("/works"),
     },
     {
@@ -65,7 +70,7 @@ export function Navbar() {
     {
       id: "partners",
       href: "/partners",
-      label: (settings.navPartnersLabel || "PARTNERS") + " [" + partnerCount + "]",
+      label: (settings.navPartnersLabel || "ĐƠN VỊ ĐỒNG HÀNH") + " [" + partnerCount + "]",
       match: (p: string) => p.startsWith("/partners"),
     },
     { id: "about", href: "/about", label: settings.navAboutLabel || "ABOUT & GEAR", match: (p: string) => p.startsWith("/about") },
@@ -91,7 +96,7 @@ export function Navbar() {
 
       <header className="fixed top-[max(0.625rem,env(safe-area-inset-top))] left-[max(0.5rem,env(safe-area-inset-left))] right-[max(0.5rem,env(safe-area-inset-right))] sm:top-3 sm:left-5 sm:right-5 z-[60]">
       <div className="mx-auto max-w-[1680px] rounded-xl border border-obsidian-border/90 bg-obsidian-surface/90 backdrop-blur-xl px-2.5 min-[390px]:px-3.5 sm:px-6 h-14 flex items-center justify-between gap-1.5 sm:gap-4 shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
-        {/* Brand wordmark aligned beside the logo */}
+        {/* Brand wordmark beside the logo */}
         <Link
           href="/"
           aria-label="Về trang chủ Thiết Bị Gia"
@@ -110,8 +115,8 @@ export function Navbar() {
         </Link>
 
         {/* Right Nav + Sound + Live Time */}
-        <div className="flex items-center gap-1 sm:gap-2 xl:gap-5 shrink-0">
-          <nav className="hidden lg:flex items-center gap-1">
+        <div className="flex items-center gap-1 sm:gap-2 xl:gap-2 2xl:gap-4 shrink-0">
+          <nav className="hidden xl:flex items-center gap-0.5 2xl:gap-1">
             {navItems.map((item) => {
               const active = item.match(pathname);
               return (
@@ -119,7 +124,7 @@ export function Navbar() {
                   key={item.href}
                   href={item.href}
                   onMouseEnter={() => soundEngine.playHover()}
-                  className={`relative px-2.5 py-1.5 text-xs font-mono tracking-wider transition-colors rounded-md xl:px-3 ${
+                  className={`relative px-2 py-1.5 text-xs font-mono tracking-wider whitespace-nowrap transition-colors rounded-md 2xl:px-3 ${
                     active
                       ? "text-ivory font-semibold bg-white/[0.06]"
                       : "text-ivory-muted hover:text-ivory"
@@ -134,11 +139,39 @@ export function Navbar() {
             })}
           </nav>
 
-          <div className="h-4 w-[1px] bg-obsidian-border hidden lg:block" />
+          <div className="h-4 w-[1px] bg-obsidian-border hidden xl:block" />
 
-          <Link href="/member/login" title="Đăng nhập dành cho thành viên" className="hidden xl:inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-obsidian-border bg-obsidian/70 px-2.5 py-1.5 text-[10px] font-mono text-ivory-muted transition-colors hover:border-rec/60 hover:text-ivory">
-            <UserRound className="h-3.5 w-3.5 text-rec" /> MEMBER
-          </Link>
+          {loggedInMember ? (
+            <Link
+              href="/member/profile"
+              prefetch={false}
+              title={`Mở Member Studio của ${loggedInMember.name}`}
+              className="hidden sm:inline-flex min-h-10 items-center gap-2 rounded-lg border border-emerald-400/40 bg-emerald-400/10 px-2.5 py-1.5 text-[10px] font-mono font-semibold text-ivory transition-colors hover:border-rec hover:bg-rec/15"
+            >
+              {loggedInMember.avatar ? (
+                <img
+                  src={loggedInMember.avatar}
+                  alt=""
+                  className="h-5 w-5 rounded-full border border-emerald-400/60 object-cover"
+                />
+              ) : (
+                <UserRound className="h-3.5 w-3.5 text-emerald-400" />
+              )}
+              <span className="max-w-[115px] truncate uppercase">
+                {(loggedInMember.nickname ?? loggedInMember.name.split(" ").slice(-1)[0]).toUpperCase()} • STUDIO
+              </span>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            </Link>
+          ) : (
+            <Link
+              href="/member"
+              prefetch={false}
+              title="Đăng nhập dành cho thành viên"
+              className="hidden xl:inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-obsidian-border bg-obsidian/70 px-2.5 py-1.5 text-[10px] font-mono text-ivory-muted transition-colors hover:border-rec/60 hover:text-ivory"
+            >
+              <UserRound className="h-3.5 w-3.5 text-rec" /> MEMBER
+            </Link>
+          )}
 
           <button
             type="button"
@@ -164,10 +197,10 @@ export function Navbar() {
             }`}
           >
             {soundMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-rec" />}
-            <span className="hidden xl:inline">{soundMuted ? "MUTED" : "SFX ON"}</span>
+            <span className="hidden 2xl:inline">{soundMuted ? "MUTED" : "SFX ON"}</span>
           </button>
 
-          <div className="hidden xl:flex items-center gap-1.5 text-xs font-mono text-ivory-muted">
+          <div className="hidden 2xl:flex items-center gap-1.5 text-xs font-mono text-ivory-muted">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span>{liveTime}</span>
           </div>
@@ -175,7 +208,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => setMobileOpen((v) => !v)}
-            className="lg:hidden min-w-10 min-h-10 flex items-center justify-center p-1.5 rounded-lg border border-obsidian-border text-ivory"
+            className="xl:hidden min-w-10 min-h-10 flex items-center justify-center p-1.5 rounded-lg border border-obsidian-border text-ivory"
             aria-label="Menu"
           >
             {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -185,7 +218,7 @@ export function Navbar() {
 
       {/* Mobile Dropdown */}
       {mobileOpen && (
-        <div className="lg:hidden mt-2 rounded-xl border border-obsidian-border bg-obsidian-surface/95 backdrop-blur-xl p-3 flex flex-col gap-1 shadow-2xl">
+        <div className="xl:hidden mt-2 rounded-xl border border-obsidian-border bg-obsidian-surface/95 backdrop-blur-xl p-3 flex flex-col gap-1 shadow-2xl">
           {navItems.map((item) => {
             const active = item.match(pathname);
             return (
@@ -201,7 +234,27 @@ export function Navbar() {
               </Link>
             );
           })}
-          <Link href="/member/login" onClick={() => setMobileOpen(false)} className="mt-1 inline-flex min-h-11 items-center gap-2 rounded-lg border border-rec/20 bg-rec/[0.06] px-3 py-2.5 text-xs font-mono text-ivory hover:border-rec"><UserRound className="h-4 w-4 text-rec" />ĐĂNG NHẬP MEMBER</Link>
+          {loggedInMember ? (
+            <Link
+              href="/member/profile"
+              prefetch={false}
+              onClick={() => setMobileOpen(false)}
+              className="mt-1 inline-flex min-h-11 items-center gap-2 rounded-lg border border-emerald-400/35 bg-emerald-400/10 px-3 py-2.5 text-xs font-mono font-semibold text-ivory hover:border-rec"
+            >
+              <UserRound className="h-4 w-4 text-emerald-400" />
+              <span>MEMBER STUDIO ({loggedInMember.nickname ?? loggedInMember.name})</span>
+            </Link>
+          ) : (
+            <Link
+              href="/member"
+              prefetch={false}
+              onClick={() => setMobileOpen(false)}
+              className="mt-1 inline-flex min-h-11 items-center gap-2 rounded-lg border border-rec/20 bg-rec/[0.06] px-3 py-2.5 text-xs font-mono text-ivory hover:border-rec"
+            >
+              <UserRound className="h-4 w-4 text-rec" />
+              <span>ĐĂNG NHẬP MEMBER</span>
+            </Link>
+          )}
         </div>
       )}
       </header>

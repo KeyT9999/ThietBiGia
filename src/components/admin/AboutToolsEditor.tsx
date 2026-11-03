@@ -154,7 +154,7 @@ export function GroupMomentsManager({
       filmStock: "",
       dateLabel: "",
       category: "doi-thuong",
-      onFilmStrip: false,
+      onFilmStrip: true,
       memberSlugs: [],
       memberNames: [],
     }]);
