@@ -65,7 +65,7 @@ export function Navbar() {
     {
       id: "partners",
       href: "/partners",
-      label: "PARTNERS [" + partnerCount + "]",
+      label: (settings.navPartnersLabel || "PARTNERS") + " [" + partnerCount + "]",
       match: (p: string) => p.startsWith("/partners"),
     },
     { id: "about", href: "/about", label: settings.navAboutLabel || "ABOUT & GEAR", match: (p: string) => p.startsWith("/about") },
@@ -91,27 +91,22 @@ export function Navbar() {
 
       <header className="fixed top-[max(0.625rem,env(safe-area-inset-top))] left-[max(0.5rem,env(safe-area-inset-left))] right-[max(0.5rem,env(safe-area-inset-right))] sm:top-3 sm:left-5 sm:right-5 z-[60]">
       <div className="mx-auto max-w-[1680px] rounded-xl border border-obsidian-border/90 bg-obsidian-surface/90 backdrop-blur-xl px-2.5 min-[390px]:px-3.5 sm:px-6 h-14 flex items-center justify-between gap-1.5 sm:gap-4 shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
-        {/* Left descriptor */}
-        <div className="flex items-center gap-3 min-w-0 shrink-0">
-          <Link
-            href="/"
-            aria-label="Về trang chủ Thiết Bị Gia"
-            onClick={() => soundEngine.playHover()}
-            className="flex items-center gap-2.5 group"
-          >
-            <BrandLogo />
-            <span className="hidden lg:inline-block text-xs font-mono tracking-[0.18em] text-ivory-muted uppercase truncate">
-              {settings.brandSubtitle || "Creative Media & Design Collective"}
-            </span>
-          </Link>
-        </div>
-
-        {/* Center Brand Wordmark */}
+        {/* Brand wordmark aligned beside the logo */}
         <Link
           href="/"
-          className="font-display font-bold text-[13px] min-[390px]:text-sm sm:text-lg tracking-[0.025em] sm:tracking-[0.08em] text-ivory hover:text-rec transition-colors shrink-0"
+          aria-label="Về trang chủ Thiết Bị Gia"
+          onClick={() => soundEngine.playHover()}
+          className="group flex min-w-0 shrink-0 items-center gap-2.5"
         >
-          {settings.brandName || "THIẾT BỊ GIA"}
+          <BrandLogo />
+          <span className="min-w-0">
+            <span className="block truncate font-display text-[12px] font-bold tracking-[0.025em] text-ivory transition-colors group-hover:text-rec min-[390px]:text-sm sm:text-base">
+              {settings.brandName || "THIẾT BỊ GIA"}
+            </span>
+            <span className="hidden truncate font-mono text-[9px] uppercase tracking-[0.12em] text-ivory-muted 2xl:block">
+              {settings.brandSubtitle || "Creative Media & Design Collective"}
+            </span>
+          </span>
         </Link>
 
         {/* Right Nav + Sound + Live Time */}

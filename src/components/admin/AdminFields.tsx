@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, ImagePlus, Link2, Plus, Trash2 } from "lucide-react";
+import { ImagePlus, Link2, Plus, Trash2 } from "lucide-react";
+import { usePointerReorder } from "./use-pointer-reorder";
 
 class CloudinaryFileSizeError extends Error {
   constructor(message: string, readonly maximumBytes?: number) {
@@ -160,11 +161,15 @@ export function AdminStringListField({
     onChange(next);
   }
 
+  const listSorter = usePointerReorder((draggedId, targetId) => {
+    moveItem(Number(draggedId), Number(targetId));
+  }, { followDraggedPosition: true });
+
   return (
     <div className="space-y-2">
       <span className="block text-xs font-mono font-semibold uppercase tracking-wide text-ivory-muted">{label}</span>
       {value.map((item, index) => (
-        <div key={`${label}-${index}`} className="flex items-center gap-2">
+        <div key={`${label}-${index}`} {...(reorderable ? listSorter.itemProps(String(index)) : {})} className="flex items-center gap-2 rounded-xl data-[admin-sortable-dragging=true]:opacity-60 data-[admin-sortable-dragging=true]:ring-1 data-[admin-sortable-dragging=true]:ring-rec">
           <span className="w-7 shrink-0 text-center font-mono text-[10px] text-rec">{String(index + 1).padStart(2, "0")}</span>
           <input
             value={item}
@@ -176,7 +181,7 @@ export function AdminStringListField({
             placeholder={placeholder}
             className="min-w-0 flex-1 rounded-xl border border-white/10 bg-obsidian px-3.5 py-3 text-sm text-ivory outline-none focus:border-rec"
           />
-          {reorderable ? <div className="flex shrink-0 flex-col gap-1"><button type="button" disabled={index === 0} onClick={() => moveItem(index, index - 1)} aria-label={`Đưa ${label} ${index + 1} lên`} className="rounded border border-white/10 p-1.5 text-ivory-muted disabled:opacity-30"><ArrowUp className="h-3 w-3" /></button><button type="button" disabled={index === value.length - 1} onClick={() => moveItem(index, index + 1)} aria-label={`Đưa ${label} ${index + 1} xuống`} className="rounded border border-white/10 p-1.5 text-ivory-muted disabled:opacity-30"><ArrowDown className="h-3 w-3" /></button></div> : null}
+          {reorderable ? <button {...listSorter.handleProps(String(index), `${label} ${index + 1}`, (direction) => moveItem(index, index + direction))} /> : null}
           <button type="button" onClick={() => removeItem(index)} aria-label={`Gỡ ${label} ${index + 1}`} className="rounded-lg border border-red-400/20 p-2.5 text-red-300 hover:bg-red-400/10">
             <Trash2 className="h-4 w-4" />
           </button>

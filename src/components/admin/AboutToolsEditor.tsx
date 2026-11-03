@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import type { CrewMember } from "@/data/schema";
 import type { SiteContent } from "@/lib/content-schema";
 import { AdminField, AdminImageField, AdminStringListField } from "./AdminFields";
+import { usePointerReorder } from "./use-pointer-reorder";
 
 type GearCategory = SiteContent["gear"][number];
 type GroupMoment = SiteContent["moments"][number];
@@ -30,6 +31,11 @@ export function GearManager({
   onChange: (categories: GearCategory[]) => void;
 }) {
   const [query, setQuery] = useState("");
+  const categorySorter = usePointerReorder((draggedId, targetId) => {
+    const from = categories.findIndex((item) => item.id === draggedId);
+    const to = categories.findIndex((item) => item.id === targetId);
+    if (from >= 0 && to >= 0) onChange(moveItem(categories, from, to));
+  });
   const filtered = categories
     .map((category, index) => ({ category, index }))
     .filter(({ category }) => `${category.title} ${category.code} ${category.subtitle} ${category.items.map((item) => `${item.name} ${item.spec} ${item.tag}`).join(" ")}`.toLowerCase().includes(query.trim().toLowerCase()));
@@ -70,15 +76,16 @@ export function GearManager({
         <button type="button" onClick={addCategory} className="inline-flex items-center gap-2 rounded-xl bg-rec px-3.5 py-2.5 text-xs font-mono font-bold text-obsidian"><Plus className="h-4 w-4" /> THÊM NHÓM</button>
       </div>
 
-      <AdminField label="Tìm trong kho thiết bị" value={query} onChange={setQuery} hint="Tìm theo tên nhóm, mã hoặc tên thiết bị." />
+      <AdminField label="Tìm trong kho thiết bị" value={query} onChange={setQuery} hint="Kéo tay nắm để sắp xếp nhóm; tìm theo tên nhóm, mã hoặc tên thiết bị." />
 
       {filtered.length ? filtered.map(({ category, index }) => (
-        <details key={category.id} className="rounded-2xl border border-white/10 bg-obsidian/50">
+        <details key={category.id} {...categorySorter.itemProps(category.id)} className="rounded-2xl border border-white/10 bg-obsidian/50 data-[admin-sortable-dragging=true]:opacity-60 data-[admin-sortable-dragging=true]:ring-1 data-[admin-sortable-dragging=true]:ring-rec">
           <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 p-4">
             <span className="min-w-0">
               <span className="block truncate font-semibold text-ivory">{category.title}</span>
               <span className="mt-1 block truncate text-xs font-mono text-ivory-subtle">{category.code} · {category.items.length} thiết bị</span>
             </span>
+            <button {...categorySorter.handleProps(category.id, category.title)} />
             <span className="text-xs text-ivory-subtle">MỞ CHỈNH SỬA</span>
           </summary>
           <div className="space-y-4 border-t border-white/10 p-4 sm:p-5">
@@ -104,13 +111,7 @@ export function GearManager({
                 </div>
               )) : <p className="rounded-xl border border-white/10 p-3 text-sm text-ivory-muted">Nhóm này chưa có thiết bị.</p>}
             </div>
-            <div className="flex items-center justify-between text-xs text-ivory-subtle">
-              <span>NHÓM {String(index + 1).padStart(2, "0")}</span>
-              <div className="flex gap-2">
-                <button type="button" disabled={index === 0} onClick={() => onChange(moveItem(categories, index, index - 1))} aria-label="Đưa nhóm lên" className="rounded border border-white/10 p-2 disabled:opacity-30"><ArrowUp className="h-3.5 w-3.5" /></button>
-                <button type="button" disabled={index === categories.length - 1} onClick={() => onChange(moveItem(categories, index, index + 1))} aria-label="Đưa nhóm xuống" className="rounded border border-white/10 p-2 disabled:opacity-30"><ArrowDown className="h-3.5 w-3.5" /></button>
-              </div>
-            </div>
+            <div className="text-xs text-ivory-subtle">NHÓM {String(index + 1).padStart(2, "0")}</div>
           </div>
         </details>
       )) : <p className="rounded-xl border border-white/10 p-4 text-sm text-ivory-muted">Không tìm thấy nhóm thiết bị phù hợp.</p>}
@@ -128,6 +129,11 @@ export function GroupMomentsManager({
   onChange: (moments: SiteContent["moments"]) => void;
 }) {
   const [query, setQuery] = useState("");
+  const momentSorter = usePointerReorder((draggedId, targetId) => {
+    const from = moments.findIndex((item) => item.id === draggedId);
+    const to = moments.findIndex((item) => item.id === targetId);
+    if (from >= 0 && to >= 0) onChange(moveItem(moments, from, to));
+  });
   const filtered = moments
     .map((moment, index) => ({ moment, index }))
     .filter(({ moment }) => `${moment.title} ${moment.caption} ${moment.location} ${moment.dateLabel} ${moment.frameCode} ${(moment.memberNames ?? []).join(" ")} ${(moment.memberSlugs ?? []).map((slug) => crew.find((member) => member.slug === slug)?.name ?? "").join(" ")}`.toLowerCase().includes(query.trim().toLowerCase()));
@@ -183,16 +189,17 @@ export function GroupMomentsManager({
         <button type="button" onClick={addMoment} className="inline-flex items-center gap-2 rounded-xl bg-rec px-3.5 py-2.5 text-xs font-mono font-bold text-obsidian"><Plus className="h-4 w-4" /> THÊM ẢNH KỶ NIỆM</button>
       </div>
 
-      <AdminField label="Tìm ảnh kỷ niệm" value={query} onChange={setQuery} hint="Tìm theo tiêu đề, chú thích, địa điểm hoặc mã ảnh." />
+      <AdminField label="Tìm ảnh kỷ niệm" value={query} onChange={setQuery} hint="Kéo tay nắm để đổi thứ tự ảnh; tìm theo tiêu đề, chú thích, địa điểm hoặc mã ảnh." />
 
       {filtered.length ? filtered.map(({ moment, index }) => (
-        <details key={moment.id} className="rounded-2xl border border-white/10 bg-obsidian/50">
+        <details key={moment.id} {...momentSorter.itemProps(moment.id)} className="rounded-2xl border border-white/10 bg-obsidian/50 data-[admin-sortable-dragging=true]:opacity-60 data-[admin-sortable-dragging=true]:ring-1 data-[admin-sortable-dragging=true]:ring-rec">
           <summary className="flex cursor-pointer list-none flex-wrap items-center gap-3 p-4">
             {moment.src ? <img src={moment.src} alt="" className="h-12 w-16 shrink-0 rounded-lg border border-white/10 object-cover" /> : <span className="h-12 w-16 shrink-0 rounded-lg border border-dashed border-white/20" />}
             <span className="min-w-0 flex-1">
               <span className="block truncate font-semibold text-ivory">{moment.title || "Ảnh chưa đặt tên"}</span>
               <span className="mt-1 block truncate text-xs font-mono text-ivory-subtle">{moment.frameCode} · {moment.location || "Chưa có địa điểm"} · {moment.category}</span>
             </span>
+            <button {...momentSorter.handleProps(moment.id, moment.title)} />
             <span className="text-xs text-ivory-subtle">MỞ CHỈNH SỬA</span>
           </summary>
 
@@ -243,13 +250,7 @@ export function GroupMomentsManager({
               }} placeholder="Tên thành viên" addLabel="THÊM TÊN" />
             </section>
 
-            <div className="flex items-center justify-between text-xs text-ivory-subtle">
-              <span>ẢNH {String(index + 1).padStart(2, "0")} / {moments.length}</span>
-              <div className="flex gap-2">
-                <button type="button" disabled={index === 0} onClick={() => onChange(moveItem(moments, index, index - 1))} aria-label="Đưa ảnh lên" className="rounded border border-white/10 p-2 disabled:opacity-30"><ArrowUp className="h-3.5 w-3.5" /></button>
-                <button type="button" disabled={index === moments.length - 1} onClick={() => onChange(moveItem(moments, index, index + 1))} aria-label="Đưa ảnh xuống" className="rounded border border-white/10 p-2 disabled:opacity-30"><ArrowDown className="h-3.5 w-3.5" /></button>
-              </div>
-            </div>
+            <div className="text-xs text-ivory-subtle">ẢNH {String(index + 1).padStart(2, "0")} / {moments.length}</div>
           </div>
         </details>
       )) : <p className="rounded-xl border border-white/10 p-4 text-sm text-ivory-muted">Không tìm thấy ảnh kỷ niệm phù hợp.</p>}

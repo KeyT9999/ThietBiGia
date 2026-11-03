@@ -76,6 +76,7 @@ export const SiteSettingsSchema = z.object({
   navTimelineLabel: z.string().max(80),
   navProjectsLabel: z.string().max(80),
   navCrewLabel: z.string().max(80),
+  navPartnersLabel: z.string().max(80).default("PARTNERS"),
   navOrder: z.array(NavigationItemIdSchema).max(NAVIGATION_ITEM_IDS.length).default(DEFAULT_NAVIGATION_ORDER),
   navAboutLabel: z.string().max(80),
   navContactLabel: z.string().max(80),

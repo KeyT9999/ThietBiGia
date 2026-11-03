@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import type { BentoItem, CrewMember, PartnerOrganization, WorkProject } from "@/data/schema";
 import { getSharedWorkIdsForMember, getUnifiedProjectsForMember } from "@/data/works";
 import { AdminDriveFolderField, AdminField, AdminImageField, AdminMultiImageField } from "./AdminFields";
+import { usePointerReorder } from "./use-pointer-reorder";
 
 function moveItem<T>(items: T[], from: number, to: number) {
   if (to < 0 || to >= items.length) return items;
@@ -70,6 +71,16 @@ export function MemberProjectsEditor({
     const orderedIds = displayedProjects.map((project) => project.id);
     onChange({ profileProjectOrder: moveItem(orderedIds, index, index + direction) });
   }
+
+  function reorderDisplayedProjects(draggedId: string, targetId: string) {
+    const orderedIds = displayedProjects.map((project) => project.id);
+    const from = orderedIds.indexOf(draggedId);
+    const to = orderedIds.indexOf(targetId);
+    if (from < 0 || to < 0 || from === to) return;
+    onChange({ profileProjectOrder: moveItem(orderedIds, from, to) });
+  }
+
+  const projectSorter = usePointerReorder(reorderDisplayedProjects);
 
   return (
     <div className="space-y-5">
@@ -210,19 +221,18 @@ export function MemberProjectsEditor({
       <section className="space-y-4 rounded-3xl border border-white/10 bg-white/[0.025] p-5 sm:p-7">
         <div>
           <h3 className="font-display text-xl font-bold">Thứ tự bài trên profile</h3>
-          <p className="mt-1 text-sm text-ivory-muted">Dùng mũi tên để sắp xếp chung dự án cá nhân và dự án tập thể. Thứ tự này được dùng trên trang profile thành viên.</p>
+          <p className="mt-1 text-sm text-ivory-muted">Kéo tay nắm để sắp xếp chung dự án cá nhân và dự án tập thể. Thứ tự này được dùng trên trang profile thành viên.</p>
         </div>
         {displayedProjects.length ? (
           <ol className="space-y-2">
             {displayedProjects.map((project, index) => (
-              <li key={project.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-obsidian/70 p-3">
+              <li key={project.id} {...projectSorter.itemProps(project.id)} className="flex items-center gap-3 rounded-xl border border-white/10 bg-obsidian/70 p-3 data-[admin-sortable-dragging=true]:opacity-60 data-[admin-sortable-dragging=true]:ring-1 data-[admin-sortable-dragging=true]:ring-rec">
                 <span className="w-8 shrink-0 text-center font-mono text-xs text-rec">{String(index + 1).padStart(2, "0")}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-ivory">{project.title}</span>
                   <span className="mt-1 block text-[10px] font-mono text-ivory-subtle">{project.scope === "personal" ? "CÁ NHÂN" : "DỰ ÁN CHUNG"}</span>
                 </span>
-                <button type="button" disabled={index === 0} onClick={() => moveDisplayedProject(index, -1)} aria-label="Đưa bài lên" className="rounded-lg border border-white/10 p-2 text-ivory-muted hover:border-rec hover:text-ivory disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
-                <button type="button" disabled={index === displayedProjects.length - 1} onClick={() => moveDisplayedProject(index, 1)} aria-label="Đưa bài xuống" className="rounded-lg border border-white/10 p-2 text-ivory-muted hover:border-rec hover:text-ivory disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
+                <button {...projectSorter.handleProps(project.id, project.title, (direction) => moveDisplayedProject(index, direction))} />
               </li>
             ))}
           </ol>
