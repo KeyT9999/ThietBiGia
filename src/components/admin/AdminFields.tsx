@@ -272,39 +272,47 @@ export function AdminDriveFolderField({
   const [checking, setChecking] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   const [syncError, setSyncError] = useState("");
+  const [driveImages, setDriveImages] = useState<{ id: string; name: string; src: string }[]>([]);
+  const [driveHasMore, setDriveHasMore] = useState(false);
 
   useEffect(() => {
     if (value) setIsOpen(true);
     setSyncMessage("");
     setSyncError("");
+    setDriveImages([]);
+    setDriveHasMore(false);
   }, [value]);
 
-  async function verifyDriveFolder() {
+  async function refreshDriveFolder() {
     if (!value) return;
     setChecking(true);
     setSyncMessage("");
     setSyncError("");
     try {
-      const response = await fetch(
-        `/api/works/gallery?folderUrl=${encodeURIComponent(value)}&t=${Date.now()}`,
-        { cache: "no-store" }
-      );
+      const params = new URLSearchParams({
+        folderUrl: value,
+        limit: "10",
+        t: String(Date.now()),
+      });
+      const response = await fetch(`/api/works/gallery?${params.toString()}`, { cache: "no-store" });
       const result = (await response.json()) as {
         ok: boolean;
-        totalCount?: number;
-        images?: unknown[];
+        images?: { id: string; name: string; src: string }[];
+        hasMore?: boolean;
         error?: string;
       };
       if (!response.ok || !result.ok) {
         throw new Error(result.error || "Không kiểm tra được thư mục Drive.");
       }
-      const count = result.totalCount ?? result.images?.length ?? 0;
-      setSyncMessage(
-        count > 0
-          ? `Đã đồng bộ trực tiếp từ Drive: hiện có ${count} ảnh hợp lệ.`
-          : "Thư mục kết nối thành công nhưng hiện chưa có ảnh trực tiếp bên trong."
-      );
+      const images = result.images ?? [];
+      setDriveImages(images);
+      setDriveHasMore(Boolean(result.hasMore));
+      setSyncMessage(images.length
+        ? `Đã cập nhật album từ Drive: đang hiển thị ${images.length}${result.hasMore ? "+" : ""} ảnh mới nhất.`
+        : "Đã cập nhật album: thư mục Drive hiện chưa có ảnh hợp lệ.");
     } catch (cause) {
+      setDriveImages([]);
+      setDriveHasMore(false);
       setSyncError(cause instanceof Error ? cause.message : "Không kiểm tra được thư mục Drive.");
     } finally {
       setChecking(false);
@@ -337,11 +345,11 @@ export function AdminDriveFolderField({
             <button
               type="button"
               disabled={checking}
-              onClick={() => void verifyDriveFolder()}
+              onClick={() => void refreshDriveFolder()}
               className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-2.5 py-2 text-xs font-mono text-ivory transition hover:border-rec hover:text-rec disabled:cursor-wait disabled:opacity-50"
             >
               <RefreshCw className={"h-3.5 w-3.5 text-rec " + (checking ? "animate-spin" : "")} />
-              {checking ? "ĐANG KIỂM TRA..." : "KIỂM TRA & ĐỒNG BỘ DRIVE"}
+              {checking ? "ĐANG CẬP NHẬT..." : "CẬP NHẬT ẢNH TỪ DRIVE"}
             </button>
             <button type="button" onClick={() => { onChange(undefined); setIsOpen(false); }} className="inline-flex items-center gap-1.5 rounded-lg border border-red-400/20 px-2.5 py-2 text-xs text-red-300 hover:bg-red-400/10">
               <Trash2 className="h-3.5 w-3.5" /> GỠ LINK DRIVE
@@ -349,6 +357,25 @@ export function AdminDriveFolderField({
           </div>
           {syncMessage ? <p className="text-xs text-emerald-300">{syncMessage}</p> : null}
           {syncError ? <p className="text-xs text-red-300">{syncError}</p> : null}
+          {driveImages.length ? (
+            <div className="rounded-xl border border-white/10 bg-obsidian/40 p-3">
+              <p className="mb-2 text-[10px] font-mono uppercase tracking-wider text-ivory-muted">
+                ẢNH MỚI NHẤT TRONG THƯ MỤC{driveHasMore ? " · CÒN ẢNH KHÁC" : ""}
+              </p>
+              <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
+                {driveImages.map((image) => (
+                  <img
+                    key={image.id}
+                    src={image.src}
+                    alt={image.name}
+                    title={image.name}
+                    loading="lazy"
+                    className="aspect-square w-full rounded-md border border-white/10 bg-obsidian object-cover"
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : (
         <button type="button" onClick={() => setIsOpen(false)} className="rounded-lg border border-white/10 px-2.5 py-2 text-xs text-ivory-muted hover:text-ivory">

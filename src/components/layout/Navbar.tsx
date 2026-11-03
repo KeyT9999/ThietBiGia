@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Volume2, VolumeX, Menu, X, Search, UserRound } from "lucide-react";
+import { Volume2, VolumeX, Menu, X, UserRound } from "lucide-react";
 import { getTotalArchiveProjectCount } from "@/data/works";
 import { useAppStore, useAuthenticatedMemberId, useSiteContent } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
@@ -25,7 +25,6 @@ export function Navbar() {
   const soundMuted = useAppStore((s) => s.soundMuted);
   const toggleSound = useAppStore((s) => s.toggleSound);
   const isOverlayOpen = useAppStore((s) => s.isOverlayOpen);
-  const setCommandPaletteOpen = useAppStore((s) => s.setCommandPaletteOpen);
   const [liveTime, setLiveTime] = useState("21:00:00");
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -172,19 +171,6 @@ export function Navbar() {
               <UserRound className="h-3.5 w-3.5 text-rec" /> MEMBER
             </Link>
           )}
-
-          <button
-            type="button"
-            onClick={() => {
-              soundEngine.playTick(0.85);
-              setCommandPaletteOpen(true);
-            }}
-            title="Tìm nhanh Thành viên, Dự án & Thiết bị (Ctrl+K)"
-            className="min-w-10 min-h-10 flex items-center justify-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg border border-obsidian-border bg-obsidian/70 hover:border-rec/60 text-xs font-mono text-ivory-muted hover:text-ivory transition-colors cursor-pointer"
-          >
-            <Search className="w-3.5 h-3.5 text-rec" />
-            <span className="hidden lg:inline">CTRL+K</span>
-          </button>
 
           <button
             type="button"

@@ -174,7 +174,7 @@ export function MemberProjectsEditor({
 
               <AdminField label="Mô tả dự án" value={item.description ?? ""} multiline rows={4} onChange={(description) => updateShowcaseItem(item.id, { description: description || undefined })} />
               <AdminImageField label="Ảnh bìa" value={item.image} folder="thiet-bi-gia/projects" signatureEndpoint={signatureEndpoint} onChange={(image) => updateShowcaseItem(item.id, { image })} />
-              <AdminDriveFolderField value={item.galleryDriveFolderUrl} onChange={(galleryDriveFolderUrl) => updateShowcaseItem(item.id, { galleryDriveFolderUrl })} hint="Ảnh trong link này sẽ hiện khi mở album dự án. Chỉ ảnh trực tiếp trong thư mục; đặt tên 01, 02, 03… để sắp thứ tự." />
+              <AdminDriveFolderField value={item.galleryDriveFolderUrl} onChange={(galleryDriveFolderUrl) => updateShowcaseItem(item.id, { galleryDriveFolderUrl })} hint="Ảnh trong link này sẽ hiện khi mở album dự án. Chỉ ảnh trực tiếp trong thư mục; đặt tên 01, 02, 03… để sắp thứ tự. Sau khi thêm, xóa hoặc thay ảnh trên Drive, bấm Cập nhật ảnh từ Drive để nạp danh sách mới." />
               <div className="space-y-2 rounded-xl border border-white/10 p-3 sm:p-4">
                 <div><h4 className="text-sm font-bold">Đơn vị đồng hành</h4><p className="mt-1 text-xs text-ivory-subtle">Chọn các đơn vị admin đã thêm. Đơn vị được hiển thị trên thẻ dự án ở profile.</p></div>
                 {partnerOrganizations.length ? <div className="grid gap-2 sm:grid-cols-2">{partnerOrganizations.map((organization) => {

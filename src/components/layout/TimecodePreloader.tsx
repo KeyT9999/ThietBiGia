@@ -130,7 +130,7 @@ export function TimecodePreloader() {
                 Creative Media &amp; Design Collective
               </div>
               <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-ivory">
-                THIẾT BỊ GIA
+                THIẾT BỊ GIA FUDA
               </h1>
               <div className="font-mono text-2xl sm:text-3xl font-semibold text-rec pt-2">
                 00:00:01:{pad(frame)}

@@ -1,7 +1,8 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
-import { ExternalLink, Images, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Images, RefreshCw, X } from "lucide-react";
 import type { WorkProject } from "@/data/schema";
 import { extractGoogleDriveFolderId } from "@/lib/google-drive";
 
@@ -9,7 +10,6 @@ type ProjectPhoto = {
   id: string;
   name: string;
   src: string;
-  viewUrl: string;
   width: number | null;
   height: number | null;
 };
@@ -22,6 +22,10 @@ export function ProjectPhotoGallery({ work }: { work: WorkProject }) {
   const [error, setError] = useState("");
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [failedPhotoIds, setFailedPhotoIds] = useState<Set<string>>(() => new Set());
+  const [viewingIndex, setViewingIndex] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     setFailedPhotoIds(new Set());
@@ -66,7 +70,6 @@ export function ProjectPhotoGallery({ work }: { work: WorkProject }) {
     id: `legacy-${index}-${src}`,
     name: `${work.title} — ảnh ${index + 1}`,
     src,
-    viewUrl: src,
     width: null,
     height: null,
   }));
@@ -77,6 +80,37 @@ export function ProjectPhotoGallery({ work }: { work: WorkProject }) {
   const emptyDriveFolder = Boolean(
     work.galleryDriveFolderUrl && drivePhotos && photos.length === 0 && !loading
   );
+  const activePhotoIndex = viewingIndex === null || photos.length === 0
+    ? null
+    : Math.min(viewingIndex, photos.length - 1);
+  const activePhoto = activePhotoIndex === null ? null : photos[activePhotoIndex];
+  const lightboxOpen = activePhotoIndex !== null;
+  const photoCount = photos.length;
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setViewingIndex(null);
+      if (event.key === "ArrowRight" && photoCount > 1) {
+        setViewingIndex((current) => current === null ? 0 : (current + 1) % photoCount);
+      }
+      if (event.key === "ArrowLeft" && photoCount > 1) {
+        setViewingIndex((current) => current === null ? 0 : (current - 1 + photoCount) % photoCount);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [lightboxOpen, photoCount]);
+
+  function getPhotoSrc(photo: ProjectPhoto) {
+    if (!work.galleryDriveFolderUrl || refreshNonce === 0) return photo.src;
+    return `${photo.src}${photo.src.includes("?") ? "&" : "?"}refresh=${refreshNonce}`;
+  }
 
   if (!photos.length && !loading && !error && !emptyDriveFolder) return null;
 
@@ -95,34 +129,33 @@ export function ProjectPhotoGallery({ work }: { work: WorkProject }) {
             <button
               type="button"
               disabled={loading}
-              onClick={() => setRefreshNonce((current) => current + 1)}
-              title="Đồng bộ lại danh sách ảnh mới nhất từ Google Drive"
+              onClick={() => setRefreshNonce((current) => Math.max(Date.now(), current + 1))}
+              title="Tải lại danh sách ảnh mới nhất từ Google Drive"
               className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-2.5 py-1.5 font-mono text-[10px] text-ivory-muted transition hover:border-rec hover:text-ivory disabled:cursor-wait disabled:opacity-50"
             >
               <RefreshCw className={"h-3 w-3 text-rec " + (loading ? "animate-spin" : "")} />
-              {loading ? "ĐANG ĐỒNG BỘ…" : "ĐỒNG BỘ LẠI"}
+              {loading ? "ĐANG CẬP NHẬT…" : "CẬP NHẬT ẢNH"}
             </button>
           ) : null}
         </div>
       </div>
 
       {loading && !drivePhotos?.length ? <p className="rounded-xl border border-white/10 px-4 py-3 text-sm text-ivory-muted">Đang tải album ảnh…</p> : null}
-      {emptyDriveFolder ? <p className="rounded-xl border border-white/10 px-4 py-3 text-sm text-ivory-muted">Thư mục Drive này chưa có ảnh. Hãy thêm ảnh trực tiếp vào thư mục rồi bấm Đồng bộ lại.</p> : null}
+      {emptyDriveFolder ? <p className="rounded-xl border border-white/10 px-4 py-3 text-sm text-ivory-muted">Thư mục Drive này chưa có ảnh. Hãy thêm ảnh trực tiếp vào thư mục rồi bấm Cập nhật ảnh.</p> : null}
       {error ? <p role="status" className="rounded-xl border border-amber-300/20 bg-amber-300/5 px-4 py-3 text-xs leading-relaxed text-amber-100">{error}{photos.length ? " Đang hiển thị album đã lưu trước đây." : ""}</p> : null}
 
       {photos.length ? (
         <div className="columns-2 gap-2 sm:columns-3 sm:gap-3 xl:columns-4">
           {photos.map((photo, index) => (
-            <a
+            <button
               key={photo.id}
-              href={photo.viewUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="group relative mb-2 block break-inside-avoid overflow-hidden rounded-lg border border-white/10 bg-obsidian sm:mb-3"
-              aria-label={`Mở ảnh ${index + 1}: ${photo.name}`}
+              type="button"
+              onClick={() => setViewingIndex(index)}
+              className="group relative mb-2 block w-full break-inside-avoid cursor-zoom-in overflow-hidden rounded-lg border border-white/10 bg-obsidian text-left sm:mb-3"
+              aria-label={`Phóng lớn ảnh ${index + 1}: ${photo.name}`}
             >
               <img
-                src={photo.src}
+                src={getPhotoSrc(photo)}
                 alt={photo.name}
                 width={photo.width ?? undefined}
                 height={photo.height ?? undefined}
@@ -139,12 +172,69 @@ export function ProjectPhotoGallery({ work }: { work: WorkProject }) {
                 className="block h-auto w-full transition-transform duration-500 group-hover:scale-[1.02]"
               />
               <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-obsidian/85 to-transparent px-3 pb-2 pt-8 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100">
-                <span className="truncate">{photo.name}</span><ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{photo.name}</span>
               </span>
-            </a>
+            </button>
           ))}
         </div>
       ) : null}
+
+      {mounted && activePhoto && activePhotoIndex !== null
+        ? createPortal(
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Ảnh ${activePhotoIndex + 1}: ${activePhoto.name}`}
+              onClick={() => setViewingIndex(null)}
+              className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90 p-3 backdrop-blur-md sm:p-6"
+            >
+              <div onClick={(event) => event.stopPropagation()} className="absolute inset-x-0 top-0 flex items-center justify-between gap-3 border-b border-white/10 bg-obsidian/90 px-4 py-3 sm:px-6">
+                <div className="min-w-0">
+                  <p className="truncate font-mono text-[10px] uppercase tracking-wider text-rec">{work.title}</p>
+                  <p className="truncate text-xs text-ivory-muted">{activePhoto.name} · {activePhotoIndex + 1}/{photos.length}</p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Đóng ảnh phóng lớn"
+                  onClick={(event) => { event.stopPropagation(); setViewingIndex(null); }}
+                  className="shrink-0 rounded-lg border border-white/15 p-2 text-ivory-muted transition hover:border-rec hover:text-ivory"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="flex h-full w-full items-center justify-center pt-14 pb-3" onClick={(event) => event.stopPropagation()}>
+                <img
+                  src={getPhotoSrc(activePhoto)}
+                  alt={activePhoto.name}
+                  className="max-h-full max-w-full rounded-lg object-contain shadow-2xl"
+                />
+              </div>
+
+              {photos.length > 1 ? (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Ảnh trước"
+                    onClick={(event) => { event.stopPropagation(); setViewingIndex((activePhotoIndex - 1 + photos.length) % photos.length); }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-obsidian/85 p-3 text-ivory transition hover:border-rec sm:left-6"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Ảnh tiếp theo"
+                    onClick={(event) => { event.stopPropagation(); setViewingIndex((activePhotoIndex + 1) % photos.length); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-obsidian/85 p-3 text-ivory transition hover:border-rec sm:right-6"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </>
+              ) : null}
+            </div>,
+            document.body
+          )
+        : null}
     </section>
   );
 }

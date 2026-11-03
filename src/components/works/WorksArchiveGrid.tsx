@@ -211,10 +211,7 @@ function WorkArchiveCard({
           )}
           <div className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-t from-obsidian/92 via-transparent to-obsidian/25" />
 
-          <div className="pointer-events-none absolute top-3 left-3 right-3 z-30 flex items-center justify-between gap-2">
-            <span className="px-2.5 py-1 rounded-md bg-obsidian/80 backdrop-blur-md border border-white/15 text-xs font-mono text-ivory/90 truncate max-w-[65%]">
-              {work.galleryDriveFolderUrl ? "ALBUM DRIVE BÊN DƯỚI" : work.durationTimecode}
-            </span>
+          <div className="pointer-events-none absolute top-3 right-3 z-30">
             <span className="px-2.5 py-1 rounded-md bg-obsidian/85 backdrop-blur-md border border-white/15 group-hover:bg-rec group-hover:border-rec group-hover:text-obsidian text-xs font-mono font-bold text-ivory inline-flex items-center gap-1 transition-colors shrink-0">
               <span>{shouldPlayVideoCover ? "XEM VIDEO" : "MỞ DỰ ÁN"}</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -501,10 +498,7 @@ function PersonalArchiveCard({
 
           <div className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-t from-obsidian/92 via-transparent to-obsidian/25" />
 
-          <div className="pointer-events-none absolute top-3 left-3 right-3 z-30 flex items-center justify-between gap-2">
-            <span className="px-2.5 py-1 rounded-md bg-obsidian/80 backdrop-blur-md border border-white/15 text-xs font-mono text-ivory/90 truncate max-w-[62%]">
-              {project.subtitle}
-            </span>
+          <div className="pointer-events-none absolute top-3 right-3 z-30">
             <span className="px-2.5 py-1 rounded-md bg-obsidian/85 backdrop-blur-md border border-white/15 group-hover:bg-rec group-hover:border-rec group-hover:text-obsidian text-xs font-mono font-bold text-ivory inline-flex items-center gap-1 transition-colors shrink-0">
               <span>{shouldPlayVideoCover ? "XEM VIDEO" : "MỞ BỘ ẢNH"}</span>
               <Maximize2 className="w-3.5 h-3.5" />

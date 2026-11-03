@@ -133,7 +133,7 @@ export function ProjectEditor({
       <AdminImageField label="Ảnh bìa dự án" value={work.coverImage} folder="thiet-bi-gia/projects" onChange={(coverImage) => onChange({ coverImage })} />
       <section className="space-y-3 rounded-2xl border border-white/10 p-4">
         <div><h3 className="font-display text-lg font-bold">Album ảnh hiển thị bên dưới</h3><p className="mt-1 text-xs text-ivory-muted">Thêm một link thư mục để website tự lấy ảnh và xếp thành lưới sát nhau, giữ đúng tỷ lệ ảnh ngang/dọc. Ảnh bìa phía trên vẫn là một ảnh riêng.</p></div>
-        <AdminDriveFolderField value={work.galleryDriveFolderUrl} onChange={(galleryDriveFolderUrl) => onChange({ galleryDriveFolderUrl })} hint="Chỉ lấy ảnh nằm trực tiếp trong thư mục; không đưa ảnh bìa vào album nếu không muốn ảnh bị lặp. Đặt tên 01, 02, 03… để tự sắp thứ tự." />
+        <AdminDriveFolderField value={work.galleryDriveFolderUrl} onChange={(galleryDriveFolderUrl) => onChange({ galleryDriveFolderUrl })} hint="Chỉ lấy ảnh nằm trực tiếp trong thư mục; không đưa ảnh bìa vào album nếu không muốn ảnh bị lặp. Đặt tên 01, 02, 03… để tự sắp thứ tự. Sau khi thêm, xóa hoặc thay ảnh trên Drive, bấm Cập nhật ảnh từ Drive để nạp danh sách mới." />
       </section>
       <details className="rounded-2xl border border-white/10 p-4">
         <summary className="cursor-pointer select-none text-sm font-semibold text-ivory">Album cũ tải lên website ({work.galleryImages.length} ảnh)</summary>
