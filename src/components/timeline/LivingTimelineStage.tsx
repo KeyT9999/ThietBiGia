@@ -11,7 +11,6 @@ import { deferTimelineAutoplay, timelineMotion, useAppStore, useSiteContent } fr
 import { getRoleMeta } from "@/lib/utils";
 import { CrewCreditPills } from "./CrewCreditPills";
 import { MemberContextPills } from "./MemberContextPills";
-import { NLEScrubberRuler } from "./NLEScrubberRuler";
 import { DecoderText } from "@/components/layout/DecoderText";
 import { soundEngine } from "@/lib/sound";
 import { getHome3DWorks } from "@/lib/home-3d-works";
@@ -136,7 +135,7 @@ export function LivingTimelineStage() {
     <section
       ref={stageRef}
       aria-hidden={isBackgrounded}
-      className={`relative w-full h-[100dvh] overflow-hidden bg-obsidian flex flex-col justify-between pt-[calc(76px+env(safe-area-inset-top))] pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:pt-[calc(80px+env(safe-area-inset-top))] sm:pb-4 select-none touch-pan-y transition-opacity duration-200 ${
+      className={`relative w-full h-[100dvh] overflow-hidden bg-obsidian flex flex-col justify-between pt-[calc(76px+env(safe-area-inset-top))] pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:pt-[calc(80px+env(safe-area-inset-top))] sm:pb-4 select-none touch-manipulation transition-opacity duration-200 ${
         isBackgrounded ? "invisible opacity-0 pointer-events-none" : "opacity-100"
       }`}
     >
@@ -406,10 +405,6 @@ export function LivingTimelineStage() {
         </div>
       </div>
 
-      {/* Bottom NLE Video Editor Timeline Scrubber Dock */}
-      <div className={`relative z-[45] ${isBackgrounded ? "hidden" : ""}`}>
-        <NLEScrubberRuler />
-      </div>
     </section>
   );
 }

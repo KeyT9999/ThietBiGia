@@ -14,7 +14,7 @@ import { type UnifiedMemberProject } from "@/data/works";
 import { getRoleMeta } from "@/lib/utils";
 import { useSiteContent } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
-import { shouldUseYoutubeCoverPreview } from "@/lib/youtube";
+import { getYoutubeThumbnailUrl, shouldUseYoutubeCoverPreview } from "@/lib/youtube";
 import { extractGoogleDriveFolderId } from "@/lib/google-drive";
 import { YouTubePreview } from "@/components/works/YouTubePreview";
 import type { PartnerOrganization } from "@/data/schema";
@@ -110,6 +110,7 @@ export function MemberProjectCard({
   const currentSrc = frames[activeFrame] ?? project.coverImage;
   const previewFrames = project.galleryDriveFolderUrl ? drivePreviewFrames : frames;
   const shouldPlayVideoCover = shouldUseYoutubeCoverPreview(project.videoUrl, project.coverImage);
+  const youtubePosterSrc = getYoutubeThumbnailUrl(project.videoUrl ?? "") || currentSrc;
   const showFrameStrip = project.galleryDriveFolderUrl
     ? driveLoading || Boolean(driveError) || drivePreviewFrames.length > 0
     : frames.length > 1;
@@ -227,11 +228,21 @@ export function MemberProjectCard({
           } grow group/stage w-full bg-obsidian overflow-hidden cursor-pointer`}
         >
           {shouldPlayVideoCover ? (
-            <YouTubePreview
-              videoUrl={project.videoUrl!}
-              title={project.title}
-              isHovered={isVideoHovered}
-            />
+            <>
+              <img
+                src={youtubePosterSrc}
+                alt={project.title}
+                onError={(event) => {
+                  const image = event.currentTarget;
+                  if (image.dataset.fallback !== "true") {
+                    image.dataset.fallback = "true";
+                    image.src = currentSrc;
+                  }
+                }}
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[50%_20%]"
+              />
+              {project.videoUrl ? <YouTubePreview videoUrl={project.videoUrl} title={project.title} isHovered={isVideoHovered} /> : null}
+            </>
           ) : project.galleryDriveFolderUrl ? (
             <>
               {/* Keep the project cover as the non-hover image, independent of React state. */}

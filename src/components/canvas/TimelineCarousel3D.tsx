@@ -535,23 +535,6 @@ function useWorkCardTexture(work: WorkProject, crewMembers: CrewMember[]) {
       ctx.fillStyle = vig;
       ctx.fillRect(px, py, pw, ph);
 
-      if (youtubeThumbnailUrl) {
-        const buttonW = 92;
-        const buttonH = 62;
-        const buttonX = px + (pw - buttonW) / 2;
-        const buttonY = py + (ph - buttonH) / 2;
-        drawRoundedRectPath(ctx, buttonX, buttonY, buttonW, buttonH, 17);
-        ctx.fillStyle = "#FF0033";
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(buttonX + 37, buttonY + 17);
-        ctx.lineTo(buttonX + 37, buttonY + 45);
-        ctx.lineTo(buttonX + 62, buttonY + 31);
-        ctx.closePath();
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fill();
-      }
-
       // Viewfinder REC & Frame Count inside Cover Window
       ctx.fillStyle = "#FF4D00";
       ctx.beginPath();

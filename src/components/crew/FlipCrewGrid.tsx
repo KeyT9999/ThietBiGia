@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { Flip } from "gsap/Flip";
-import { ArrowUpRight, Film, Images, Play, Search, Users } from "lucide-react";
+import { ArrowUpRight, Film, Images, Search, Users } from "lucide-react";
 import { type CrewMember } from "@/data/schema";
 import { getUnifiedProjectsForMember, type UnifiedMemberProject } from "@/data/works";
 import { getRoleMeta, ROLE_STYLES, type RoleCategory } from "@/lib/utils";
@@ -33,13 +33,6 @@ function RosterProjectThumb({ project }: { project: UnifiedMemberProject }) {
         }}
         className="h-full w-full object-cover object-[50%_20%]"
       />
-      {youtubeThumbnail ? (
-        <span className="pointer-events-none absolute inset-0 z-10 grid place-items-center">
-          <span className="grid h-5 w-7 place-items-center rounded-md bg-[#FF0033] shadow-lg">
-            <Play className="h-3 w-3 fill-white text-white" aria-hidden="true" />
-          </span>
-        </span>
-      ) : null}
     </>
   );
 }

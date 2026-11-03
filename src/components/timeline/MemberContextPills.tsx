@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowUpRight, Film, IdCard, Images, Play, RefreshCw } from "lucide-react";
+import { ArrowUpRight, Film, IdCard, Images, RefreshCw } from "lucide-react";
 import type { CrewMember } from "@/data/schema";
 import {
   getTeammatesForMember,
@@ -99,13 +99,6 @@ export function MemberContextPills({ member }: { member: CrewMember }) {
                     }}
                     className="w-full h-full object-cover object-[50%_20%] group-hover:scale-110 transition-transform duration-500"
                   />
-                  {youtubeThumbnail ? (
-                    <span className="pointer-events-none absolute inset-0 grid place-items-center">
-                      <span className="grid h-5 w-7 place-items-center rounded-md bg-[#FF0033] shadow-lg">
-                        <Play className="h-3 w-3 fill-white text-white" aria-hidden="true" />
-                      </span>
-                    </span>
-                  ) : null}
                   <span className="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-obsidian/85 text-[10px] font-mono font-bold text-ivory flex items-center gap-0.5 leading-none">
                     {youtubeThumbnail ? <Film className="w-2.5 h-2.5 text-rec" /> : <Images className="w-2.5 h-2.5 text-rec" />}
                     {youtubeThumbnail ? "VIDEO" : proj.frames.length}

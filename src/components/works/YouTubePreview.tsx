@@ -12,7 +12,7 @@ export function YouTubePreview({
   isHovered: boolean;
 }) {
   const src = getYoutubePreviewUrl(videoUrl, isHovered);
-  if (!src) return null;
+  if (!src || !isHovered) return null;
 
   return (
     <iframe

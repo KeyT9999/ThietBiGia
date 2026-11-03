@@ -38,7 +38,7 @@ import {
 import { getRoleMeta } from "@/lib/utils";
 import { soundEngine } from "@/lib/sound";
 import { useSiteContent } from "@/lib/store";
-import { shouldUseYoutubeCoverPreview, toYoutubeEmbedUrl } from "@/lib/youtube";
+import { getYoutubeThumbnailUrl, shouldUseYoutubeCoverPreview, toYoutubeEmbedUrl } from "@/lib/youtube";
 import { YouTubePreview } from "./YouTubePreview";
 
 gsap.registerPlugin(Flip);
@@ -99,6 +99,7 @@ function WorkArchiveCard({
   const videoUrl = work.videoEmbedUrl || work.videoUrl || "";
   const shouldPlayVideoCover = shouldUseYoutubeCoverPreview(videoUrl, coverSrc);
   const fallbackCoverSrc = coverSrc || "/media/works/work-01.jpg";
+  const youtubePosterSrc = getYoutubeThumbnailUrl(videoUrl) || fallbackCoverSrc;
 
   const syncAspectFromImg = useCallback((image: HTMLImageElement | null) => {
     if (image && image.complete && image.naturalWidth > 0) {
@@ -170,11 +171,21 @@ function WorkArchiveCard({
           className="relative aspect-[16/10] w-full bg-obsidian overflow-hidden flex items-center justify-center block"
         >
           {shouldPlayVideoCover ? (
-            <YouTubePreview
-              videoUrl={videoUrl}
-              title={work.title}
-              isHovered={isVideoHovered}
-            />
+            <>
+              <img
+                src={youtubePosterSrc}
+                alt={work.title}
+                onError={(event) => {
+                  const image = event.currentTarget;
+                  if (image.dataset.fallback !== "true") {
+                    image.dataset.fallback = "true";
+                    image.src = fallbackCoverSrc;
+                  }
+                }}
+                className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover object-[50%_20%]"
+              />
+              <YouTubePreview videoUrl={videoUrl} title={work.title} isHovered={isVideoHovered} />
+            </>
           ) : (
             <>
               <img
@@ -344,6 +355,7 @@ function PersonalArchiveCard({
   const safeFrameIndex = activeFrame < frames.length ? activeFrame : 0;
   const currentSrc = (frames[safeFrameIndex] || project.coverImage || "/media/works/work-01.jpg").trim();
   const shouldPlayVideoCover = shouldUseYoutubeCoverPreview(project.videoUrl, project.coverImage);
+  const youtubePosterSrc = getYoutubeThumbnailUrl(project.videoUrl ?? "") || currentSrc;
 
   useEffect(() => {
     if (!isHovered || frames.length <= 1 || shouldPlayVideoCover) return;
@@ -448,11 +460,21 @@ function PersonalArchiveCard({
           className="relative aspect-[16/10] w-full bg-obsidian overflow-hidden flex items-center justify-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-rec"
         >
           {shouldPlayVideoCover && project.videoUrl ? (
-            <YouTubePreview
-              videoUrl={project.videoUrl}
-              title={project.title}
-              isHovered={isVideoHovered}
-            />
+            <>
+              <img
+                src={youtubePosterSrc}
+                alt={project.title}
+                onError={(event) => {
+                  const image = event.currentTarget;
+                  if (image.dataset.fallback !== "true") {
+                    image.dataset.fallback = "true";
+                    image.src = currentSrc;
+                  }
+                }}
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[50%_20%]"
+              />
+              <YouTubePreview videoUrl={project.videoUrl} title={project.title} isHovered={isVideoHovered} />
+            </>
           ) : (
             <>
               <img

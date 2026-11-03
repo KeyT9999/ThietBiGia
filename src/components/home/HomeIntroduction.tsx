@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { ArrowDown, ArrowRight, Film } from "lucide-react";
 import { useSiteContent } from "@/lib/store";
-import { toYoutubeEmbedUrl } from "@/lib/youtube";
+import { getYoutubeThumbnailUrl, toYoutubeEmbedUrl } from "@/lib/youtube";
+import { YouTubePreview } from "@/components/works/YouTubePreview";
 
 export function HomeIntroduction() {
   const homepage = useSiteContent().homepage;
@@ -63,16 +64,16 @@ export function HomeIntroduction() {
           <div className="absolute left-2 top-2 z-10 max-w-[calc(100%-1rem)] truncate whitespace-nowrap rounded-full border border-white/15 bg-obsidian/70 px-2 py-1 font-mono text-[7px] tracking-wide text-ivory backdrop-blur min-[480px]:left-2.5 min-[480px]:top-2.5 min-[480px]:text-[8px] min-[640px]:left-4 min-[640px]:top-4 min-[640px]:px-3 min-[640px]:py-1.5 min-[640px]:text-[10px] min-[640px]:tracking-wider">
             THIẾT BỊ GIA / TEAM STORY
           </div>
-          <div className="aspect-video w-full min-[640px]:aspect-[16/10] lg:aspect-[4/3]">
+          <div className="relative aspect-video w-full min-[640px]:aspect-[16/10] lg:aspect-[4/3]">
             {embedUrl ? (
-              <iframe
-                src={embedUrl}
-                title={homepage.heroMediaAlt || homepage.title}
-                className="h-full w-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                referrerPolicy="strict-origin-when-cross-origin"
-                allowFullScreen
-              />
+              <>
+                <img
+                  src={getYoutubeThumbnailUrl(homepage.heroMediaUrl) || "/anhchungtbg.jpg"}
+                  alt={homepage.heroMediaAlt || homepage.title}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                <YouTubePreview videoUrl={homepage.heroMediaUrl} title={homepage.heroMediaAlt || homepage.title} isHovered />
+              </>
             ) : (
               <img
                 src={homepage.heroMediaUrl || "/anhchungtbg.jpg"}
