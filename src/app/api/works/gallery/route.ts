@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPublicSiteContent } from "@/lib/site-content";
 import { extractGoogleDriveFolderId } from "@/lib/google-drive";
+import { getAdminUser } from "@/lib/supabase/server";
+import { getMemberSession } from "@/lib/member-auth";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+const NO_STORE_HEADERS = {
+  "Cache-Control": "no-store, no-cache, max-age=0, must-revalidate",
+  "CDN-Cache-Control": "no-store",
+  "Vercel-CDN-Cache-Control": "no-store",
+};
 
 type DriveFile = {
   id: string;
@@ -16,32 +25,67 @@ export async function GET(request: NextRequest) {
   const slug = request.nextUrl.searchParams.get("slug")?.trim();
   const memberSlug = request.nextUrl.searchParams.get("memberSlug")?.trim();
   const showcaseId = request.nextUrl.searchParams.get("showcaseId")?.trim();
+  const directFolderUrl = request.nextUrl.searchParams.get("folderUrl")?.trim();
   const requestedLimit = Number.parseInt(request.nextUrl.searchParams.get("limit") ?? "", 10);
   const previewLimit = Number.isInteger(requestedLimit) && requestedLimit > 0
     ? Math.min(requestedLimit, 11)
     : null;
   const isPersonalProject = Boolean(memberSlug && showcaseId);
-  if (!slug && !isPersonalProject) return NextResponse.json({ ok: false, error: "Thiếu dự án cần tải album." }, { status: 400 });
 
-  const content = await getPublicSiteContent();
-  const teamProject = slug ? content.works.find((item) => item.slug === slug) : undefined;
-  const memberProject = isPersonalProject
-    ? content.crew.find((item) => item.slug === memberSlug)?.showcase.find((item) => item.id === showcaseId)
-    : undefined;
-  const folderUrl = teamProject?.galleryDriveFolderUrl ?? memberProject?.galleryDriveFolderUrl;
-  if (!folderUrl) return NextResponse.json({ ok: false, error: "Dự án chưa có thư mục ảnh Drive." }, { status: 404 });
+  let folderUrl: string | undefined;
+
+  if (directFolderUrl) {
+    const [adminUser, memberSession] = await Promise.all([
+      getAdminUser(),
+      getMemberSession(),
+    ]);
+    if (!adminUser && !memberSession) {
+      return NextResponse.json(
+        { ok: false, error: "Cần đăng nhập quản trị hoặc thành viên để kiểm tra trực tiếp link Drive." },
+        { status: 401, headers: NO_STORE_HEADERS }
+      );
+    }
+    folderUrl = directFolderUrl;
+  } else {
+    if (!slug && !isPersonalProject) {
+      return NextResponse.json(
+        { ok: false, error: "Thiếu dự án cần tải album." },
+        { status: 400, headers: NO_STORE_HEADERS }
+      );
+    }
+
+    const content = await getPublicSiteContent();
+    const teamProject = slug ? content.works.find((item) => item.slug === slug) : undefined;
+    const memberProject = isPersonalProject
+      ? content.crew.find((item) => item.slug === memberSlug)?.showcase.find((item) => item.id === showcaseId)
+      : undefined;
+    folderUrl = teamProject?.galleryDriveFolderUrl ?? memberProject?.galleryDriveFolderUrl;
+  }
+
+  if (!folderUrl) {
+    return NextResponse.json(
+      { ok: false, error: "Dự án chưa có thư mục ảnh Drive." },
+      { status: 404, headers: NO_STORE_HEADERS }
+    );
+  }
 
   const folderId = extractGoogleDriveFolderId(folderUrl);
   if (!folderId) {
-    return NextResponse.json({ ok: false, error: "Link Google Drive chưa đúng. Hãy dán link chia sẻ của thư mục." }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: "Link Google Drive chưa đúng. Hãy dán link chia sẻ của thư mục." },
+      { status: 400, headers: NO_STORE_HEADERS }
+    );
   }
 
   const apiKey = process.env.GOOGLE_DRIVE_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({
-      ok: false,
-      error: "Album Drive chưa được kết nối. Quản trị viên cần thêm GOOGLE_DRIVE_API_KEY vào cấu hình máy chủ.",
-    }, { status: 503 });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Album Drive chưa được kết nối. Quản trị viên cần thêm GOOGLE_DRIVE_API_KEY vào cấu hình máy chủ.",
+      },
+      { status: 503, headers: NO_STORE_HEADERS }
+    );
   }
 
   try {
@@ -50,7 +94,7 @@ export async function GET(request: NextRequest) {
 
     do {
       const apiUrl = new URL("https://www.googleapis.com/drive/v3/files");
-      apiUrl.searchParams.set("q", `'${folderId}' in parents and trashed = false`);
+      apiUrl.searchParams.set("q", `'${folderId}' in parents and mimeType contains 'image/' and trashed = false`);
       apiUrl.searchParams.set("key", apiKey);
       apiUrl.searchParams.set("pageSize", previewLimit ? "100" : "1000");
       if (previewLimit) apiUrl.searchParams.set("orderBy", "name_natural");
@@ -59,14 +103,20 @@ export async function GET(request: NextRequest) {
       apiUrl.searchParams.set("fields", "nextPageToken,files(id,name,mimeType,resourceKey,imageMediaMetadata(width,height))");
       if (pageToken) apiUrl.searchParams.set("pageToken", pageToken);
 
-      const response = await fetch(apiUrl, { next: { revalidate: 3600 } });
+      const response = await fetch(apiUrl, {
+        cache: "no-store",
+        signal: AbortSignal.timeout(8000),
+      });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
         console.error("Google Drive gallery request failed:", response.status, body?.error?.status);
-        return NextResponse.json({
-          ok: false,
-          error: "Không đọc được thư mục ảnh. Hãy bật chia sẻ “Bất kỳ ai có đường liên kết” và kiểm tra cấu hình Google Drive API.",
-        }, { status: 502 });
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Không đọc được thư mục ảnh. Hãy bật chia sẻ “Bất kỳ ai có đường liên kết” và kiểm tra cấu hình Google Drive API.",
+          },
+          { status: 502, headers: NO_STORE_HEADERS }
+        );
       }
 
       const result = await response.json() as { files?: DriveFile[]; nextPageToken?: string };
@@ -99,12 +149,16 @@ export async function GET(request: NextRequest) {
       {
         ok: true,
         images,
+        totalCount: allImages.length,
         ...(previewLimit ? { hasMore: allImages.length > 10 || Boolean(pageToken) } : {}),
       },
-      { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" } }
+      { headers: NO_STORE_HEADERS }
     );
   } catch (error) {
     console.error("Google Drive gallery load failed:", error);
-    return NextResponse.json({ ok: false, error: "Chưa tải được album Google Drive. Vui lòng thử lại sau." }, { status: 502 });
+    return NextResponse.json(
+      { ok: false, error: "Chưa tải được album Google Drive. Vui lòng thử lại sau." },
+      { status: 502, headers: NO_STORE_HEADERS }
+    );
   }
 }

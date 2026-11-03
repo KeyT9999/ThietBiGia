@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, ImagePlus, Link2, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ImagePlus, Link2, Plus, RefreshCw, Trash2 } from "lucide-react";
 
 class CloudinaryFileSizeError extends Error {
   constructor(message: string, readonly maximumBytes?: number) {
@@ -264,10 +264,47 @@ export function AdminDriveFolderField({
   hint?: string;
 }) {
   const [isOpen, setIsOpen] = useState(Boolean(value));
+  const [checking, setChecking] = useState(false);
+  const [syncMessage, setSyncMessage] = useState("");
+  const [syncError, setSyncError] = useState("");
 
   useEffect(() => {
     if (value) setIsOpen(true);
+    setSyncMessage("");
+    setSyncError("");
   }, [value]);
+
+  async function verifyDriveFolder() {
+    if (!value) return;
+    setChecking(true);
+    setSyncMessage("");
+    setSyncError("");
+    try {
+      const response = await fetch(
+        `/api/works/gallery?folderUrl=${encodeURIComponent(value)}&t=${Date.now()}`,
+        { cache: "no-store" }
+      );
+      const result = (await response.json()) as {
+        ok: boolean;
+        totalCount?: number;
+        images?: unknown[];
+        error?: string;
+      };
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || "Không kiểm tra được thư mục Drive.");
+      }
+      const count = result.totalCount ?? result.images?.length ?? 0;
+      setSyncMessage(
+        count > 0
+          ? `Đã đồng bộ trực tiếp từ Drive: hiện có ${count} ảnh hợp lệ.`
+          : "Thư mục kết nối thành công nhưng hiện chưa có ảnh trực tiếp bên trong."
+      );
+    } catch (cause) {
+      setSyncError(cause instanceof Error ? cause.message : "Không kiểm tra được thư mục Drive.");
+    } finally {
+      setChecking(false);
+    }
+  }
 
   if (!isOpen) {
     return (
@@ -290,9 +327,24 @@ export function AdminDriveFolderField({
         hint={hint}
       />
       {value ? (
-        <button type="button" onClick={() => { onChange(undefined); setIsOpen(false); }} className="inline-flex items-center gap-1.5 rounded-lg border border-red-400/20 px-2.5 py-2 text-xs text-red-300 hover:bg-red-400/10">
-          <Trash2 className="h-3.5 w-3.5" /> GỠ LINK DRIVE
-        </button>
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={checking}
+              onClick={() => void verifyDriveFolder()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-2.5 py-2 text-xs font-mono text-ivory transition hover:border-rec hover:text-rec disabled:cursor-wait disabled:opacity-50"
+            >
+              <RefreshCw className={"h-3.5 w-3.5 text-rec " + (checking ? "animate-spin" : "")} />
+              {checking ? "ĐANG KIỂM TRA..." : "KIỂM TRA & ĐỒNG BỘ DRIVE"}
+            </button>
+            <button type="button" onClick={() => { onChange(undefined); setIsOpen(false); }} className="inline-flex items-center gap-1.5 rounded-lg border border-red-400/20 px-2.5 py-2 text-xs text-red-300 hover:bg-red-400/10">
+              <Trash2 className="h-3.5 w-3.5" /> GỠ LINK DRIVE
+            </button>
+          </div>
+          {syncMessage ? <p className="text-xs text-emerald-300">{syncMessage}</p> : null}
+          {syncError ? <p className="text-xs text-red-300">{syncError}</p> : null}
+        </div>
       ) : (
         <button type="button" onClick={() => setIsOpen(false)} className="rounded-lg border border-white/10 px-2.5 py-2 text-xs text-ivory-muted hover:text-ivory">
           HỦY

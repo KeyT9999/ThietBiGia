@@ -24,6 +24,9 @@ export function SmoothScrollProvider({
   const pathname = usePathname();
   const isOverlayOpen = useAppStore((state) => state.isOverlayOpen);
   const wasOverlayOpenRef = useRef(false);
+  const isStudioRoute = Boolean(
+    pathname?.startsWith("/admin") || pathname?.startsWith("/member")
+  );
 
   useEffect(() => {
     function update(time: number) {
@@ -53,7 +56,7 @@ export function SmoothScrollProvider({
     <SiteContentProvider initialContent={initialContent} initialMemberId={initialMemberId}>
       <ReactLenis
         root
-        options={{ autoRaf: false, lerp: 0.085, smoothWheel: true }}
+        options={{ autoRaf: false, lerp: 0.085, smoothWheel: !isStudioRoute }}
         ref={lenisRef}
       >
         {children}

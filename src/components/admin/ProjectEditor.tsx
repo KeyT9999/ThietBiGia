@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Images, Info, ListChecks, Trash2, Users } from "lucide-react";
 import type { CrewMember, PartnerOrganization, ProjectCredit, WorkProject } from "@/data/schema";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
@@ -8,20 +8,45 @@ import { AdminDriveFolderField, AdminField, AdminImageField, AdminMultiImageFiel
 
 export function ProjectEditor({
   work,
+  workPosition,
+  workCount,
   crew,
   partnerOrganizations,
   canDelete,
   onChange,
+  onMovePosition,
   onDelete,
 }: {
   work: WorkProject;
+  workPosition: number;
+  workCount: number;
   crew: CrewMember[];
   partnerOrganizations: PartnerOrganization[];
   canDelete: boolean;
   onChange: (patch: Partial<WorkProject>) => void;
+  onMovePosition: (targetOneBased: number) => void;
   onDelete: () => void;
 }) {
   const [section, setSection] = useState<"basic" | "media" | "details" | "crew">("basic");
+  const formattedPosition = String(Math.max(1, workPosition)).padStart(2, "0");
+  const [orderDraft, setOrderDraft] = useState(formattedPosition);
+
+  useEffect(() => {
+    setOrderDraft(formattedPosition);
+  }, [work.id, formattedPosition]);
+
+  function commitOrderDraft() {
+    const requested = Number(orderDraft.trim());
+    if (!Number.isInteger(requested) || requested < 1 || workCount < 1) {
+      setOrderDraft(formattedPosition);
+      return;
+    }
+    const clamped = Math.min(Math.max(1, requested), workCount);
+    setOrderDraft(String(clamped).padStart(2, "0"));
+    if (clamped !== workPosition) {
+      onMovePosition(clamped);
+    }
+  }
 
   function updateCredit(index: number, patch: Partial<ProjectCredit>) {
     onChange({ credits: work.credits.map((credit, i) => i === index ? { ...credit, ...patch } : credit) });
@@ -31,7 +56,7 @@ export function ProjectEditor({
     <div className="space-y-5 rounded-3xl border border-white/10 bg-obsidian-surface p-5 sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-mono text-[10px] text-rec">PROJECT / {work.slug}</p>
+          <p className="font-mono text-[10px] text-rec">PROJECT #{formattedPosition} / {work.slug}</p>
           <h2 className="mt-1 font-display text-2xl font-bold">{work.title}</h2>
         </div>
         <button type="button" disabled={!canDelete} onClick={onDelete} className="inline-flex items-center gap-2 rounded-xl border border-red-400/25 px-3 py-2 text-xs font-mono text-red-300 disabled:opacity-30">
@@ -74,7 +99,27 @@ export function ProjectEditor({
         <AdminField label="Khách hàng / series" value={work.clientOrSeries} onChange={(clientOrSeries) => onChange({ clientOrSeries })} />
         <AdminField label="Danh mục" value={work.category} onChange={(category) => onChange({ category })} />
         <AdminField label="Năm" value={work.year} onChange={(year) => onChange({ year })} />
-        <AdminField label="Nhãn thứ tự" value={work.indexLabel} onChange={(indexLabel) => onChange({ indexLabel })} hint="Tự cập nhật theo vị trí khi sắp xếp bằng mũi tên trong danh sách." />
+        <label className="block space-y-1.5">
+          <span className="block text-xs font-mono font-semibold uppercase tracking-wide text-ivory-muted">Số thứ tự hiển thị (1–{workCount})</span>
+          <input
+            type="number"
+            min={1}
+            max={workCount}
+            step={1}
+            value={orderDraft}
+            onChange={(event) => setOrderDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                commitOrderDraft();
+                event.currentTarget.blur();
+              }
+            }}
+            onBlur={commitOrderDraft}
+            className="w-full rounded-xl border border-white/10 bg-obsidian px-3.5 py-3 text-sm text-ivory outline-none focus:border-rec"
+          />
+          <span className="block text-xs text-ivory-subtle">Nhập vị trí mới rồi nhấn Enter (hoặc kéo thả thẻ ở cột trái) để chuyển dự án và tự đánh lại số liên tiếp.</span>
+        </label>
         <AdminField label="Timecode / thời lượng" value={work.durationTimecode} onChange={(durationTimecode) => onChange({ durationTimecode })} />
         <AdminField label="Màu nhấn" value={work.accentColor} onChange={(accentColor) => onChange({ accentColor })} />
         <AdminField label="Thông số máy" value={work.cameraSpec} onChange={(cameraSpec) => onChange({ cameraSpec })} />

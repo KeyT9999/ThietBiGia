@@ -27,6 +27,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import type { CrewMember, PartnerOrganization } from "@/data/schema";
+import { extractGoogleDriveFolderId } from "@/lib/google-drive";
 import {
   getCuratedPersonalArchiveProjects,
   getTotalArchiveProjectCount,
@@ -908,6 +909,8 @@ export function WorksArchiveGrid() {
     }
 
     const controller = new AbortController();
+    const folderId = extractGoogleDriveFolderId(project.galleryDriveFolderUrl);
+    if (folderId) params.set("v", folderId);
     setDriveAlbumImages(null);
     setDriveAlbumLoading(true);
     setDriveAlbumError("");

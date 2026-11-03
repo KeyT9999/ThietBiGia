@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 import { type CrewMember } from "@/data/schema";
+import { extractGoogleDriveFolderId } from "@/lib/google-drive";
 import {
   getTeammatesForMember,
   getUnifiedProjectsForMember,
@@ -194,6 +195,8 @@ export function MemberSpotlightView({
     }
 
     const controller = new AbortController();
+    const folderId = extractGoogleDriveFolderId(lightboxProject.galleryDriveFolderUrl);
+    if (folderId) params.set("v", folderId);
     setDriveAlbumImages(null);
     setDriveAlbumLoading(true);
     setDriveAlbumError("");

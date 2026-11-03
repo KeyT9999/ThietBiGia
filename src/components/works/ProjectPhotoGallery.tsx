@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ExternalLink, Images } from "lucide-react";
+import { ExternalLink, Images, RefreshCw } from "lucide-react";
 import type { WorkProject } from "@/data/schema";
+import { extractGoogleDriveFolderId } from "@/lib/google-drive";
 
 type ProjectPhoto = {
   id: string;
@@ -19,8 +20,11 @@ export function ProjectPhotoGallery({ work }: { work: WorkProject }) {
   const [drivePhotos, setDrivePhotos] = useState<ProjectPhoto[] | null>(null);
   const [loading, setLoading] = useState(Boolean(work.galleryDriveFolderUrl));
   const [error, setError] = useState("");
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const [failedPhotoIds, setFailedPhotoIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
+    setFailedPhotoIds(new Set());
     if (!work.galleryDriveFolderUrl) {
       setDrivePhotos(null);
       setLoading(false);
@@ -29,10 +33,19 @@ export function ProjectPhotoGallery({ work }: { work: WorkProject }) {
     }
 
     const controller = new AbortController();
-    setDrivePhotos(null);
+    if (refreshNonce === 0) setDrivePhotos(null);
     setLoading(true);
     setError("");
-    fetch(`/api/works/gallery?slug=${encodeURIComponent(work.slug)}`, { signal: controller.signal, cache: "no-store" })
+
+    const params = new URLSearchParams({ slug: work.slug });
+    const folderId = extractGoogleDriveFolderId(work.galleryDriveFolderUrl);
+    if (folderId) params.set("v", folderId);
+    if (refreshNonce > 0) params.set("t", String(refreshNonce));
+
+    fetch(`/api/works/gallery?${params.toString()}`, {
+      signal: controller.signal,
+      cache: "no-store",
+    })
       .then(async (response) => {
         const result = await response.json() as GalleryResponse;
         if (!response.ok || !result.ok) throw new Error(result.error || "Không tải được album.");
@@ -47,7 +60,7 @@ export function ProjectPhotoGallery({ work }: { work: WorkProject }) {
       });
 
     return () => controller.abort();
-  }, [work.galleryDriveFolderUrl, work.slug]);
+  }, [work.galleryDriveFolderUrl, work.slug, refreshNonce]);
 
   const legacyPhotos: ProjectPhoto[] = work.galleryImages.map((src, index) => ({
     id: `legacy-${index}-${src}`,
@@ -57,10 +70,13 @@ export function ProjectPhotoGallery({ work }: { work: WorkProject }) {
     width: null,
     height: null,
   }));
-  const photos: ProjectPhoto[] = work.galleryDriveFolderUrl
+  const rawPhotos: ProjectPhoto[] = work.galleryDriveFolderUrl
     ? drivePhotos ?? (error ? legacyPhotos : [])
     : legacyPhotos;
-  const emptyDriveFolder = Boolean(work.galleryDriveFolderUrl && drivePhotos && drivePhotos.length === 0);
+  const photos = rawPhotos.filter((photo) => !failedPhotoIds.has(photo.id));
+  const emptyDriveFolder = Boolean(
+    work.galleryDriveFolderUrl && drivePhotos && photos.length === 0 && !loading
+  );
 
   if (!photos.length && !loading && !error && !emptyDriveFolder) return null;
 
@@ -73,11 +89,25 @@ export function ProjectPhotoGallery({ work }: { work: WorkProject }) {
             <Images className="h-5 w-5 text-rec" /> ẢNH DỰ ÁN
           </h2>
         </div>
-        {photos.length ? <span className="font-mono text-xs text-ivory-muted">{photos.length} ẢNH</span> : null}
+        <div className="flex items-center gap-3">
+          {photos.length ? <span className="font-mono text-xs text-ivory-muted">{photos.length} ẢNH</span> : null}
+          {work.galleryDriveFolderUrl ? (
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => setRefreshNonce((current) => current + 1)}
+              title="Đồng bộ lại danh sách ảnh mới nhất từ Google Drive"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-2.5 py-1.5 font-mono text-[10px] text-ivory-muted transition hover:border-rec hover:text-ivory disabled:cursor-wait disabled:opacity-50"
+            >
+              <RefreshCw className={"h-3 w-3 text-rec " + (loading ? "animate-spin" : "")} />
+              {loading ? "ĐANG ĐỒNG BỘ…" : "ĐỒNG BỘ LẠI"}
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {loading && !drivePhotos?.length ? <p className="rounded-xl border border-white/10 px-4 py-3 text-sm text-ivory-muted">Đang tải album ảnh…</p> : null}
-      {emptyDriveFolder ? <p className="rounded-xl border border-white/10 px-4 py-3 text-sm text-ivory-muted">Thư mục Drive này chưa có ảnh. Hãy thêm ảnh trực tiếp vào thư mục rồi tải lại trang.</p> : null}
+      {emptyDriveFolder ? <p className="rounded-xl border border-white/10 px-4 py-3 text-sm text-ivory-muted">Thư mục Drive này chưa có ảnh. Hãy thêm ảnh trực tiếp vào thư mục rồi bấm Đồng bộ lại.</p> : null}
       {error ? <p role="status" className="rounded-xl border border-amber-300/20 bg-amber-300/5 px-4 py-3 text-xs leading-relaxed text-amber-100">{error}{photos.length ? " Đang hiển thị album đã lưu trước đây." : ""}</p> : null}
 
       {photos.length ? (
@@ -98,6 +128,14 @@ export function ProjectPhotoGallery({ work }: { work: WorkProject }) {
                 height={photo.height ?? undefined}
                 loading="lazy"
                 decoding="async"
+                onError={() => {
+                  setFailedPhotoIds((current) => {
+                    if (current.has(photo.id)) return current;
+                    const next = new Set(current);
+                    next.add(photo.id);
+                    return next;
+                  });
+                }}
                 className="block h-auto w-full transition-transform duration-500 group-hover:scale-[1.02]"
               />
               <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-obsidian/85 to-transparent px-3 pb-2 pt-8 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100">

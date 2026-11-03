@@ -97,6 +97,13 @@ export function MemberEditor({
             value={badgeNumberDraft}
             onChange={(event) => setBadgeNumberDraft(event.target.value)}
             onBlur={commitBadgeNumber}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                commitBadgeNumber();
+                event.currentTarget.blur();
+              }
+            }}
             className="w-full rounded-xl border border-white/10 bg-obsidian px-3.5 py-3 text-sm text-ivory outline-none focus:border-rec"
           />
           <span className="block text-xs text-ivory-subtle">Đổi số thẻ sẽ chuyển vị trí thành viên và đánh lại số liên tiếp.</span>

@@ -15,6 +15,7 @@ import { getRoleMeta } from "@/lib/utils";
 import { useSiteContent } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
 import { shouldUseYoutubeCoverPreview } from "@/lib/youtube";
+import { extractGoogleDriveFolderId } from "@/lib/google-drive";
 import { YouTubePreview } from "@/components/works/YouTubePreview";
 import type { PartnerOrganization } from "@/data/schema";
 
@@ -54,6 +55,8 @@ export function MemberProjectCard({
       return "";
     }
     params.set("limit", "11");
+    const folderId = extractGoogleDriveFolderId(project.galleryDriveFolderUrl);
+    if (folderId) params.set("v", folderId);
     return `/api/works/gallery?${params.toString()}`;
   })();
   const personalPartners = siteContent.crew.find((member) => member.slug === memberSlug)?.partnerOrganizations ?? [];
