@@ -38,6 +38,12 @@ function getResponsiveCameraZ(viewportWidth: number) {
   return 8.4;
 }
 
+function getResponsiveCardScale(viewportWidth: number, isCenter: boolean) {
+  if (viewportWidth >= 640) return 1;
+  // Give the main pass more breathing room and keep orbit cards large enough to read.
+  return isCenter ? 1.3 : 1.95;
+}
+
 function getCircularOffset(index: number, currentIndex: number, total: number) {
   if (total <= 0) return 0;
   let offset = (index - currentIndex) % total;
@@ -826,9 +832,9 @@ function MemberCardMesh({
     const rotZ = THREE.MathUtils.clamp(-timelineMotion.velocity * 0.045, -0.14, 0.14);
     easing.dampE(groupRef.current.rotation, [0, rotY, rotZ], 0.18, delta);
 
-    // Keep the featured member prominent while enlarging the mobile orbit cards
-    // and widening their ring so they peek out from behind the center card.
-    const mobileScale = state.size.width < 640 ? (isCenter ? 1.785 : 1.35) : 1;
+    // On phones, reduce the featured pass and enlarge the cards in the orbit
+    // so their 3D arc remains visible around it.
+    const mobileScale = getResponsiveCardScale(state.size.width, isCenter);
     const scaleBoost = (hovered
       ? isCenter ? 1.28 : 0.44
       : isCenter
@@ -1009,7 +1015,7 @@ function WorkCardMesh({
     const rotZ = THREE.MathUtils.clamp(-timelineMotion.velocity * 0.045, -0.14, 0.14);
     easing.dampE(groupRef.current.rotation, [0, rotY, rotZ], 0.14, delta);
 
-    const mobileScale = state.size.width < 640 ? (isCenter ? 1.785 : 1.35) : 1;
+    const mobileScale = getResponsiveCardScale(state.size.width, isCenter);
     const scaleBoost = (hovered
       ? isCenter ? 1.28 : 0.44
       : isCenter

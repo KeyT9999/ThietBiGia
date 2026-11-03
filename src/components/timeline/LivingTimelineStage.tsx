@@ -11,6 +11,7 @@ import { deferTimelineAutoplay, timelineMotion, useAppStore, useSiteContent } fr
 import { getRoleMeta } from "@/lib/utils";
 import { CrewCreditPills } from "./CrewCreditPills";
 import { MemberContextPills } from "./MemberContextPills";
+import { NLEScrubberRuler } from "./NLEScrubberRuler";
 import { DecoderText } from "@/components/layout/DecoderText";
 import { soundEngine } from "@/lib/sound";
 import { getHome3DWorks } from "@/lib/home-3d-works";
@@ -403,6 +404,11 @@ export function LivingTimelineStage() {
             </>
           )}
         </div>
+      </div>
+
+      {/* Compact draggable timeline remains the control for selecting crew and projects. */}
+      <div className={`relative z-[45] ${isBackgrounded ? "hidden" : ""}`}>
+        <NLEScrubberRuler />
       </div>
 
     </section>
