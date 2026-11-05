@@ -130,13 +130,6 @@ export function MemberProjectCard({
     motion: "MOTION",
   }[project.kind] : shouldPlayVideoCover ? "VIDEO" : null;
 
-  const scopeBadge =
-    project.scope === "lead"
-      ? { label: "CHỦ ĐẠO", bg: project.accentColor, text: "#08090C" }
-      : project.scope === "personal"
-      ? { label: "CÁ NHÂN", bg: "#FF4D00", text: "#08090C" }
-      : { label: "CÙNG EKIP", bg: "#1E2433", text: "#F4F1EA" };
-
   useEffect(() => {
     if (!isHovered || frames.length <= 1 || shouldPlayVideoCover) return;
     const timer = window.setInterval(() => {
@@ -160,15 +153,6 @@ export function MemberProjectCard({
         <div className="shrink-0 px-4 pt-3 pb-2.5 bg-obsidian/90 border-b border-obsidian-border space-y-2">
           <div className="flex items-center justify-between gap-2 text-xs font-mono">
             <div className="flex items-center gap-2 min-w-0">
-              <span
-                className="px-2 py-0.5 rounded font-bold shrink-0"
-                style={{
-                  backgroundColor: scopeBadge.bg,
-                  color: scopeBadge.text,
-                }}
-              >
-                {scopeBadge.label}
-              </span>
               <span className="text-rec font-semibold truncate">
                 {project.roleBadge}
               </span>

@@ -129,6 +129,20 @@ export async function PUT(request: Request) {
     );
   }
 
+  const hasInvalidPersonalProjectParticipants = parsed.data.crew.some((member) =>
+    member.showcase.some((item) => {
+      const participantSlugs = item.participantSlugs ?? [];
+      return new Set(participantSlugs).size !== participantSlugs.length ||
+        participantSlugs.some((slug) => slug === member.slug || !crewSlugs.includes(slug));
+    })
+  );
+  if (hasInvalidPersonalProjectParticipants) {
+    return NextResponse.json(
+      { ok: false, error: "Thành viên được gắn trong dự án cá nhân phải tồn tại, không trùng và khác chủ dự án." },
+      { status: 400 }
+    );
+  }
+
   if (
     new Set(serviceIds).size !== serviceIds.length ||
     new Set(allPartnerIds).size !== allPartnerIds.length ||

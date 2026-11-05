@@ -168,14 +168,23 @@ function wrapCanvasText(
   return lines;
 }
 
+const EMPTY_TEXTURE_IMAGE = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+
+function releaseTextureImage(image: HTMLImageElement | undefined) {
+  if (!image) return;
+  image.onload = null;
+  image.onerror = null;
+  image.src = EMPTY_TEXTURE_IMAGE;
+}
+
 /**
- * Renders a high-DPI Vietnamese Collector Member Card CanvasTexture (768x960)
+ * Renders a Vietnamese Collector Member Card CanvasTexture (512x640)
  */
 function useMemberCardTexture(member: CrewMember) {
   const texture = useMemo(() => {
     const canvas = document.createElement("canvas");
-    canvas.width = 768;
-    canvas.height = 960;
+    canvas.width = 512;
+    canvas.height = 640;
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 8;
@@ -188,8 +197,9 @@ function useMemberCardTexture(member: CrewMember) {
     if (!ctx) return;
 
     let cancelled = false;
-    const W = canvas.width;
-    const H = canvas.height;
+    const W = 768;
+    const H = 960;
+    ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
     const primaryMeta = getRoleMeta(member.roles[0] ?? member.roleCategory);
     const secondaryMeta = getRoleMeta(
       member.roles[1] ?? member.roles[0] ?? member.roleCategory
@@ -410,11 +420,15 @@ function useMemberCardTexture(member: CrewMember) {
 
     const img = new window.Image();
     img.crossOrigin = "anonymous";
-    img.onload = () => paintCard(img);
+    img.onload = () => {
+      paintCard(img);
+      releaseTextureImage(img);
+    };
     img.src = member.avatar;
 
     return () => {
       cancelled = true;
+      releaseTextureImage(img);
     };
   }, [member, texture]);
 
@@ -428,15 +442,15 @@ function useMemberCardTexture(member: CrewMember) {
 }
 
 /**
- * Renders a high-DPI Cinema Clapper / Slate Collector Card CanvasTexture (768x960)
+ * Renders a Cinema Clapper / Slate Collector Card CanvasTexture (512x640)
  * for `workProjects` so Works Timeline Mode has full Vietnamese titles, SCENE badges,
  * timecodes, EXIF/camera specs, and crew count!
  */
 function useWorkCardTexture(work: WorkProject, crewMembers: CrewMember[]) {
   const texture = useMemo(() => {
     const canvas = document.createElement("canvas");
-    canvas.width = 768;
-    canvas.height = 960;
+    canvas.width = 512;
+    canvas.height = 640;
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 8;
@@ -450,8 +464,9 @@ function useWorkCardTexture(work: WorkProject, crewMembers: CrewMember[]) {
     const ctx = context as CanvasRenderingContext2D;
 
     let cancelled = false;
-    const W = canvas.width;
-    const H = canvas.height;
+    const W = 768;
+    const H = 960;
+    ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
     let loadedCover: HTMLImageElement | undefined;
     const youtubeVideoUrl = work.videoEmbedUrl || work.videoUrl || "";
     const youtubeThumbnailUrl = shouldUseYoutubeCoverPreview(youtubeVideoUrl, work.coverImage)
@@ -464,8 +479,6 @@ function useWorkCardTexture(work: WorkProject, crewMembers: CrewMember[]) {
     const crewAvatarImages = creditedMembers.slice(0, 4).map((member) => {
       const image = new window.Image();
       image.crossOrigin = "anonymous";
-      image.onload = () => paintSlate(loadedCover);
-      image.src = member.avatar;
       return { member, image };
     });
 
@@ -678,20 +691,57 @@ function useWorkCardTexture(work: WorkProject, crewMembers: CrewMember[]) {
     paintSlate();
     const img = new window.Image();
     img.crossOrigin = "anonymous";
+    let coverLoadFinished = false;
+    let avatarLoadsRemaining = crewAvatarImages.length;
+
+    const releaseSourcesWhenReady = () => {
+      if (!coverLoadFinished || avatarLoadsRemaining > 0) return;
+      paintSlate(loadedCover);
+      releaseTextureImage(loadedCover);
+      releaseTextureImage(img);
+      loadedCover = undefined;
+      crewAvatarImages.forEach(({ image }) => releaseTextureImage(image));
+    };
+
+    const finishAvatarLoad = () => {
+      avatarLoadsRemaining -= 1;
+      releaseSourcesWhenReady();
+    };
+
+    crewAvatarImages.forEach(({ image }) => {
+      image.onload = finishAvatarLoad;
+      image.onerror = finishAvatarLoad;
+    });
+    crewAvatarImages.forEach(({ member, image }) => {
+      image.src = member.avatar;
+    });
+
     img.onload = () => {
       loadedCover = img;
-      paintSlate(img);
+      coverLoadFinished = true;
+      releaseSourcesWhenReady();
     };
     img.onerror = () => {
       if (coverUrl !== work.coverImage) {
-        img.onerror = null;
+        img.onload = null;
+        img.onerror = () => {
+          coverLoadFinished = true;
+          releaseSourcesWhenReady();
+        };
         img.src = work.coverImage;
+        return;
       }
+      coverLoadFinished = true;
+      releaseSourcesWhenReady();
     };
     img.src = coverUrl;
 
     return () => {
       cancelled = true;
+      releaseTextureImage(img);
+      crewAvatarImages.forEach(({ image }) => releaseTextureImage(image));
+      releaseTextureImage(loadedCover);
+      loadedCover = undefined;
     };
   }, [work, crewMembers, texture]);
 

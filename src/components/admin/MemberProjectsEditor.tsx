@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, GripVertical, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, Plus, Trash2, Users } from "lucide-react";
 import type { BentoItem, CrewMember, PartnerOrganization, WorkProject } from "@/data/schema";
 import { getSharedWorkIdsForMember, getUnifiedProjectsForMember } from "@/data/works";
 import { moveItemToPosition, reorderArrayByDrop } from "@/lib/work-order";
@@ -37,6 +37,7 @@ export function MemberProjectsEditor({
   );
   const selectedWorkIds = new Set(getSharedWorkIdsForMember(member, works));
   const displayedProjects = getUnifiedProjectsForMember(member, works, crew);
+  const participantOptions = crew.filter((candidate) => candidate.slug !== member.slug);
 
   const { getRowDragProps } = useListDragReorder((draggedId: string, targetId: string, placement: DropPlacement) => {
     const orderedIds = displayedProjects.map((project) => project.id);
@@ -49,6 +50,16 @@ export function MemberProjectsEditor({
   function updateShowcaseItem(id: string, patch: Partial<BentoItem>) {
     onChange({
       showcase: member.showcase.map((item) => item.id === id ? { ...item, ...patch } : item),
+    });
+  }
+
+  function toggleShowcaseParticipant(item: BentoItem, slug: string, checked: boolean) {
+    const availableSlugs = new Set(participantOptions.map((candidate) => candidate.slug));
+    const next = new Set((item.participantSlugs ?? []).filter((candidateSlug) => availableSlugs.has(candidateSlug)));
+    if (checked) next.add(slug);
+    else next.delete(slug);
+    updateShowcaseItem(item.id, {
+      participantSlugs: participantOptions.filter((candidate) => next.has(candidate.slug)).map((candidate) => candidate.slug),
     });
   }
 
@@ -173,6 +184,20 @@ export function MemberProjectsEditor({
               </div>
 
               <AdminField label="Mô tả dự án" value={item.description ?? ""} multiline rows={4} onChange={(description) => updateShowcaseItem(item.id, { description: description || undefined })} />
+              <div className="space-y-2 rounded-xl border border-white/10 p-3 sm:p-4">
+                <div>
+                  <h4 className="flex items-center gap-2 text-sm font-bold"><Users className="h-4 w-4 text-rec" /> Thành viên cùng tham gia</h4>
+                  <p className="mt-1 text-xs text-ivory-subtle">Gắn thẻ thành viên đã tham gia dự án cá nhân này. Tên và hồ sơ của họ sẽ hiện cùng dự án trên profile của bạn.</p>
+                </div>
+                {participantOptions.length ? <div className="grid gap-2 sm:grid-cols-2">{participantOptions.map((participant) => {
+                  const checked = (item.participantSlugs ?? []).includes(participant.slug);
+                  return <label key={participant.slug} className={`flex cursor-pointer items-center gap-2.5 rounded-xl border p-2.5 ${checked ? "border-rec/50 bg-rec/[0.07]" : "border-white/10 bg-obsidian/50"}`}>
+                    <input type="checkbox" checked={checked} onChange={(event) => toggleShowcaseParticipant(item, participant.slug, event.target.checked)} className="accent-[#ff4d00]" />
+                    {participant.avatar ? <img src={participant.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover object-[50%_18%]" /> : null}
+                    <span className="min-w-0"><span className="block truncate text-xs font-semibold text-ivory">{participant.nickname || participant.name}</span><span className="block truncate text-[10px] text-ivory-subtle">#{participant.badgeNumber} · {participant.roleTitle}</span></span>
+                  </label>;
+                })}</div> : <p className="text-xs text-ivory-subtle">Chưa có thành viên khác để gắn thẻ.</p>}
+              </div>
               <AdminImageField label="Ảnh bìa" value={item.image} folder="thiet-bi-gia/projects" signatureEndpoint={signatureEndpoint} onChange={(image) => updateShowcaseItem(item.id, { image })} />
               <AdminDriveFolderField value={item.galleryDriveFolderUrl} onChange={(galleryDriveFolderUrl) => updateShowcaseItem(item.id, { galleryDriveFolderUrl })} hint="Ảnh trong link này sẽ hiện khi mở album dự án. Chỉ ảnh trực tiếp trong thư mục; đặt tên 01, 02, 03… để sắp thứ tự. Sau khi thêm, xóa hoặc thay ảnh trên Drive, bấm Cập nhật ảnh từ Drive để nạp danh sách mới." />
               <div className="space-y-2 rounded-xl border border-white/10 p-3 sm:p-4">

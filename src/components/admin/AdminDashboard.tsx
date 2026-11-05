@@ -127,9 +127,20 @@ export function AdminDashboard() {
             item.id === memberId ? { ...updated, badgeNumber: item.badgeNumber } : item
           )
         : normalizeCrewOrder(current.crew.map((item) => item.id === memberId ? updated : item));
+      const crewWithUpdatedParticipants = oldMember.slug === updated.slug ? crew : crew.map((item) => ({
+        ...item,
+        showcase: item.showcase.map((project) => {
+          const participantSlugs = project.participantSlugs ?? [];
+          const nextParticipantSlugs = item.id === memberId
+            ? participantSlugs.filter((slug) => slug !== oldMember.slug && slug !== updated.slug)
+            : Array.from(new Set(participantSlugs.map((slug) => slug === oldMember.slug ? updated.slug : slug)));
+          if (participantSlugs.length === nextParticipantSlugs.length && participantSlugs.every((slug, index) => slug === nextParticipantSlugs[index])) return project;
+          return { ...project, participantSlugs: nextParticipantSlugs };
+        }),
+      }));
       return {
         ...current,
-        crew,
+        crew: crewWithUpdatedParticipants,
         works: oldMember.slug === updated.slug ? current.works : current.works.map((item) => ({
           ...item,
           credits: item.credits.map((credit) => credit.memberSlug === oldMember.slug ? { ...credit, memberSlug: updated.slug } : credit),
@@ -257,7 +268,12 @@ export function AdminDashboard() {
     if (!content || !member || content.crew.length <= 1) return;
     if (!window.confirm("Xóa hồ sơ " + member.name + "?")) return;
     const slug = member.slug;
-    const crew = normalizeCrewOrder(content.crew.filter((item) => item.id !== member.id));
+    const crew = normalizeCrewOrder(content.crew.filter((item) => item.id !== member.id)).map((item) => ({
+      ...item,
+      showcase: item.showcase.map((project) => project.participantSlugs?.includes(slug)
+        ? { ...project, participantSlugs: project.participantSlugs.filter((participantSlug) => participantSlug !== slug) }
+        : project),
+    }));
     setContent({
       ...content,
       crew,

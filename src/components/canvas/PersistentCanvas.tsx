@@ -6,11 +6,21 @@ import { PerformanceMonitor, Preload, View } from "@react-three/drei";
 
 export function PersistentCanvasInner() {
   const [dpr, setDpr] = useState(1.5);
+  const [isDocumentVisible, setIsDocumentVisible] = useState(true);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const isSmallScreen = window.matchMedia("(max-width: 768px)").matches;
-    setDpr(isSmallScreen ? 1.25 : Math.min(2, window.devicePixelRatio || 1.5));
+    setDpr(
+      isSmallScreen
+        ? 1.15
+        : Math.min(1.5, Math.max(1.25, window.devicePixelRatio || 1.5))
+    );
+
+    const syncVisibility = () => setIsDocumentVisible(!document.hidden);
+    syncVisibility();
+    document.addEventListener("visibilitychange", syncVisibility);
+    return () => document.removeEventListener("visibilitychange", syncVisibility);
   }, []);
 
   return (
@@ -20,6 +30,7 @@ export function PersistentCanvasInner() {
     >
       <Canvas
         dpr={dpr}
+        frameloop={isDocumentVisible ? "always" : "never"}
         gl={{
           antialias: true,
           alpha: true,
@@ -31,7 +42,9 @@ export function PersistentCanvasInner() {
       >
         <PerformanceMonitor
           flipflops={3}
-          onIncline={() => setDpr(Math.min(2, window.devicePixelRatio || 2))}
+          onIncline={() =>
+            setDpr(Math.min(1.5, Math.max(1.25, window.devicePixelRatio || 1.5)))
+          }
           onDecline={() => setDpr(1)}
           onFallback={() => setDpr(1.2)}
         >

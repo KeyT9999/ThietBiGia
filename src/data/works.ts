@@ -569,6 +569,12 @@ export function getUnifiedProjectsForMember(
     const effectiveCover = cleanCover || cleanGallery[0] || "/media/works/work-01.jpg";
     const itemFrames = cleanGallery.length > 0 ? cleanGallery : [effectiveCover];
     if (!hasDrive && itemFrames.length <= 1 && seenCoverImages.has(effectiveCover)) continue;
+    const coCreators = Array.from(new Set(item.participantSlugs ?? []))
+      .filter((slug) => slug !== member.slug)
+      .flatMap((slug) => {
+        const participant = crew.find((candidate) => candidate.slug === slug);
+        return participant ? [participant] : [];
+      });
 
     fromShowcase.push({
       id: `showcase-${item.id}`,
@@ -596,8 +602,8 @@ export function getUnifiedProjectsForMember(
       span: item.span,
       videoUrl: item.videoUrl,
       externalUrl: item.externalUrl,
-      coCreators: [],
-      totalCrewCount: 1,
+      coCreators,
+      totalCrewCount: 1 + coCreators.length,
     });
   }
 

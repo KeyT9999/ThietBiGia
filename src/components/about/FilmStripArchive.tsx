@@ -19,6 +19,7 @@ import {
 import { GROUP_CATEGORY_META } from "@/data/moments";
 import { useSiteContent } from "@/lib/store";
 import { soundEngine } from "@/lib/sound";
+import { ZoomPanImage } from "@/components/works/ZoomPanImage";
 
 const EDGE_MARKINGS = [
   "KODAK PORTRA 400",
@@ -498,9 +499,7 @@ export function FilmStripArchive() {
 
                     {/* Main Full-Resolution Uncropped Image */}
                     <div
-                      className={`relative bg-obsidian flex-1 min-h-0 flex items-center justify-center p-3 ${
-                        lightboxZoomed ? "overflow-auto" : "overflow-hidden"
-                      }`}
+                      className="relative bg-obsidian flex-1 min-h-0 flex items-center justify-center overflow-hidden p-3"
                     >
                       <img
                         src={activeMoment.src}
@@ -508,15 +507,12 @@ export function FilmStripArchive() {
                         aria-hidden="true"
                         className="pointer-events-none absolute inset-0 w-full h-full object-cover blur-2xl opacity-25 scale-110"
                       />
-                      <img
+                      <ZoomPanImage
                         src={activeMoment.src}
                         alt={activeMoment.title}
-                        onClick={() => setLightboxZoomed((z) => !z)}
-                        className={`relative z-10 rounded-lg shadow-2xl transition-transform duration-300 ${
-                          lightboxZoomed
-                            ? "max-h-none w-auto scale-150 cursor-zoom-out sm:scale-[1.85]"
-                            : "max-h-[62dvh] w-auto max-w-full cursor-zoom-in object-contain"
-                        }`}
+                        zoomed={lightboxZoomed}
+                        onToggleZoom={() => setLightboxZoomed((z) => !z)}
+                        className="relative z-10 max-h-[62dvh] w-auto max-w-full rounded-lg object-contain shadow-2xl"
                       />
 
                       <button

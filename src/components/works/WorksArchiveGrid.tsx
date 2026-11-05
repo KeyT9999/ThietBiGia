@@ -40,6 +40,7 @@ import { soundEngine } from "@/lib/sound";
 import { useSiteContent } from "@/lib/store";
 import { getYoutubeThumbnailUrl, shouldUseYoutubeCoverPreview, toYoutubeEmbedUrl } from "@/lib/youtube";
 import { YouTubePreview } from "./YouTubePreview";
+import { ZoomPanImage } from "./ZoomPanImage";
 
 gsap.registerPlugin(Flip);
 
@@ -84,12 +85,14 @@ function WorkArchiveCard({
   partnerOrganizations,
   selectedMemberSlug,
   onSelectMember,
+  isPriority,
 }: {
   work: WorkProject;
   crewMembers: CrewMember[];
   partnerOrganizations: PartnerOrganization[];
   selectedMemberSlug: string;
   onSelectMember: (slug: string) => void;
+  isPriority: boolean;
 }) {
   const [isPortraitFrame, setIsPortraitFrame] = useState(false);
   const [isVideoHovered, setIsVideoHovered] = useState(false);
@@ -122,12 +125,6 @@ function WorkArchiveCard({
         <div className="px-4 pt-3 pb-2.5 bg-obsidian/90 border-b border-obsidian-border space-y-2">
           <div className="flex items-center justify-between gap-2 text-xs font-mono">
             <div className="flex items-center gap-2 min-w-0">
-              <span
-                className="px-2 py-0.5 rounded font-bold text-obsidian shrink-0"
-                style={{ backgroundColor: work.accentColor }}
-              >
-                SCENE {work.indexLabel}
-              </span>
               {selectedCredit ? (
                 <span className="text-rec font-bold truncate">
                   {work.credits[0]?.memberSlug === selectedMemberSlug
@@ -175,6 +172,9 @@ function WorkArchiveCard({
               <img
                 src={youtubePosterSrc}
                 alt={work.title}
+                loading={isPriority ? "eager" : "lazy"}
+                decoding="async"
+                fetchPriority={isPriority ? "high" : "low"}
                 onError={(event) => {
                   const image = event.currentTarget;
                   if (image.dataset.fallback !== "true") {
@@ -191,12 +191,18 @@ function WorkArchiveCard({
               <img
                 src={fallbackCoverSrc}
                 alt=""
+                loading="lazy"
+                decoding="async"
+                fetchPriority="low"
                 className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-2xl"
               />
               <img
                 ref={syncAspectFromImg}
                 src={fallbackCoverSrc}
                 alt={work.title}
+                loading={isPriority ? "eager" : "lazy"}
+                decoding="async"
+                fetchPriority={isPriority ? "high" : "low"}
                 onLoad={(event) => {
                   const image = event.currentTarget;
                   setIsPortraitFrame(image.naturalHeight > image.naturalWidth * 1.05);
@@ -271,6 +277,8 @@ function WorkArchiveCard({
                   <img
                     src={m.avatar}
                     alt={m.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-5 h-5 rounded-full object-cover object-[50%_18%]"
                   />
                   <span>{shortName}</span>
@@ -304,6 +312,8 @@ function WorkArchiveCard({
                     <img
                       src={organization.logo}
                       alt=""
+                      loading="lazy"
+                      decoding="async"
                       className="h-5 w-5 rounded-full bg-white object-contain p-0.5"
                     />
                   ) : null}
@@ -335,6 +345,7 @@ function PersonalArchiveCard({
   selectedMemberSlug,
   onSelectMember,
   onOpenAlbum,
+  isPriority,
 }: {
   owner: CrewMember;
   project: UnifiedMemberProject;
@@ -342,6 +353,7 @@ function PersonalArchiveCard({
   selectedMemberSlug: string;
   onSelectMember: (slug: string) => void;
   onOpenAlbum: (owner: CrewMember, project: UnifiedMemberProject, startIdx: number) => void;
+  isPriority: boolean;
 }) {
   const [activeFrame, setActiveFrame] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -391,9 +403,6 @@ function PersonalArchiveCard({
         <div className="px-4 pt-3 pb-2.5 bg-obsidian/90 border-b border-obsidian-border space-y-2">
           <div className="flex items-center justify-between gap-2 text-xs font-mono">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="px-2 py-0.5 rounded font-bold bg-rec text-obsidian shrink-0">
-                CÁ NHÂN
-              </span>
               <span className="text-rec font-semibold truncate">
                 {project.roleBadge}
               </span>
@@ -461,6 +470,9 @@ function PersonalArchiveCard({
               <img
                 src={youtubePosterSrc}
                 alt={project.title}
+                loading={isPriority ? "eager" : "lazy"}
+                decoding="async"
+                fetchPriority={isPriority ? "high" : "low"}
                 onError={(event) => {
                   const image = event.currentTarget;
                   if (image.dataset.fallback !== "true") {
@@ -477,12 +489,18 @@ function PersonalArchiveCard({
               <img
                 src={currentSrc}
                 alt=""
+                loading="lazy"
+                decoding="async"
+                fetchPriority="low"
                 className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-2xl"
               />
               <img
                 ref={syncAspectFromImg}
                 src={currentSrc}
                 alt={project.title}
+                loading={isPriority ? "eager" : "lazy"}
+                decoding="async"
+                fetchPriority={isPriority ? "high" : "low"}
                 onLoad={(event) => {
                   const image = event.currentTarget;
                   setIsPortraitFrame(image.naturalHeight > image.naturalWidth * 1.05);
@@ -544,23 +562,57 @@ function PersonalArchiveCard({
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => onSelectMember(isOwnerSelected ? "ALL" : owner.slug)}
-              title={`Lọc toàn bộ dự án của ${owner.name}`}
-              className={`inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full text-xs font-mono border transition-all cursor-pointer ${
-                isOwnerSelected
-                  ? "bg-rec text-obsidian border-rec font-bold"
-                  : "bg-obsidian border-obsidian-border text-ivory-muted hover:text-ivory hover:border-rec/50"
-              }`}
-            >
-              <img
-                src={owner.avatar}
-                alt={owner.name}
-                className="w-5 h-5 rounded-full object-cover object-[50%_18%]"
-              />
-              <span>{ownerShortName}</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => onSelectMember(isOwnerSelected ? "ALL" : owner.slug)}
+                title={`Lọc toàn bộ dự án của ${owner.name}`}
+                aria-pressed={isOwnerSelected}
+                className={`inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full text-xs font-mono border transition-all cursor-pointer ${
+                  isOwnerSelected
+                    ? "bg-rec text-obsidian border-rec font-bold"
+                    : "bg-obsidian border-obsidian-border text-ivory-muted hover:text-ivory hover:border-rec/50"
+                }`}
+              >
+                <img
+                  src={owner.avatar}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  className="w-5 h-5 rounded-full object-cover object-[50%_18%]"
+                />
+                <span>{ownerShortName}</span>
+              </button>
+              {project.coCreators.slice(0, 3).map((participant) => {
+                const isParticipantSelected = selectedMemberSlug === participant.slug;
+                const participantShortName = participant.nickname || participant.name.split(" ").slice(-1)[0];
+                return <button
+                  key={participant.slug}
+                  type="button"
+                  onClick={() => onSelectMember(isParticipantSelected ? "ALL" : participant.slug)}
+                  title={`Lọc dự án của ${participant.name}`}
+                  aria-pressed={isParticipantSelected}
+                  className={`inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full text-xs font-mono border transition-all cursor-pointer ${
+                    isParticipantSelected
+                      ? "bg-rec text-obsidian border-rec font-bold"
+                      : "bg-obsidian border-obsidian-border text-ivory-muted hover:text-ivory hover:border-rec/50"
+                  }`}
+                >
+                  <img
+                    src={participant.avatar}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="h-5 w-5 rounded-full object-cover object-[50%_18%]"
+                  />
+                  <span>{participantShortName}</span>
+                </button>;
+              })}
+              {project.coCreators.length > 3 ? <span
+                title={project.coCreators.slice(3).map((participant) => participant.name).join(", ")}
+                className="inline-flex items-center rounded-full border border-obsidian-border bg-obsidian px-2.5 py-1 text-xs font-mono text-ivory-muted"
+              >+{project.coCreators.length - 3}</span> : null}
+            </div>
 
             {project.workSlug ? (
               <Link
@@ -590,6 +642,8 @@ function PersonalArchiveCard({
                     <img
                       src={organization.logo}
                       alt=""
+                      loading="lazy"
+                      decoding="async"
                       className="h-5 w-5 rounded-full bg-white object-contain p-0.5"
                     />
                   ) : null}
@@ -675,13 +729,14 @@ export function WorksArchiveGrid() {
   const memberProjectCounts = useMemo(() => {
     const map = new Map<string, number>();
     for (const member of crewMembers) {
-      map.set(
-        member.slug,
-        getUnifiedProjectsForMember(member, workProjects, crewMembers).length
-      );
+      const ownedProjects = getUnifiedProjectsForMember(member, workProjects, crewMembers).length;
+      const taggedPersonalProjects = curatedPersonalProjects.filter(({ owner, project }) =>
+        owner.slug !== member.slug && project.coCreators.some((participant) => participant.slug === member.slug)
+      ).length;
+      map.set(member.slug, ownedProjects + taggedPersonalProjects);
     }
     return map;
-  }, [crewMembers, workProjects]);
+  }, [crewMembers, workProjects, curatedPersonalProjects]);
 
   const captureFlip = () => {
     if (!gridRef.current) return;
@@ -746,6 +801,7 @@ export function WorksArchiveGrid() {
           project.roleBadge,
           owner.name,
           owner.nickname ?? "",
+          ...project.coCreators.flatMap((participant) => [participant.name, participant.nickname ?? "", participant.roleTitle]),
         ].join(" ")
       ),
       owner,
@@ -778,6 +834,11 @@ export function WorksArchiveGrid() {
         }
       }
       entries.push(toPersonalEntry(selectedMember, proj));
+    }
+    for (const { owner, project } of curatedPersonalProjects) {
+      if (owner.slug === selectedMember.slug || !project.coCreators.some((participant) => participant.slug === selectedMember.slug)) continue;
+      if (entries.some((entry) => entry.kind === "personal" && entry.owner.slug === owner.slug && entry.project.id === project.id)) continue;
+      entries.push(toPersonalEntry(owner, project));
     }
     return entries;
   }, [selectedMember, workProjects, crewMembers, curatedPersonalProjects]);
@@ -1190,6 +1251,8 @@ export function WorksArchiveGrid() {
                 <img
                   src={m.avatar}
                   alt={m.name}
+                  loading="lazy"
+                  decoding="async"
                   className="w-6 h-6 rounded-full object-cover object-[50%_18%] border"
                   style={{ borderColor: active ? "#08090C" : meta.color }}
                 />
@@ -1259,7 +1322,7 @@ export function WorksArchiveGrid() {
           ref={gridRef}
           className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
         >
-          {visibleEntries.map((entry) => (
+          {visibleEntries.map((entry, index) => (
             <div
               key={entry.flipId}
               data-flip-id={entry.flipId}
@@ -1272,6 +1335,7 @@ export function WorksArchiveGrid() {
                   partnerOrganizations={partnerOrganizations}
                   selectedMemberSlug={selectedMemberSlug}
                   onSelectMember={handleMemberSelect}
+                  isPriority={index === 0}
                 />
               ) : (
                 <PersonalArchiveCard
@@ -1281,6 +1345,7 @@ export function WorksArchiveGrid() {
                   selectedMemberSlug={selectedMemberSlug}
                   onSelectMember={handleMemberSelect}
                   onOpenAlbum={openPersonalLightbox}
+                  isPriority={index === 0}
                 />
               )}
             </div>
@@ -1433,9 +1498,7 @@ export function WorksArchiveGrid() {
 
                     {/* Uncropped Full-Frame Viewer or Embedded YouTube Stage */}
                     <div
-                      className={`relative bg-obsidian flex-1 min-h-0 flex items-center justify-center p-3 ${
-                        lightboxZoomed ? "overflow-auto" : "overflow-hidden"
-                      }`}
+                      className="relative bg-obsidian flex-1 min-h-0 flex items-center justify-center overflow-hidden p-3"
                     >
                       {showLightboxVideo && lightboxYoutubeEmbed ? (
                         <iframe
@@ -1452,15 +1515,12 @@ export function WorksArchiveGrid() {
                             alt=""
                             className="pointer-events-none absolute inset-0 w-full h-full object-cover blur-2xl opacity-25 scale-110"
                           />
-                          <img
+                          <ZoomPanImage
                             src={lightboxGallery[activeLightboxPhotoIdx]}
                             alt={lightboxEntry.project.title}
-                            onClick={() => setLightboxZoomed((z) => !z)}
-                            className={`relative z-10 rounded-lg shadow-2xl transition-transform duration-300 ${
-                              lightboxZoomed
-                                ? "max-h-none w-auto scale-150 cursor-zoom-out sm:scale-[1.85]"
-                                : "max-h-full w-auto max-w-full cursor-zoom-in object-contain"
-                            }`}
+                            zoomed={lightboxZoomed}
+                            onToggleZoom={() => setLightboxZoomed((z) => !z)}
+                            className="relative z-10 max-h-full w-auto max-w-full rounded-lg object-contain shadow-2xl"
                           />
 
                           {lightboxGallery.length > 1 && (

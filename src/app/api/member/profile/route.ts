@@ -83,6 +83,13 @@ export async function PUT(request: Request) {
     if (nextProfile.showcase.length > 50 || nextProfile.showcase.some((item) => item.gallery && item.gallery.length > 80)) {
       return NextResponse.json({ ok: false, error: "Profile có quá nhiều dự án hoặc ảnh trong album." }, { status: 400 });
     }
+    const availableParticipantSlugs = new Set(parsed.data.crew.filter((member) => member.id !== currentProfile.id).map((member) => member.slug));
+    if (nextProfile.showcase.some((item) => {
+      const participantSlugs = item.participantSlugs ?? [];
+      return new Set(participantSlugs).size !== participantSlugs.length || participantSlugs.some((slug) => !availableParticipantSlugs.has(slug));
+    })) {
+      return NextResponse.json({ ok: false, error: "Thành viên được gắn trong dự án cá nhân không hợp lệ. Hãy tải lại profile rồi thử lại." }, { status: 400 });
+    }
     const memberPartnerIds = (nextProfile.partnerOrganizations ?? []).map((organization) => organization.id);
     const globalPartnerIds = parsed.data.partnerOrganizations.map((organization) => organization.id);
     const otherMemberPartnerIds = parsed.data.crew.filter((member) => member.id !== currentProfile.id)
@@ -116,7 +123,18 @@ export async function PUT(request: Request) {
     const nameChanged = currentProfile.name !== nextProfile.name;
     const nextContent = {
       ...parsed.data,
-      crew: parsed.data.crew.map((member) => member.id === session.memberId ? nextProfile : member),
+      crew: parsed.data.crew.map((member) => {
+        if (member.id === session.memberId) return nextProfile;
+        if (!slugChanged) return member;
+        const showcase = member.showcase.map((item) => {
+          if (!item.participantSlugs?.includes(currentProfile.slug)) return item;
+          return {
+            ...item,
+            participantSlugs: Array.from(new Set(item.participantSlugs.map((slug) => slug === currentProfile.slug ? nextProfile.slug : slug))),
+          };
+        });
+        return { ...member, showcase };
+      }),
       works: slugChanged ? parsed.data.works.map((work) => ({
         ...work,
         credits: work.credits.map((credit) => credit.memberSlug === currentProfile.slug ? { ...credit, memberSlug: nextProfile.slug } : credit),

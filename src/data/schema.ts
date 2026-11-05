@@ -14,6 +14,7 @@ export const BentoItemSchema = z.object({
   galleryDriveFolderUrl: z.string().optional(),
   description: z.string().optional(),
   projectSlug: z.string().optional(),
+  participantSlugs: z.array(z.string()).max(16).optional(),
   partnerIds: z.array(z.string()).optional(),
   durationOrSpec: z.string(),
   exifSpec: z.string().optional(),

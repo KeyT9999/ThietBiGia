@@ -35,6 +35,7 @@ import {
 import { getCombinedRoleBadge, getRoleMeta } from "@/lib/utils";
 import { DecoderText } from "@/components/layout/DecoderText";
 import { MemberProjectCard } from "./MemberProjectCard";
+import { ZoomPanImage } from "@/components/works/ZoomPanImage";
 import { soundEngine } from "@/lib/sound";
 import { useAuthenticatedMemberId, useSiteContent } from "@/lib/store";
 
@@ -725,7 +726,7 @@ export function MemberSpotlightView({
 
                     {/* Uncropped Full-Frame Viewer with 2x Loupe Inspection */}
                     <div
-                      className={`relative bg-obsidian flex-1 min-h-0 flex items-center justify-center p-3 ${lightboxZoomed ? "overflow-auto" : "overflow-hidden"}`}
+                      className="relative bg-obsidian flex-1 min-h-0 flex items-center justify-center overflow-hidden p-3"
                     >
                       {showLightboxVideo && lightboxYoutubeEmbed ? (
                         <iframe
@@ -742,15 +743,12 @@ export function MemberSpotlightView({
                             alt=""
                             className="pointer-events-none absolute inset-0 w-full h-full object-cover blur-2xl opacity-25 scale-110"
                           />
-                          <img
+                          <ZoomPanImage
                             src={lightboxGallery[activeLightboxPhotoIdx]}
                             alt={lightboxProject.title}
-                            onClick={() => setLightboxZoomed((z) => !z)}
-                            className={`relative z-10 rounded-lg shadow-2xl transition-transform duration-300 ${
-                              lightboxZoomed
-                                ? "max-h-none w-auto scale-150 cursor-zoom-out sm:scale-[1.85]"
-                                : "max-h-full w-auto max-w-full cursor-zoom-in object-contain"
-                            }`}
+                            zoomed={lightboxZoomed}
+                            onToggleZoom={() => setLightboxZoomed((z) => !z)}
+                            className="relative z-10 max-h-full w-auto max-w-full rounded-lg object-contain shadow-2xl"
                           />
                         </>
                       )}
