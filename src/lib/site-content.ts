@@ -16,6 +16,7 @@ import { normalizeNavigationOrder } from "@/lib/navigation-order";
 
 const KEYT_NINI_MIGRATION_ID = "tkt-nini-v1";
 const KEYT_PORTFOLIO_V2_MIGRATION_ID = "tkt-portfolio-2026-v2";
+const SHARED_PARTNER_CATALOG_MIGRATION_ID = "shared-partner-catalog-v1";
 
 export const DEFAULT_SITE_CONTENT: SiteContent = {
   crew: normalizeCrewOrder(structuredClone(CREW_MEMBERS)),
@@ -60,6 +61,19 @@ function applySeededMigrations(data: SiteContent): SiteContent {
   const migrations = new Set(data.seededMigrations ?? []);
   let crew = data.crew;
   let works = data.works;
+  let partnerOrganizations = data.partnerOrganizations;
+
+  if (!migrations.has(SHARED_PARTNER_CATALOG_MIGRATION_ID)) {
+    const sharedById = new Map(partnerOrganizations.map((organization) => [organization.id, organization]));
+    for (const member of crew) {
+      for (const organization of member.partnerOrganizations ?? []) {
+        if (!sharedById.has(organization.id)) sharedById.set(organization.id, organization);
+      }
+    }
+    partnerOrganizations = Array.from(sharedById.values());
+    crew = crew.map(({ partnerOrganizations: _memberOrganizations, ...member }) => member);
+    migrations.add(SHARED_PARTNER_CATALOG_MIGRATION_ID);
+  }
 
   if (!migrations.has(KEYT_PORTFOLIO_V2_MIGRATION_ID)) {
     const newPersonalItems = [
@@ -125,6 +139,7 @@ function applySeededMigrations(data: SiteContent): SiteContent {
     ...data,
     crew: normalizeCrewOrder(crew),
     works,
+    partnerOrganizations,
     seededMigrations: Array.from(migrations),
   };
 }

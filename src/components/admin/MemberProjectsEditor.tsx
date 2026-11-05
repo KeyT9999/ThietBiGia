@@ -201,7 +201,7 @@ export function MemberProjectsEditor({
               <AdminImageField label="Ảnh bìa" value={item.image} folder="thiet-bi-gia/projects" signatureEndpoint={signatureEndpoint} onChange={(image) => updateShowcaseItem(item.id, { image })} />
               <AdminDriveFolderField value={item.galleryDriveFolderUrl} onChange={(galleryDriveFolderUrl) => updateShowcaseItem(item.id, { galleryDriveFolderUrl })} hint="Ảnh trong link này sẽ hiện khi mở album dự án. Chỉ ảnh trực tiếp trong thư mục; đặt tên 01, 02, 03… để sắp thứ tự. Sau khi thêm, xóa hoặc thay ảnh trên Drive, bấm Cập nhật ảnh từ Drive để nạp danh sách mới." />
               <div className="space-y-2 rounded-xl border border-white/10 p-3 sm:p-4">
-                <div><h4 className="text-sm font-bold">Đơn vị đồng hành</h4><p className="mt-1 text-xs text-ivory-subtle">Chọn các đơn vị admin đã thêm. Đơn vị được hiển thị trên thẻ dự án ở profile.</p></div>
+                <div><h4 className="text-sm font-bold">Đơn vị đồng hành</h4><p className="mt-1 text-xs text-ivory-subtle">Chọn đơn vị đã được duyệt trong danh mục chung. Đơn vị được hiển thị trên thẻ dự án ở profile.</p></div>
                 {partnerOrganizations.length ? <div className="grid gap-2 sm:grid-cols-2">{partnerOrganizations.map((organization) => {
                   const checked = (item.partnerIds ?? []).includes(organization.id);
                   return <label key={organization.id} className={`flex cursor-pointer items-center gap-2.5 rounded-xl border p-2.5 ${checked ? "border-rec/50 bg-rec/[0.07]" : "border-white/10 bg-obsidian/50"}`}>
@@ -214,7 +214,7 @@ export function MemberProjectsEditor({
                     {organization.logo ? <img src={organization.logo} alt="" className="h-8 w-8 shrink-0 rounded-md bg-white object-contain p-1" /> : null}
                     <span className="min-w-0 truncate text-xs font-semibold text-ivory">{organization.name}</span>
                   </label>;
-                })}</div> : <p className="text-xs text-ivory-subtle">Chưa có đơn vị nào trong danh mục. Hãy tạo trước ở công cụ admin “Đơn vị đồng hành”.</p>}
+                })}</div> : <p className="text-xs text-ivory-subtle">Chưa có đơn vị trong danh mục chung. Hãy gửi đề xuất ở mục “Đơn vị đồng hành”; sau khi admin duyệt, bạn có thể chọn tại đây.</p>}
               </div>
               <AdminField label="Thông số EXIF (tùy chọn)" value={item.exifSpec ?? ""} onChange={(exifSpec) => updateShowcaseItem(item.id, { exifSpec: exifSpec || undefined })} />
               <div className="grid gap-4 sm:grid-cols-2">

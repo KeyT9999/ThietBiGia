@@ -17,7 +17,7 @@ type Section = "profile" | "projects" | "partners" | "orders" | "security";
 const sections: { id: Section; label: string; detail: string; icon: typeof CircleUserRound }[] = [
   { id: "profile", label: "Thông tin cá nhân", detail: "Ảnh, giới thiệu và liên hệ", icon: CircleUserRound },
   { id: "projects", label: "Dự án trưng bày", detail: "Dự án riêng và dự án chung", icon: Images },
-  { id: "partners", label: "Đơn vị đồng hành", detail: "Đối tác cho dự án cá nhân", icon: Building2 },
+  { id: "partners", label: "Đơn vị đồng hành", detail: "Danh sách chung & gửi đề xuất mới", icon: Building2 },
   { id: "orders", label: "Đơn hàng", detail: "Xác nhận & liên hệ khách", icon: ShoppingBag },
   { id: "security", label: "Bảo mật tài khoản", detail: "Đổi mật khẩu đăng nhập", icon: KeyRound },
 ];
@@ -231,9 +231,9 @@ export function MemberWorkspace() {
               </section>
             </div> : null}
 
-            {section === "projects" ? <MemberProjectsEditor member={profile} works={works} crew={crew} partnerOrganizations={[...partnerOrganizations, ...(profile.partnerOrganizations ?? [])]} signatureEndpoint="/api/member/cloudinary-signature" onChange={update} /> : null}
+            {section === "projects" ? <MemberProjectsEditor member={profile} works={works} crew={crew} partnerOrganizations={partnerOrganizations} signatureEndpoint="/api/member/cloudinary-signature" onChange={update} /> : null}
 
-            {section === "partners" ? <MemberPartnerOrganizationsEditor member={profile} signatureEndpoint="/api/member/cloudinary-signature" onChange={update} /> : null}
+            {section === "partners" ? <MemberPartnerOrganizationsEditor organizations={partnerOrganizations} signatureEndpoint="/api/member/cloudinary-signature" /> : null}
 
             {section === "orders" ? <MemberOrdersTool /> : null}
 

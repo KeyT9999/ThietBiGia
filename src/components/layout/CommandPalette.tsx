@@ -46,10 +46,7 @@ export function CommandPalette() {
   const crewMembers = siteContent.crew;
   const workProjects = siteContent.works;
   const gearArsenal = siteContent.gear;
-  const partnerCount = new Set([
-    ...siteContent.partnerOrganizations.map((organization) => organization.id),
-    ...crewMembers.flatMap((member) => (member.partnerOrganizations ?? []).map((organization) => organization.id)),
-  ]).size;
+  const partnerCount = siteContent.partnerOrganizations.length;
   const router = useRouter();
   const open = useAppStore((s) => s.commandPaletteOpen);
   const setOpen = useAppStore((s) => s.setCommandPaletteOpen);

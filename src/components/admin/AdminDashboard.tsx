@@ -15,6 +15,7 @@ import { ProjectEditor } from "./ProjectEditor";
 import { AdminOrdersTool } from "./AdminOrdersTool";
 import { ContactServicesManager } from "./ContactServicesManager";
 import { PartnerOrganizationsManager } from "./PartnerOrganizationsManager";
+import { PartnerProposalsQueue } from "./PartnerProposalsQueue";
 import { OrderBadgeInput, useListDragReorder, type DropPlacement } from "./OrderControls";
 import { moveCrewMemberToBadgeNumber, normalizeCrewOrder } from "@/lib/crew-order";
 import { normalizeNavigationOrder } from "@/lib/navigation-order";
@@ -26,7 +27,7 @@ const tabs = [
   { id: "members", label: "Thành viên", description: "Hồ sơ & tài khoản", icon: Users },
   { id: "projects", label: "Dự án", description: "Nội dung & thứ tự", icon: Clapperboard },
   { id: "services", label: "Dịch vụ Contact", description: "Hạng mục khách đặt", icon: ListChecks },
-  { id: "partners", label: "Đơn vị đồng hành", description: "Hồ sơ & liên kết dự án", icon: Building2 },
+  { id: "partners", label: "Đơn vị đồng hành", description: "Duyệt đề xuất & danh mục chung", icon: Building2 },
   { id: "about", label: "About & kho ảnh", description: "Câu chuyện & tư liệu", icon: Images },
   { id: "orders", label: "Đơn hàng", description: "Phân công & theo dõi", icon: ShoppingBag },
   { id: "settings", label: "Cài đặt website", description: "Thương hiệu & liên hệ", icon: Settings2 },
@@ -396,6 +397,24 @@ export function AdminDashboard() {
     setNotice("");
   }
 
+  function addApprovedPartner(organization: SiteContent["partnerOrganizations"][number]) {
+    if (content && !content.partnerOrganizations.some((item) => item.id === organization.id)) {
+      const nextContent = { ...content, partnerOrganizations: [...content.partnerOrganizations, organization] };
+      setContent(nextContent);
+      updateSiteContent(nextContent);
+    }
+    setSavedSnapshot((snapshot) => {
+      try {
+        const saved = JSON.parse(snapshot) as SiteContent;
+        if (saved.partnerOrganizations.some((item) => item.id === organization.id)) return snapshot;
+        return JSON.stringify({ ...saved, partnerOrganizations: [...saved.partnerOrganizations, organization] });
+      } catch {
+        return snapshot;
+      }
+    });
+    setNotice(`Đã duyệt “${organization.name}” và thêm vào danh mục chung.`);
+  }
+
   async function save() {
     if (!content || !isDirty) return;
     setSaving(true);
@@ -704,7 +723,7 @@ export function AdminDashboard() {
 
             {tab === "services" ? <ContactServicesManager services={content.contactServices} onChange={(contactServices) => update("contactServices", contactServices)} /> : null}
 
-            {tab === "partners" ? <PartnerOrganizationsManager organizations={content.partnerOrganizations} works={content.works} crew={content.crew} onChange={(partnerOrganizations) => update("partnerOrganizations", partnerOrganizations)} onDelete={deletePartnerOrganization} /> : null}
+            {tab === "partners" ? <div className="space-y-5"><PartnerProposalsQueue onApproved={addApprovedPartner} /><PartnerOrganizationsManager organizations={content.partnerOrganizations} works={content.works} crew={content.crew} onChange={(partnerOrganizations) => update("partnerOrganizations", partnerOrganizations)} onDelete={deletePartnerOrganization} /></div> : null}
 
             {tab === "about" ? (
               <div className="space-y-5">

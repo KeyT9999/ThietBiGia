@@ -42,11 +42,6 @@ function teamProject(work: WorkProject): PartnerProject {
 export function getPartnerEntries(content: Pick<SiteContent, "partnerOrganizations" | "crew" | "works">): PartnerEntry[] {
   const partners = new Map<string, { organization: PartnerOrganization; owner?: string }>();
   for (const organization of content.partnerOrganizations) partners.set(organization.id, { organization });
-  for (const member of content.crew) {
-    for (const organization of member.partnerOrganizations ?? []) {
-      if (!partners.has(organization.id)) partners.set(organization.id, { organization, owner: member.nickname || member.name });
-    }
-  }
 
   const relatedById = new Map<string, Map<string, PartnerProject>>();
   const addRelated = (partnerIds: string[] | undefined, project: PartnerProject) => {

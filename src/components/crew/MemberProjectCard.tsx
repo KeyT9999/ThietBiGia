@@ -59,9 +59,7 @@ export function MemberProjectCard({
     if (folderId) params.set("v", folderId);
     return `/api/works/gallery?${params.toString()}`;
   })();
-  const personalPartners = siteContent.crew.find((member) => member.slug === memberSlug)?.partnerOrganizations ?? [];
-  const partnerCatalog = [...siteContent.partnerOrganizations, ...personalPartners];
-  const partnerById = new Map(partnerCatalog.map((organization) => [organization.id, organization]));
+  const partnerById = new Map(siteContent.partnerOrganizations.map((organization) => [organization.id, organization]));
   const linkedPartners = (project.partnerIds ?? [])
     .map((id) => partnerById.get(id))
     .filter((organization): organization is PartnerOrganization => Boolean(organization));

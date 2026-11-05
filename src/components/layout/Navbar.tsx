@@ -18,10 +18,7 @@ export function Navbar() {
     ? siteContent.crew.find((member) => member.id === authenticatedMemberId) ?? null
     : null;
   const settings = siteContent.settings;
-  const partnerCount = new Set([
-    ...siteContent.partnerOrganizations.map((organization) => organization.id),
-    ...siteContent.crew.flatMap((member) => (member.partnerOrganizations ?? []).map((organization) => organization.id)),
-  ]).size;
+  const partnerCount = siteContent.partnerOrganizations.length;
   const soundMuted = useAppStore((s) => s.soundMuted);
   const toggleSound = useAppStore((s) => s.toggleSound);
   const isOverlayOpen = useAppStore((s) => s.isOverlayOpen);

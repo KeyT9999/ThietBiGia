@@ -383,9 +383,8 @@ function PersonalArchiveCard({
   const partnerCatalog = useMemo(() => {
     const map = new Map<string, PartnerOrganization>();
     for (const org of globalPartners) map.set(org.id, org);
-    for (const org of owner.partnerOrganizations ?? []) map.set(org.id, org);
     return map;
-  }, [globalPartners, owner.partnerOrganizations]);
+  }, [globalPartners]);
 
   const linkedPartners = (project.partnerIds ?? [])
     .map((id) => partnerCatalog.get(id))

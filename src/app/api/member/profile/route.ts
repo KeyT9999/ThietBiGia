@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 const MEMBER_EDITABLE_FIELDS = [
   "slug", "name", "nickname", "roleCategory", "roles", "roleTitle", "secondaryRoles", "bio",
   "avatar", "avatarAlt", "favoriteGear", "yearsActive", "location", "socials", "showcase",
-  "partnerOrganizations", "profileSharedWorkIds", "profileProjectOrder",
+  "profileSharedWorkIds", "profileProjectOrder",
 ] as const;
 
 export async function GET() {
@@ -90,18 +90,8 @@ export async function PUT(request: Request) {
     })) {
       return NextResponse.json({ ok: false, error: "Thành viên được gắn trong dự án cá nhân không hợp lệ. Hãy tải lại profile rồi thử lại." }, { status: 400 });
     }
-    const memberPartnerIds = (nextProfile.partnerOrganizations ?? []).map((organization) => organization.id);
     const globalPartnerIds = parsed.data.partnerOrganizations.map((organization) => organization.id);
-    const otherMemberPartnerIds = parsed.data.crew.filter((member) => member.id !== currentProfile.id)
-      .flatMap((member) => (member.partnerOrganizations ?? []).map((organization) => organization.id));
-    const reservedPartnerIds = new Set([
-      ...globalPartnerIds,
-      ...otherMemberPartnerIds,
-    ]);
-    if (new Set(memberPartnerIds).size !== memberPartnerIds.length || memberPartnerIds.some((id) => reservedPartnerIds.has(id))) {
-      return NextResponse.json({ ok: false, error: "Mã đơn vị đồng hành bị trùng. Hãy tải lại trang rồi thử lại." }, { status: 400 });
-    }
-    const knownPartnerIds = new Set([...globalPartnerIds, ...memberPartnerIds]);
+    const knownPartnerIds = new Set(globalPartnerIds);
     if (nextProfile.showcase.some((item) => (item.partnerIds ?? []).some((id) => !knownPartnerIds.has(id)))) {
       return NextResponse.json({ ok: false, error: "Dự án cá nhân đang gắn với đơn vị đồng hành không tồn tại. Hãy tải lại trang rồi thử lại." }, { status: 400 });
     }

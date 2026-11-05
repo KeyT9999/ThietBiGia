@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, FolderKanban, IdCard, Image as ImageIcon, KeyRound, Trash2 } from "lucide-react";
+import { FolderKanban, IdCard, Image as ImageIcon, KeyRound, Trash2 } from "lucide-react";
 import type { CrewMember, PartnerOrganization, WorkProject } from "@/data/schema";
 import { AdminField, AdminImageField, AdminStringListField } from "./AdminFields";
 import { MemberProjectsEditor } from "./MemberProjectsEditor";
-import { MemberPartnerOrganizationsEditor } from "./MemberPartnerOrganizationsEditor";
 import { MemberAccountTools } from "./MemberAccountTools";
 
 type Role = "chup-anh" | "quay-phim" | "it-tech";
@@ -37,8 +36,8 @@ export function MemberEditor({
   onDelete: () => void;
 }) {
   const [badgeNumberDraft, setBadgeNumberDraft] = useState(member.badgeNumber);
-  const [section, setSection] = useState<"profile" | "media" | "projects" | "partners" | "account">("profile");
-  const projectOrganizations = [...partnerOrganizations, ...(member.partnerOrganizations ?? [])];
+  const [section, setSection] = useState<"profile" | "media" | "projects" | "account">("profile");
+  const projectOrganizations = partnerOrganizations;
 
   useEffect(() => {
     setBadgeNumberDraft(member.badgeNumber);
@@ -71,7 +70,6 @@ export function MemberEditor({
           { id: "profile", label: "Hồ sơ", detail: "Tên, vai trò, giới thiệu", icon: IdCard },
           { id: "media", label: "Ảnh & liên hệ", detail: "Ảnh thẻ, mạng xã hội", icon: ImageIcon },
           { id: "projects", label: "Dự án", detail: "Bài cá nhân và dự án chung", icon: FolderKanban },
-          { id: "partners", label: "Đơn vị đồng hành", detail: "Đối tác cá nhân", icon: Building2 },
           { id: "account", label: "Tài khoản", detail: "Đăng nhập và mật khẩu", icon: KeyRound },
         ] as const).map((item) => {
           const Icon = item.icon;
@@ -154,7 +152,6 @@ export function MemberEditor({
       </section> : null}
 
       {section === "projects" ? <MemberProjectsEditor member={member} works={works} crew={crew} partnerOrganizations={projectOrganizations} onChange={onChange} /> : null}
-      {section === "partners" ? <MemberPartnerOrganizationsEditor member={member} onChange={onChange} /> : null}
       {section === "account" ? <MemberAccountTools memberId={member.id} slug={member.slug} canManage={accountCanManage} /> : null}
     </div>
   );
